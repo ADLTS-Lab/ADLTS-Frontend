@@ -1,5 +1,3 @@
-// app/services/auth.service.ts
-
 export interface LoginCredentials {
     email: string;
     password: string;
