@@ -34,9 +34,9 @@ export default function LandingPage() {
               <button className="px-3 py-1 text-[10px] font-bold bg-white rounded-full shadow-sm">አማ</button>
             </div>
             <button
-              onClick={() => router.push("/candidate/login")}
+              onClick={() => router.push("/login")}
               className="bg-blue-900 text-white px-6 py-2 rounded-lg text-xs font-bold hover:bg-blue-800 transition"
-            >
+>
               ግቡ
             </button>
           </div>

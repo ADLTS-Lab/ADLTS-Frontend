@@ -23,12 +23,12 @@ export default function CandidateDashboard() {
 
   const handleLogout = () => {
     logout();
-    router.push("/candidate/login");
+    router.push("/login");
   }
   // 🛡️ Route protection
   useEffect(() => {
     if (!isAuthenticated) {
-      router.push("/candidate/login");
+      router.push("/login");
     }
   }, [isAuthenticated, router]);
 

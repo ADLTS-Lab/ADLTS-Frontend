@@ -52,7 +52,7 @@ export default function CandidateRegisterPage() {
       // In a real app, you'd POST to /api/register
       // For now, just redirect to login page on "success"
       console.log("Registration attempt:", formData);
-      router.push("/candidate/login?registered=true");
+      router.push("/login?registered=true");
     } catch (err: any) {
       setError(err.message || "Registration failed. Please try again.");
     } finally {
@@ -180,7 +180,7 @@ export default function CandidateRegisterPage() {
         <p className="mt-6 text-center text-sm text-[#6B7280]">
           አካውንት አለህ?{" "}
           <button
-            onClick={() => router.push("/candidate/login")}
+            onClick={() => router.push("/login")}
             className="text-[#1E3A8A] font-semibold hover:underline"
           >
             ግባ (Login)
