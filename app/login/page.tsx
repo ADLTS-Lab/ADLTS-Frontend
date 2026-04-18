@@ -126,7 +126,7 @@ export default function UnifiedLoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={role === "candidate" ? "candidate@adlts.et" : "admin@adlts.gov.et"}
-              className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent outline-none transition bg-[#F9FAFB]"
+              className="text-black w-full px-4 py-3 rounded-xl border border-[#E5E7EB] focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent outline-none transition bg-[#F9FAFB]"
             />
           </div>
 
@@ -135,7 +135,7 @@ export default function UnifiedLoginPage() {
               <label className="text-sm font-semibold text-[#1F2937]">
                 Password / የይለፍ ቃል
               </label>
-              <button type="button" className="text-xs text-[#3B82F6] hover:underline">
+              <button type="button" className="text-xs text-black text-[#3B82F6] hover:underline">
                 Forgot password?
               </button>
             </div>
