@@ -23,7 +23,9 @@ export default function CandidateDashboard() {
 
   const handleLogout = () => {
     logout();
+
     router.push("/login");
+
   }
   // 🛡️ Route protection
   useEffect(() => {

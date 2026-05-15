@@ -17,67 +17,33 @@ export default function UnifiedLoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const setUser = useAuthStore((s) => s.setUser);
-  const setToken = useAuthStore((s) => s.setToken);
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError("");
-    setIsLoading(true);
+  e.preventDefault();
+  setError('');
+  setIsLoading(true);
 
-    try {
-      let res;
-      if (role === "candidate") {
-        // Use existing mock for candidate
-        if (email !== "candidate@adlts.et" || password !== "password123") {
-          throw new Error("Invalid candidate credentials");
-        }
-        res = {
-          data: {
-            user: {
-              id: "1",
-              name: "Test Candidate",
-              email: email,
-              role: "candidate" as const,
-              licenseCategory: "B",
-              testCenter: "Bole Test Center",
-            },
-            token: "mock-candidate-token",
-          },
-        };
-      } else {
-        // Admin mock
-        if (email !== "admin@adlts.gov.et" || password !== "admin123") {
-          throw new Error("Invalid admin credentials");
-        }
-        res = {
-          data: {
-            user: {
-              id: "admin-1",
-              name: "System Administrator",
-              email: email,
-              role: "admin" as const,
-            },
-            token: "mock-admin-token",
-          },
-        };
-      }
-
-      setUser(res.data.user);
-      setToken(res.data.token);
-      localStorage.setItem("auth-token", res.data.token);
-
-      // Redirect based on role
-      if (role === "candidate") {
-        router.push("/candidate/dashboard");
-      } else {
-        router.push("/admin/devices");
-      }
-    } catch (err: any) {
-      setError(err.message || "Login failed. Check your credentials.");
-    } finally {
-      setIsLoading(false);
+  try {
+    const res = await login({ email, password });
+    const { access_token, entity_type, user } = res.data;
+    
+    setUser(user, access_token, entity_type);
+    // Redirect based on entity_type
+    if (entity_type === 'candidate') {
+      router.push('/candidate/dashboard');
+    } else if (entity_type === 'admin') {
+      router.push('/admin/devices');
+    } else if (entity_type === 'super_admin') {
+      router.push('/super-admin/dashboard'); // you may need this page
+    } else {
+      router.push('/dashboard');
     }
-  };
+  } catch (err: any) {
+    setError(err.response?.data?.message || 'Login failed');
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="min-h-screen bg-[#F5F7FA] flex items-center justify-center px-4">
