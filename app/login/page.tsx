@@ -101,7 +101,11 @@ export default function UnifiedLoginPage() {
               <label className="text-sm font-semibold text-[#1F2937]">
                 Password / የይለፍ ቃል
               </label>
-              <button type="button" className="text-xs text-[#3B82F6] hover:underline">
+              <button
+                type="button"
+                onClick={() => router.push("/forgot-password")}
+                className="text-xs text-[#3B82F6] hover:underline"
+              >
                 Forgot password?
               </button>
             </div>

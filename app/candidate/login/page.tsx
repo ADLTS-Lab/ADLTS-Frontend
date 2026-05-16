@@ -14,7 +14,6 @@ export default function CandidateLoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const setUser = useAuthStore((s) => s.setUser);
-  const setToken = useAuthStore((s) => s.setToken);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -23,9 +22,7 @@ export default function CandidateLoginPage() {
 
     try {
       const res = await login({ email, password });
-      setUser(res.data.user);
-      setToken(res.data.token);
-      localStorage.setItem("auth-token", res.data.token);
+      setUser(res.data.user, res.data.access_token, res.data.entity_type);
       router.push("/candidate/dashboard");
     } catch (err: any) {
       setError(err.message || "Login failed. Check your credentials.");
@@ -94,7 +91,11 @@ export default function CandidateLoginPage() {
                 <label className="text-sm font-semibold text-[#1F2937]">
                   Password (የይለፍ ቃል)
                 </label>
-                <button type="button" className="text-xs text-[#3B82F6] hover:underline">
+                <button
+                  type="button"
+                  onClick={() => router.push("/forgot-password")}
+                  className="text-xs text-[#3B82F6] hover:underline"
+                >
                   Forgot password?
                 </button>
               </div>
@@ -132,9 +133,9 @@ export default function CandidateLoginPage() {
             </button>
 
             <div className="relative flex items-center">
-              <div className="flex-grow border-t border-[#E5E7EB]"></div>
+              <div className="grow border-t border-[#E5E7EB]"></div>
               <span className="mx-4 text-xs text-[#6B7280] uppercase">OR</span>
-              <div className="flex-grow border-t border-[#E5E7EB]"></div>
+              <div className="grow border-t border-[#E5E7EB]"></div>
             </div>
 
             <button
