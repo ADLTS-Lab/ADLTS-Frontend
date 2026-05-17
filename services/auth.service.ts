@@ -1,6 +1,7 @@
 import api from '@/lib/api';
 
 const LOCAL_REGISTERED_USERS_KEY = 'adlts-registered-users';
+const ALLOW_LOCAL_FALLBACK = process.env.NEXT_PUBLIC_ALLOW_LOCAL_FALLBACK === 'true';
 
 // ---------- Types ----------
 export interface LoginCredentials {
@@ -164,9 +165,11 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
     const response = await api.post('/auth/login', credentials);
     return normalizeLoginResponse(response.data as RawLoginResponse);
   } catch (error: any) {
-    const localUser = findLocalRegisteredUser(credentials.email, credentials.password);
-    if (localUser) {
-      return buildLocalLoginResponse(localUser);
+    if (ALLOW_LOCAL_FALLBACK) {
+      const localUser = findLocalRegisteredUser(credentials.email, credentials.password);
+      if (localUser) {
+        return buildLocalLoginResponse(localUser);
+      }
     }
 
     throw error;
@@ -224,7 +227,7 @@ export async function registerCandidate(data: CandidateRegistrationData): Promis
 
   const res = await api.post('/auth/register', payload);
 
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && ALLOW_LOCAL_FALLBACK) {
     saveLocalRegisteredUser(data);
   }
 
