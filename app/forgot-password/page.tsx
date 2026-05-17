@@ -95,7 +95,8 @@ export default function ForgotPasswordPage() {
             </p>
           </form>
         )}
+        </div>
       </div>
-    </div>
+    
   );
 }

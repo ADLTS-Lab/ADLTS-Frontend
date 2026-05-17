@@ -108,80 +108,8 @@ export default function AdminDeviceDashboard() {
   const offlineCount = mockDevices.filter((d) => d.status === "Offline").length;
 
   return (
-    <div className="min-h-screen bg-[#F1F5F9] flex font-sans text-slate-900">
-      {/* Dark Sidebar */}
-      <aside className="w-72 bg-gradient-to-b from-[#1D3B8A] to-[#162D6D] text-white flex flex-col hidden xl:flex">
-        <div className="p-8">
-          <div className="flex items-center gap-3 mb-10">
-            <div className="w-10 h-10 bg-black/20 rounded-lg flex items-center justify-center font-bold border border-white/10">
-              🏛️
-            </div>
-            <div>
-              <h1 className="font-bold leading-none tracking-tight">ADLTS Admin</h1>
-              <p className="text-[10px] opacity-60 uppercase tracking-tighter mt-1">
-                Ethiopian Digital Platform
-              </p>
-            </div>
-          </div>
-
-          <nav className="space-y-1">
-            <SidebarLink icon={<LayoutDashboard size={18} />} label="Dashboard" />
-            <SidebarLink icon={<Laptop size={18} />} label="Devices" active />
-            <SidebarLink icon={<Activity size={18} />} label="Active Exams" />
-            <SidebarLink icon={<History size={18} />} label="Exam History" />
-            <SidebarLink icon={<Users size={18} />} label="Candidates" />
-            <SidebarLink icon={<BarChart3 size={18} />} label="Analytics" />
-          </nav>
-        </div>
-
-        <div className="mt-auto p-6 bg-black/10 border-t border-white/5">
-          <div className="space-y-3">
-            <div className="flex justify-between text-[10px] font-bold">
-              <span className="opacity-60">System Health</span>
-              <span className="text-blue-300">98%</span>
-            </div>
-            <div className="h-1.5 w-full bg-white/10 rounded-full overflow-hidden">
-              <div className="h-full bg-blue-400 w-[98%]" />
-            </div>
-            <p className="text-[10px] opacity-50">All systems operational</p>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Content Area */}
-      <div className="flex-grow flex flex-col">
-        {/* Top Navbar */}
-        <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8 sticky top-0 z-30">
-          <div className="relative w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input
-              type="text"
-              placeholder="Search devices, IDs, or locations..."
-              className="w-full pl-10 pr-4 py-2 bg-slate-100 rounded-full text-sm border-none focus:ring-2 focus:ring-blue-500/20"
-            />
-          </div>
-
-          <div className="flex items-center gap-6">
-            <div className="flex items-center gap-2 border-r pr-6 border-slate-100 text-slate-400">
-              <Bell size={20} className="hover:text-blue-600 cursor-pointer" />
-              <Settings size={20} className="hover:text-blue-600 cursor-pointer" />
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="text-right">
-                <p className="text-sm font-bold text-slate-800">{user?.name || "Admin"}</p>
-                <p className="text-[10px] text-slate-400">Super Admin</p>
-              </div>
-              <div className="w-10 h-10 rounded-lg bg-blue-100 border border-blue-200 flex items-center justify-center overflow-hidden">
-                <div className="w-full h-full bg-blue-200 flex items-center justify-center text-blue-800 font-bold">
-                  {user?.name?.charAt(0) || "A"}
-                </div>
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Dashboard Content */}
-        <main className="p-8 space-y-8">
+    <>
+      <main className="space-y-8">
           <div className="flex justify-between items-end flex-wrap gap-4">
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">
@@ -191,14 +119,14 @@ export default function AdminDeviceDashboard() {
                 Device Management Dashboard •{" "}
                 <span className="text-slate-500 font-medium">{totalDevices} Active Units</span>
               </h2>
-            </div>
-            <div className="flex gap-3">
-              <button className="flex items-center gap-2 bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-bold hover:bg-slate-300 transition">
-                <Filter size={16} /> Filter
-              </button>
-              <button className="flex items-center gap-2 bg-[#1D3B8A] text-white px-5 py-2 rounded-xl text-sm font-bold hover:bg-blue-800 transition shadow-lg shadow-blue-900/20">
-                <Plus size={18} /> Provision New Device
-              </button>
+            </main>
+
+            {/* Floating Action Button */}
+            <button className="fixed bottom-8 right-8 w-14 h-14 bg-red-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-red-700 hover:rotate-12 transition-all">
+              <Megaphone size={24} />
+            </button>
+          </div>
+        </>
             </div>
           </div>
 

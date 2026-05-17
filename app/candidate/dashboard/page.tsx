@@ -4,6 +4,7 @@ import { use, useEffect } from "react";
 import { LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
+import Layout from "@/components/Layout";
 import {
     LayoutDashboard,
     Video,
@@ -52,68 +53,9 @@ export default function CandidateDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex font-sans">
-      {/* Sidebar – hidden on mobile */}
-      <aside className="w-64 bg-white border-r border-slate-200 flex flex-col hidden lg:flex">
-        <div className="p-6">
-          <div className="flex flex-col items-center text-center">
-            <div className="w-16 h-16 rounded-full overflow-hidden mb-3 border-2 border-slate-100">
-              <div className="w-full h-full bg-blue-100 flex items-center justify-center text-blue-700 text-2xl">
-                {user.name?.charAt(0) || "U"}
-              </div>
-            </div>
-            <h2 className="font-bold text-blue-900">{user.name}</h2>
-            <p className="text-[10px] text-slate-400">ID: {user.id || "ET-0000"}</p>
-            <span className="mt-1 px-3 py-0.5 bg-blue-50 text-blue-600 text-[10px] rounded-full font-bold">
-              Candidate Portal
-            </span>
-          </div>
-        </div>
-
-        <nav className="flex-grow px-4 space-y-2">
-          <NavItem icon={<LayoutDashboard size={18} />} label="ዳሽቦርድ" active />
-          <NavItem icon={<Video size={18} />} label="የቀጥታ ፈተና" />
-          <NavItem icon={<Star size={18} />} label="ውጤቶች" />
-          <NavItem icon={<History size={18} />} label="ታሪክ" />
-        </nav>
-
-        <div className="p-4 mt-auto">
-          <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-            <p className="text-[10px] font-bold text-slate-500 mb-2">ድጋፍ ያስፈልግዎታል?</p>
-            <button className="flex items-center gap-2 text-xs text-blue-700 font-bold">
-              <HelpCircle size={14} /> የእገዛ ማዕከል
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <div className="flex-grow flex flex-col">
-      <header className="h-16 bg-white border-b border-slate-200 flex items-center justify-between px-4 md:px-8">
-  <div className="flex items-center gap-2 font-bold text-blue-900">
-    <span className="text-xl">🏛️</span>
-    <span className="hidden sm:inline">ADLTS Ethiopia</span>
-  </div>
-  <div className="flex items-center gap-4 md:gap-6">
-    <nav className="hidden md:flex gap-4 md:gap-6 text-xs font-bold text-slate-500">
-      <button className="text-blue-700 border-b-2 border-blue-700 pb-5 translate-y-[2px]">ዳሽቦርድ</button>
-      <button>የተሰጡ ፈተናዎች</button>
-      <button>ውጤቶች</button>
-      <button>ታሪክ</button>
-    </nav>
-    {/* Logout button with icon + text */}
-    <button
-      onClick={handleLogout}
-      className="flex items-center gap-2 bg-slate-100 hover:bg-slate-200 transition px-3 py-2 rounded-lg text-slate-700 text-sm font-medium"
-    >
-      <LogOut size={18} />
-      <span className="hidden sm:inline">ውጣ / Logout</span>
-    </button>
-  </div>
-</header>
-
-        {/* Dashboard Body */}
-        <main className="p-4 md:p-8 max-w-6xl mx-auto w-full space-y-6 md:space-y-8">
+      <>
+      {/* Route-protected dashboard content */}
+      <main className="space-y-6 md:space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Blue Banner */}
             <div className="lg:col-span-2 bg-[#283C86] rounded-3xl p-6 md:p-8 text-white relative overflow-hidden flex flex-col justify-center">
@@ -183,8 +125,7 @@ export default function CandidateDashboard() {
             </div>
           </div>
         </main>
-      </div>
-    </div>
+      </>
   );
 }
 

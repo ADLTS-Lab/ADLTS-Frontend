@@ -1,50 +1,18 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, Camera, Brain, Globe, ShieldCheck, Mail, Phone, MapPin } from "lucide-react";
-import React from "react";
+import { Eye, Camera, Brain } from "lucide-react";
+import React, { useState, useEffect } from "react";
 
 export default function LandingPage() {
   const router = useRouter();
+  const [showVideo, setShowVideo] = useState(false);
 
   return (
-    <div className="min-h-screen bg-white font-sans text-slate-900">
-      {/* Navbar */}
-      <header className="fixed top-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-slate-100">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex justify-between items-center">
-          <div className="flex items-center gap-2 font-bold text-blue-900">
-            <span className="text-2xl">🏛️</span>
-            <span>ADLTS</span>
-            <span className="ml-1 flex gap-0.5">
-              <div className="w-3 h-2 bg-green-600"></div>
-              <div className="w-3 h-2 bg-yellow-400"></div>
-              <div className="w-3 h-2 bg-red-600"></div>
-            </span>
-          </div>
-
-          <nav className="hidden md:flex items-center gap-8 text-xs font-bold text-slate-600">
-            <button className="text-blue-700 border-b-2 border-blue-700 pb-1">መነሻ</button>
-            <button className="hover:text-blue-700 transition">ስለ እኛ</button>
-            <button className="hover:text-blue-700 transition">እንዴት ይሰራል</button>
-          </nav>
-
-          <div className="flex items-center gap-4">
-            <div className="bg-slate-100 rounded-full p-1 flex">
-              <button className="px-3 py-1 text-[10px] font-bold text-slate-400">EN</button>
-              <button className="px-3 py-1 text-[10px] font-bold bg-white rounded-full shadow-sm">አማ</button>
-            </div>
-            <button
-              onClick={() => router.push("/login")}
-              className="bg-blue-900 text-white px-6 py-2 rounded-lg text-xs font-bold hover:bg-blue-800 transition"
->
-              ግቡ
-            </button>
-          </div>
-        </div>
-      </header>
-
+    <>
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-6 max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center">
+      <section className="pt-10 pb-20 grid lg:grid-cols-2 gap-12 items-center">
         <div className="space-y-8">
           <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-1.5 rounded-full text-[10px] font-bold">
             <span className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" />
@@ -65,9 +33,13 @@ export default function LandingPage() {
               onClick={() => router.push("/candidate/register")}
               className="bg-blue-900 text-white px-8 py-4 rounded-xl font-bold shadow-lg shadow-blue-900/20 hover:-translate-y-1 transition-all"
             >
-              ማመልከቻ ይጀምሩ
+              ማመልከቻ ጀምር
             </button>
-            <button className="border-2 border-blue-100 text-blue-900 px-8 py-4 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-50 transition-all">
+            <button
+              type="button"
+              onClick={() => setShowVideo(true)}
+              className="border-2 border-blue-100 text-blue-900 px-8 py-4 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-50 transition-all"
+            >
               <span className="w-6 h-6 border-2 border-blue-900 rounded-full flex items-center justify-center text-[10px]">▶</span>
               ቪዲዮ ይመልከቱ
             </button>
@@ -95,9 +67,39 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Video modal */}
+      {showVideo && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={() => setShowVideo(false)}
+        >
+          <div className="w-full max-w-3xl p-4" onClick={(e) => e.stopPropagation()}>
+            <div className="relative bg-black rounded-xl overflow-hidden">
+              <button
+                onClick={() => setShowVideo(false)}
+                className="absolute top-3 right-3 z-50 bg-white/20 hover:bg-white/40 rounded-full p-2 text-white"
+                aria-label="Close video"
+              >
+                ✕
+              </button>
+              <div className="aspect-video w-full">
+                <iframe
+                  className="w-full h-full"
+                  src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0"
+                  title="Intro Video"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Capabilities Section */}
       <section className="py-20 bg-slate-50/50">
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-black text-blue-950 mb-2">የአሰራር ባህሪያት</h2>
             <p className="text-slate-400 font-bold text-sm tracking-widest">CORE SYSTEM CAPABILITIES</p>
@@ -136,61 +138,16 @@ export default function LandingPage() {
             <span className="font-bold text-slate-600 text-sm">Ethiopian Transport Authority</span>
           </div>
           <div className="flex items-center gap-2">
-            <ShieldCheck className="text-slate-400" />
             <span className="font-bold text-slate-600 text-sm">Digital Safety Certified</span>
           </div>
         </div>
+        <div className="mt-8 flex justify-center gap-6 text-sm font-semibold text-blue-900">
+          <Link href="/about" className="hover:underline">About</Link>
+          <Link href="/contact" className="hover:underline">Contact</Link>
+          <Link href="/privacy-policy" className="hover:underline">Privacy Policy</Link>
+        </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-slate-50 pt-20 pb-10 border-t border-slate-100">
-        <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
-          <div className="col-span-1 md:col-span-1">
-            <div className="flex items-center gap-2 font-bold text-blue-900 mb-6">
-              <span className="text-2xl">🏛️</span>
-              <span>ADLTS Ethiopia</span>
-            </div>
-            <p className="text-xs text-slate-500 leading-relaxed">
-              የመንጃ ፈቃድ አሰጣጥ ሂደቱን ዲጂታላይዝ በማድረግ ደህንነቱ የተጠበቀ እና ዘመናዊ የትራንስፖርት ስርዓት ለመገንባት እንሰራለን::
-            </p>
-          </div>
-
-          <div>
-            <h4 className="font-bold text-blue-950 mb-6 text-sm">ፈጣን ሊንኮች</h4>
-            <ul className="space-y-4 text-xs font-medium text-slate-500">
-              <li className="hover:text-blue-700 cursor-pointer">መነሻ</li>
-              <li className="hover:text-blue-700 cursor-pointer">ስለ እኛ</li>
-              <li className="hover:text-blue-700 cursor-pointer">እንዴት ይሰራል</li>
-              <li className="hover:text-blue-700 cursor-pointer">Contact</li>
-              <li className="hover:text-blue-700 cursor-pointer">Privacy Policy</li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-bold text-blue-950 mb-6 text-sm">አድራሻ</h4>
-            <ul className="space-y-4 text-xs font-medium text-slate-500">
-              <li className="flex items-center gap-3">
-                <MapPin size={14} /> አዲስ አበባ፣ ኢትዮጵያ
-              </li>
-              <li className="flex items-center gap-3">
-                <Mail size={14} /> info@adlts.gov.et
-              </li>
-              <li className="flex items-center gap-3">
-                <Phone size={14} /> 8890 (ነጻ መስመር)
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <div className="max-w-7xl mx-auto px-6 pt-8 border-t border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] text-slate-400 font-bold">
-          <p>© 2024 ADLTS Ethiopia. All rights reserved.</p>
-          <div className="flex gap-4">
-            <Globe size={16} />
-            <ShieldCheck size={16} />
-          </div>
-        </div>
-      </footer>
-    </div>
+    </>
   );
 }
 

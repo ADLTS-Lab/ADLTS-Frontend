@@ -25,18 +25,22 @@ export default function UnifiedLoginPage() {
 
   try {
     const res = await login({ email, password });
-    const { access_token, entity_type, user } = res.data;
-    
-    setUser(user, access_token, entity_type);
+    const payload = res?.data || res || {};
+    const token = payload?.access_token || payload?.token || payload?.data?.access_token || payload?.data?.token;
+    const user = payload?.user || payload?.data?.user || payload?.data?.user;
+    const entity_type = payload?.entity_type || payload?.role || payload?.data?.entity_type || payload?.data?.role || user?.role || role;
+
+    setUser(user, token, entity_type);
+
     // Redirect based on entity_type
-    if (entity_type === 'candidate') {
-      router.push('/candidate/dashboard');
-    } else if (entity_type === 'admin') {
-      router.push('/admin/devices');
-    } else if (entity_type === 'super_admin') {
-      router.push('/super-admin/dashboard'); // you may need this page
+    if (entity_type === "candidate") {
+      router.push("/candidate/dashboard");
+    } else if (entity_type === "admin") {
+      router.push("/admin/devices");
+    } else if (entity_type === "super_admin") {
+      router.push("/super-admin/dashboard");
     } else {
-      router.push('/dashboard');
+      router.push("/");
     }
   } catch (err: any) {
     setError(err.response?.data?.message || 'Login failed');
@@ -154,7 +158,8 @@ export default function UnifiedLoginPage() {
           Demo candidate: candidate@adlts.et / password123<br />
           Demo admin: admin@adlts.gov.et / admin123
         </p>
+        </div>
       </div>
-    </div>
+    
   );
 }

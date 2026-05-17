@@ -169,7 +169,8 @@ export default function CandidateRegisterPage() {
             ግባ / Login
           </button>
         </p>
+        </div>
       </div>
-    </div>
+    
   );
 }
