@@ -35,6 +35,7 @@ export const CandidateLayout = ({ children, activeMenu }: CandidateLayoutProps) 
               <button
                 key={item.id}
                 onClick={() => router.push(item.path)}
+                aria-current={activeMenu === item.id ? "page" : undefined}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all ${
                   activeMenu === item.id
                     ? "bg-white/10 text-white font-bold"
@@ -62,6 +63,7 @@ export const CandidateLayout = ({ children, activeMenu }: CandidateLayoutProps) 
               localStorage.removeItem("auth-token");
               router.push("/login");
             }}
+            aria-label="Logout"
             className="w-full flex items-center gap-2 text-sm text-white/70 hover:text-white"
           >
             <LogOut size={16} /> Logout

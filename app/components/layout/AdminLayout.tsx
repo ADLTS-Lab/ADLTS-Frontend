@@ -50,6 +50,7 @@ export const AdminLayout = ({ children, activeMenu }: AdminLayoutProps) => {
               <button
                 key={item.id}
                 onClick={() => router.push(item.path)}
+                aria-current={activeMenu === item.id ? "page" : undefined}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all ${
                   activeMenu === item.id
                     ? "bg-white/10 text-white font-bold"
@@ -62,7 +63,7 @@ export const AdminLayout = ({ children, activeMenu }: AdminLayoutProps) => {
           </nav>
         </div>
         <div className="mt-auto p-6 bg-black/10 border-t border-white/5">
-          <button onClick={logout} className="w-full text-left text-sm text-white/60 hover:text-white">
+          <button aria-label="Logout" onClick={logout} className="w-full text-left text-sm text-white/60 hover:text-white">
             Logout
           </button>
         </div>
@@ -81,8 +82,8 @@ export const AdminLayout = ({ children, activeMenu }: AdminLayoutProps) => {
             />
           </div>
           <div className="flex items-center gap-4">
-            <Bell size={20} className="text-slate-400" />
-            <Settings size={20} className="text-slate-400" />
+            <Bell size={20} aria-hidden="true" className="text-slate-400" />
+            <Settings size={20} aria-hidden="true" className="text-slate-400" />
             <div className="text-right">
               <p className="text-sm font-bold">{user?.name}</p>
               <p className="text-[10px] text-slate-400">Admin</p>
