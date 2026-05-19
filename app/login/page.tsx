@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { login } from "@/services/auth.service";
 import { useAuthStore } from "@/store/authStore";
+import { useI18n } from "@/i18n/useI18n";
 
 type Role = "candidate" | "admin";
 
@@ -17,7 +18,7 @@ export default function UnifiedLoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const setUser = useAuthStore((s) => s.setUser);
-  const setToken = useAuthStore((s) => s.setToken);
+  const { t } = useI18n();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,55 +26,27 @@ export default function UnifiedLoginPage() {
     setIsLoading(true);
 
     try {
-      let res;
-      if (role === "candidate") {
-        // Use existing mock for candidate
-        if (email !== "candidate@adlts.et" || password !== "password123") {
-          throw new Error("Invalid candidate credentials");
-        }
-        res = {
-          data: {
-            user: {
-              id: "1",
-              name: "Test Candidate",
-              email: email,
-              role: "candidate" as const,
-              licenseCategory: "B",
-              testCenter: "Bole Test Center",
-            },
-            token: "mock-candidate-token",
-          },
-        };
-      } else {
-        // Admin mock
-        if (email !== "admin@adlts.gov.et" || password !== "admin123") {
-          throw new Error("Invalid admin credentials");
-        }
-        res = {
-          data: {
-            user: {
-              id: "admin-1",
-              name: "System Administrator",
-              email: email,
-              role: "admin" as const,
-            },
-            token: "mock-admin-token",
-          },
-        };
-      }
+      const res = await login({ email, password });
+      const { access_token, entity_type, user } = res.data;
 
-      setUser(res.data.user);
-      setToken(res.data.token);
-      localStorage.setItem("auth-token", res.data.token);
+      setUser(user, access_token, entity_type);
 
-      // Redirect based on role
-      if (role === "candidate") {
-        router.push("/candidate/dashboard");
-      } else {
-        router.push("/admin/devices");
-      }
-    } catch (err: any) {
-      setError(err.message || "Login failed. Check your credentials.");
+      const nextRoute =
+        entity_type === "candidate"
+          ? "/candidate/dashboard"
+          : entity_type === "admin"
+            ? "/admin/devices"
+            : entity_type === "super_admin"
+              ? "/super-admin/dashboard"
+              : "/";
+
+      router.push(nextRoute);
+    } catch (err: unknown) {
+      const responseMessage =
+        typeof err === "object" && err !== null && "response" in err
+          ? ((err as { response?: { data?: { message?: string } } }).response?.data?.message ?? "")
+          : "";
+      setError(responseMessage || "Login failed");
     } finally {
       setIsLoading(false);
     }
@@ -86,9 +59,7 @@ export default function UnifiedLoginPage() {
           <div className="mx-auto w-12 h-12 bg-[#F5F7FA] rounded-full flex items-center justify-center mb-3">
             <span className="text-2xl">🚗</span>
           </div>
-          <h1 className="text-xl font-bold text-[#1F2937]">
-            ወደ ስርዓቱ ግባ / Login to ADLTS
-          </h1>
+          <h1 className="text-xl font-bold text-[#1F2937]">{t('loginTitle')}</h1>
         </div>
 
         {/* Role Tabs */}
@@ -101,7 +72,7 @@ export default function UnifiedLoginPage() {
                 : "text-[#6B7280]"
             }`}
           >
-            እጩዎች (Candidate)
+            {t('candidateLabel')}
           </button>
           <button
             onClick={() => setRole("admin")}
@@ -111,32 +82,32 @@ export default function UnifiedLoginPage() {
                 : "text-[#6B7280]"
             }`}
           >
-            አስተዳዳሪ (Admin)
+            {t('adminLabel')}
           </button>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="block text-sm font-semibold text-[#1F2937] mb-1">
-              Email / ኢሜይል
-            </label>
+            <label className="block text-sm font-semibold text-[#1F2937] mb-1">{t('emailLabel')}</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder={role === "candidate" ? "candidate@adlts.et" : "admin@adlts.gov.et"}
-              className="text-black w-full px-4 py-3 rounded-xl border border-[#E5E7EB] focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent outline-none transition bg-[#F9FAFB]"
+                className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent outline-none transition bg-[#F9FAFB] text-black"
             />
           </div>
 
           <div>
             <div className="flex justify-between items-center mb-1">
-              <label className="text-sm font-semibold text-[#1F2937]">
-                Password / የይለፍ ቃል
-              </label>
-              <button type="button" className="text-xs text-black text-[#3B82F6] hover:underline">
-                Forgot password?
+              <label className="text-sm font-semibold text-[#1F2937]">{t('passwordLabel')}</label>
+              <button
+                type="button"
+                onClick={() => router.push("/forgot-password")}
+                className="text-xs text-[#3B82F6] hover:underline"
+              >
+                {t('forgotPassword')}
               </button>
             </div>
             <div className="relative">
@@ -146,7 +117,7 @@ export default function UnifiedLoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent outline-none transition bg-[#F9FAFB]"
+                className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent outline-none transition bg-[#F9FAFB] text-black"
               />
               <button
                 type="button"
@@ -169,14 +140,14 @@ export default function UnifiedLoginPage() {
             disabled={isLoading}
             className="w-full bg-[#1E3A8A] text-white py-3.5 rounded-xl font-bold text-lg hover:bg-[#1E40AF] transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
           >
-            {isLoading ? "በመግባት ላይ..." : "ግባ"}
+            {isLoading ? t('loginLoading') : t('loginButton')}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm text-[#6B7280]">
-          አዲስ አመልካች ነዎት?{" "}
+          {t('register')}?{" "}
           <a href="/candidate/register" className="text-[#1E3A8A] font-semibold hover:underline">
-            መመዝገቢያ (Register)
+            {t('register')}
           </a>
         </p>
 

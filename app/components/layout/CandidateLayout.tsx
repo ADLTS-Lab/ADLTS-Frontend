@@ -24,7 +24,7 @@ export const CandidateLayout = ({ children, activeMenu }: CandidateLayoutProps) 
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-primary text-white flex flex-col hidden lg:flex">
+      <aside className="w-64 bg-primary text-white hidden lg:flex flex-col">
         <div className="p-6">
           <div className="flex items-center gap-2 mb-8">
             <span className="text-2xl">🚗</span>
@@ -35,6 +35,7 @@ export const CandidateLayout = ({ children, activeMenu }: CandidateLayoutProps) 
               <button
                 key={item.id}
                 onClick={() => router.push(item.path)}
+                aria-current={activeMenu === item.id ? "page" : undefined}
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm transition-all ${
                   activeMenu === item.id
                     ? "bg-white/10 text-white font-bold"
@@ -64,7 +65,7 @@ export const CandidateLayout = ({ children, activeMenu }: CandidateLayoutProps) 
             }}
             className="w-full flex items-center gap-2 text-sm text-white/70 hover:text-white"
           >
-            <LogOut size={16} /> Logout
+            <LogOut size={16} aria-hidden="true" /> Logout
           </button>
         </div>
       </aside>
