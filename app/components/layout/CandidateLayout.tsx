@@ -24,7 +24,7 @@ export const CandidateLayout = ({ children, activeMenu }: CandidateLayoutProps) 
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
-      <aside className="w-64 bg-primary text-white flex flex-col hidden lg:flex">
+      <aside className="w-64 bg-primary text-white hidden lg:flex flex-col">
         <div className="p-6">
           <div className="flex items-center gap-2 mb-8">
             <span className="text-2xl">🚗</span>

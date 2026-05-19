@@ -36,7 +36,7 @@ export const AdminLayout = ({ children, activeMenu }: AdminLayoutProps) => {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
-      <aside className="w-72 bg-gradient-to-b from-[#1D3B8A] to-[#162D6D] text-white flex flex-col hidden xl:flex">
+      <aside className="w-72 bg-gradient-to-b from-[#1D3B8A] to-[#162D6D] text-white hidden xl:flex flex-col">
         <div className="p-8">
           <div className="flex items-center gap-3 mb-10">
             <div className="w-10 h-10 bg-black/20 rounded-lg flex items-center justify-center font-bold border border-white/10">🏛️</div>
@@ -73,7 +73,12 @@ export const AdminLayout = ({ children, activeMenu }: AdminLayoutProps) => {
         <header className="h-20 bg-white border-b border-slate-200 flex items-center justify-between px-8">
           <div className="relative w-96">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-            <input type="text" placeholder="Search..." className="w-full pl-10 pr-4 py-2 bg-slate-100 rounded-full text-sm" />
+            <input
+              type="text"
+              aria-label="Search"
+              placeholder="Search..."
+              className="w-full pl-10 pr-4 py-2 bg-slate-100 rounded-full text-sm"
+            />
           </div>
           <div className="flex items-center gap-4">
             <Bell size={20} className="text-slate-400" />
