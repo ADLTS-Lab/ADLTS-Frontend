@@ -9,6 +9,7 @@ interface ButtonProps {
   type?: "button" | "submit";
   disabled?: boolean;
   className?: string;
+  ariaLabel?: string;
 }
 
 export const Button = ({
@@ -18,6 +19,7 @@ export const Button = ({
   type = "button",
   disabled = false,
   className = "",
+  ariaLabel,
 }: ButtonProps) => {
   const base = "px-4 py-2 rounded-xl font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed";
   const variants = {
@@ -30,6 +32,7 @@ export const Button = ({
       type={type}
       onClick={onClick}
       disabled={disabled}
+      aria-label={ariaLabel}
       className={`${base} ${variants[variant]} ${className}`}
     >
       {children}

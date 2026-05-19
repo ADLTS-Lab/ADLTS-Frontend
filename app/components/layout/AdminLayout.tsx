@@ -82,8 +82,10 @@ export const AdminLayout = ({ children, activeMenu }: AdminLayoutProps) => {
             />
           </div>
           <div className="flex items-center gap-4">
-            <Bell size={20} aria-hidden="true" className="text-slate-400" />
-            <Settings size={20} aria-hidden="true" className="text-slate-400" />
+            <div aria-hidden="true" className="flex items-center gap-4">
+              <Bell size={20} className="text-slate-400" />
+              <Settings size={20} className="text-slate-400" />
+            </div>
             <div className="text-right">
               <p className="text-sm font-bold">{user?.name}</p>
               <p className="text-[10px] text-slate-400">Admin</p>

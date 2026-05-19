@@ -65,7 +65,7 @@ export const CandidateLayout = ({ children, activeMenu }: CandidateLayoutProps) 
             }}
             className="w-full flex items-center gap-2 text-sm text-white/70 hover:text-white"
           >
-            <LogOut size={16} /> Logout
+            <LogOut size={16} aria-hidden="true" /> Logout
           </button>
         </div>
       </aside>
