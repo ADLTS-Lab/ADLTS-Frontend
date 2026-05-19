@@ -100,28 +100,28 @@ export default function CandidateRegisterPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-semibold text-[#1F2937] mb-1">ስም / First name</label>
-              <input type="text" name="first_name" value={formData.first_name} onChange={handleChange} required className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB]" />
+              <input type="text" name="first_name" value={formData.first_name} onChange={handleChange} required className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-black" />
             </div>
             <div>
               <label className="block text-sm font-semibold text-[#1F2937] mb-1">አያት / Last name</label>
-              <input type="text" name="last_name" value={formData.last_name} onChange={handleChange} required className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB]" />
+              <input type="text" name="last_name" value={formData.last_name} onChange={handleChange} required className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-black" />
             </div>
           </div>
 
           <div>
             <label className="block text-sm font-semibold text-[#1F2937] mb-1">ኢሜይል / Email</label>
-            <input type="email" name="email" value={formData.email} onChange={handleChange} required className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB]" />
+            <input type="email" name="email" value={formData.email} onChange={handleChange} required className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-black" />
           </div>
 
           <div>
             <label className="block text-sm font-semibold text-[#1F2937] mb-1">ስልክ ቁጥር / Phone</label>
-            <input type="tel" name="phone" value={formData.phone} onChange={handleChange} required className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB]" />
+            <input type="tel" name="phone" value={formData.phone} onChange={handleChange} required className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-black" />
           </div>
 
           <div>
             <label className="block text-sm font-semibold text-[#1F2937] mb-1">የይለፍ ቃል / Password</label>
             <div className="relative">
-              <input type={showPassword ? "text" : "password"} name="password" value={formData.password} onChange={handleChange} required className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB]" />
+              <input type={showPassword ? "text" : "password"} name="password" value={formData.password} onChange={handleChange} required className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-black" />
               <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B7280]">
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -130,7 +130,7 @@ export default function CandidateRegisterPage() {
 
           <div>
             <label className="block text-sm font-semibold text-[#1F2937] mb-1">የይለፍ ቃል አረጋግጥ / Confirm password</label>
-            <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB]" />
+            <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-black" />
           </div>
 
           <details className="text-xs text-[#6B7280]">
@@ -138,15 +138,15 @@ export default function CandidateRegisterPage() {
             <div className="mt-2 space-y-3">
               <div>
                 <label className="block text-xs font-semibold">ፋይዳ መታወቂያ / Fayda ID</label>
-                <input type="text" name="fayida_id" value={formData.fayida_id} onChange={handleChange} className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB]" />
+                <input type="text" name="fayida_id" value={formData.fayida_id} onChange={handleChange} className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-black" />
               </div>
               <div>
                 <label className="block text-xs font-semibold">የትውልድ ቀን / Birth date</label>
-                <input type="date" name="birth_date" value={formData.birth_date} onChange={handleChange} className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB]" />
+                <input type="date" name="birth_date" value={formData.birth_date} onChange={handleChange} className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-black" />
               </div>
               <div>
                 <label className="block text-xs font-semibold">ጾታ / Gender</label>
-                <select name="gender" value={formData.gender} onChange={handleChange} className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB]">
+                <select name="gender" value={formData.gender} onChange={handleChange} className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-black">
                   <option value="">ምረጥ / Select</option>
                   <option value="male">ወንድ / Male</option>
                   <option value="female">ሴት / Female</option>

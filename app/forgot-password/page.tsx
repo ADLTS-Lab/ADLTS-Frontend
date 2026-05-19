@@ -3,12 +3,15 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { useI18n } from "@/i18n/useI18n";
+import api from "@/lib/api";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [error, setError] = useState("");
+  const { t } = useI18n();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -17,11 +20,17 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 650));
-      setSuccessMessage("Check your email for reset link");
+      const response = await api.post("/auth/password/forgot", { email });
+      setSuccessMessage(
+        response.data?.message || "Check your email for reset link"
+      );
       setEmail("");
-    } catch {
-      setError("Unable to send reset link. Please try again.");
+    } catch (err: unknown) {
+      const message =
+        typeof err === "object" && err !== null && "response" in err
+          ? ((err as { response?: { data?: { message?: string } } }).response?.data?.message ?? "")
+          : "";
+      setError(message || "Unable to send reset link. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -34,12 +43,8 @@ export default function ForgotPasswordPage() {
           <div className="mx-auto w-12 h-12 bg-[#F5F7FA] rounded-full flex items-center justify-center mb-3">
             <Mail className="text-[#1E3A8A]" size={22} />
           </div>
-          <h1 className="text-xl font-bold text-[#1F2937]">
-            Forgot password / የይለፍ ቃል ረሳኸው?
-          </h1>
-          <p className="mt-2 text-sm text-[#6B7280]">
-            Enter your email and we&apos;ll send you a reset link.
-          </p>
+          <h1 className="text-xl font-bold text-[#1F2937]">{t('forgotPassword')}</h1>
+          <p className="mt-2 text-sm text-[#6B7280]">{t('forgotSubtitle')}</p>
         </div>
 
         {successMessage ? (
@@ -54,22 +59,20 @@ export default function ForgotPasswordPage() {
               className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#1E3A8A] hover:underline"
             >
               <ArrowLeft size={16} />
-              Back to login
+                {t('backToLogin')}
             </Link>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-semibold text-[#1F2937] mb-1">
-                Email / ኢሜይል
-              </label>
+              <label className="block text-sm font-semibold text-[#1F2937] mb-1">{t('emailLabel')}</label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="candidate@adlts.et"
-                className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent outline-none transition bg-[#F9FAFB]"
+                className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent outline-none transition bg-[#F9FAFB] text-black"
               />
             </div>
 
@@ -84,13 +87,13 @@ export default function ForgotPasswordPage() {
               disabled={isLoading}
               className="w-full bg-[#1E3A8A] text-white py-3.5 rounded-xl font-bold text-lg hover:bg-[#1E40AF] transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
             >
-              {isLoading ? "Sending..." : "Send reset link"}
+              {isLoading ? t('sendResetSending') : t('sendResetLink')}
             </button>
 
             <p className="text-center text-sm text-[#6B7280]">
-              Remembered your password?{" "}
+              {t('rememberPasswordPrompt')} {" "}
               <Link href="/login" className="text-[#1E3A8A] font-semibold hover:underline">
-                Back to login
+                {t('backToLogin')}
               </Link>
             </p>
           </form>

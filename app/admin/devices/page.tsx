@@ -2,31 +2,9 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { Battery, Megaphone, Plus, RotateCcw, Settings, Thermometer, Ticket, Wifi, AlertTriangle, Power } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-import {
-  LayoutDashboard,
-  Laptop,
-  Activity,
-  History,
-  Users,
-  BarChart3,
-  Search,
-  Bell,
-  Settings,
-  Filter,
-  Plus,
-  Battery,
-  Thermometer,
-  Signal,
-  Wifi,
-  AlertTriangle,
-  Power,
-  RotateCcw,
-  Ticket,
-  Megaphone,
-} from "lucide-react";
 
-// Mock device data – replace with real API later
 const mockDevices = [
   {
     type: "Tablet Node",
@@ -82,100 +60,62 @@ const mockDevices = [
 
 export default function AdminDeviceDashboard() {
   const router = useRouter();
-  const { isAuthenticated, user, logout } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
 
-  // Protect route – admin only
   useEffect(() => {
-    if (!isAuthenticated) {
+    const token = typeof window !== "undefined" ? localStorage.getItem("auth-token") : null;
+
+    if (!isAuthenticated && !token) {
       router.push("/login");
-    } else if (user?.role !== "admin") {
+    } else if (isAuthenticated && user?.role !== "admin") {
       router.push("/candidate/dashboard");
     }
   }, [isAuthenticated, user, router]);
 
-  if (!isAuthenticated || user?.role !== "admin") return null;
+  if ((!isAuthenticated && typeof window === "undefined") || (isAuthenticated && user?.role !== "admin")) return null;
 
-  const handleLogout = () => {
-    logout();
-    localStorage.removeItem("auth-token");
-    router.push("/login");
-  };
-
-  // Summary counts
   const totalDevices = mockDevices.length;
-  const onlineCount = mockDevices.filter((d) => d.status === "Online").length;
-  const warningCount = mockDevices.filter((d) => d.status === "Warning").length;
-  const offlineCount = mockDevices.filter((d) => d.status === "Offline").length;
+  const onlineCount = mockDevices.filter((device) => device.status === "Online").length;
+  const warningCount = mockDevices.filter((device) => device.status === "Warning").length;
+  const offlineCount = mockDevices.filter((device) => device.status === "Offline").length;
 
   return (
-    <>
-      <main className="space-y-8">
-          <div className="flex justify-between items-end flex-wrap gap-4">
-            <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">
-                Admin Portal › Device Management
-              </p>
-              <h2 className="text-2xl font-bold text-slate-800">
-                Device Management Dashboard •{" "}
-                <span className="text-slate-500 font-medium">{totalDevices} Active Units</span>
-              </h2>
-            </main>
-
-            {/* Floating Action Button */}
-            <button className="fixed bottom-8 right-8 w-14 h-14 bg-red-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-red-700 hover:rotate-12 transition-all">
-              <Megaphone size={24} />
-            </button>
-          </div>
-        </>
-            </div>
-          </div>
-
-          {/* Stats Summary Rows */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <SummaryCard label="Total Devices" value={totalDevices.toString()} sub="+4 this week" color="blue" />
-            <SummaryCard label="Online Now" value={onlineCount.toString()} sub="((•))" color="green" />
-            <SummaryCard label="Warning State" value={warningCount.toString()} sub="Battery/Storage" color="orange" />
-            <SummaryCard label="Offline/Emergency" value={offlineCount.toString()} sub="!" color="red" />
-          </div>
-
-          {/* Device Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {mockDevices.map((device, idx) => (
-              <DeviceNode key={idx} {...device} />
-            ))}
-            {/* Add Device Placeholder */}
-            <div className="border-2 border-dashed border-slate-300 rounded-[32px] flex flex-col items-center justify-center p-8 bg-slate-50/50 hover:bg-white transition-all cursor-pointer group">
-              <div className="w-12 h-12 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <Plus className="text-blue-600" />
-              </div>
-              <p className="font-bold text-blue-950">Register New Device</p>
-              <p className="text-[10px] text-slate-400 mt-1">Assign serial and set center permissions</p>
-            </div>
-          </div>
-        </main>
-
-        {/* Floating Action Button */}
+    <main className="space-y-8">
+      <div className="flex justify-between items-end flex-wrap gap-4">
+        <div>
+          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">Admin Portal › Device Management</p>
+          <h2 className="text-2xl font-bold text-slate-800">
+            Device Management Dashboard • <span className="text-slate-500 font-medium">{totalDevices} Active Units</span>
+          </h2>
+        </div>
         <button className="fixed bottom-8 right-8 w-14 h-14 bg-red-600 text-white rounded-full shadow-2xl flex items-center justify-center hover:bg-red-700 hover:rotate-12 transition-all">
           <Megaphone size={24} />
         </button>
       </div>
-    </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <SummaryCard label="Total Devices" value={totalDevices.toString()} sub="+4 this week" color="blue" />
+        <SummaryCard label="Online Now" value={onlineCount.toString()} sub="((•))" color="green" />
+        <SummaryCard label="Warning State" value={warningCount.toString()} sub="Battery/Storage" color="orange" />
+        <SummaryCard label="Offline/Emergency" value={offlineCount.toString()} sub="!" color="red" />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {mockDevices.map((device) => (
+          <DeviceNode key={device.name} {...device} />
+        ))}
+
+        <div className="border-2 border-dashed border-slate-300 rounded-4xl flex flex-col items-center justify-center p-8 bg-slate-50/50 hover:bg-white transition-all cursor-pointer group">
+          <div className="w-12 h-12 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+            <Plus className="text-blue-600" />
+          </div>
+          <p className="font-bold text-blue-950">Register New Device</p>
+          <p className="text-[10px] text-slate-400 mt-1">Assign serial and set center permissions</p>
+        </div>
+      </div>
+    </main>
   );
 }
-
-// --- Helper Components ---
-
-const SidebarLink = ({ icon, label, active = false }: { icon: React.ReactNode; label: string; active?: boolean }) => (
-  <div
-    className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all ${
-      active
-        ? "bg-white/10 text-white font-bold border border-white/5 shadow-inner"
-        : "text-white/50 hover:text-white"
-    }`}
-  >
-    {icon} <span className="text-sm">{label}</span>
-  </div>
-);
 
 const SummaryCard = ({
   label,
@@ -194,8 +134,9 @@ const SummaryCard = ({
     orange: "text-orange-600 border-orange-500",
     red: "text-red-600 border-red-500",
   };
+
   return (
-    <div className={`bg-white p-6 rounded-[24px] border-b-4 ${colors[color]} shadow-sm`}>
+    <div className={`bg-white p-6 rounded-3xl border-b-4 ${colors[color]} shadow-sm`}>
       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{label}</p>
       <div className="flex justify-between items-end">
         <h3 className="text-4xl font-black">{value}</h3>
@@ -229,11 +170,11 @@ const DeviceNode = ({
     status === "Online"
       ? "bg-green-50 text-green-600"
       : status === "Warning"
-      ? "bg-orange-50 text-orange-600"
-      : "bg-slate-100 text-slate-400";
+        ? "bg-orange-50 text-orange-600"
+        : "bg-slate-100 text-slate-400";
 
   return (
-    <div className="bg-white rounded-[32px] p-6 shadow-sm border border-slate-100 flex flex-col gap-5">
+    <div className="bg-white rounded-4xl p-6 shadow-sm border border-slate-100 flex flex-col gap-5">
       <div className="flex justify-between items-start">
         <div>
           <p className="text-[10px] font-bold text-blue-600 uppercase mb-1">{type}</p>
@@ -251,10 +192,7 @@ const DeviceNode = ({
           <span className="text-slate-800">{utilization}%</span>
         </div>
         <div className="h-1.5 w-full bg-slate-100 rounded-full">
-          <div
-            className={`h-full rounded-full ${utilization > 80 ? "bg-orange-500" : "bg-blue-600"}`}
-            style={{ width: `${utilization}%` }}
-          />
+          <div className={`h-full rounded-full ${utilization > 80 ? "bg-orange-500" : "bg-blue-600"}`} style={{ width: `${utilization}%` }} />
         </div>
       </div>
 

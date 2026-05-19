@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, ShieldCheck } from "lucide-react";
 import api from "@/lib/api";
+import { useI18n } from "@/i18n/useI18n";
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token") || "";
@@ -17,6 +18,7 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { t } = useI18n();
 
   useEffect(() => {
     if (!token) {
@@ -47,12 +49,15 @@ export default function ResetPasswordPage() {
     setIsLoading(true);
 
     try {
-      await api.post("/auth/password/reset", {
+      const response = await api.post("/auth/password/reset", {
         token,
         password,
+        confirm_password: confirmPassword,
       });
 
-      setSuccess("Password reset successfully. Redirecting to login...");
+      setSuccess(
+        response.data?.message || "Password reset successfully. Redirecting to login..."
+      );
       setPassword("");
       setConfirmPassword("");
 
@@ -60,9 +65,9 @@ export default function ResetPasswordPage() {
         router.replace("/login");
       }, 1200);
     } catch (err: any) {
+      const message = err.response?.data?.message ?? "";
       setError(
-        err?.response?.data?.message ||
-          "Unable to reset password. Please try again."
+        message || "Unable to reset password. Please try again."
       );
     } finally {
       setIsLoading(false);
@@ -76,19 +81,13 @@ export default function ResetPasswordPage() {
           <div className="mx-auto w-12 h-12 bg-[#F5F7FA] rounded-full flex items-center justify-center mb-3">
             <ShieldCheck className="text-[#1E3A8A]" size={22} />
           </div>
-          <h1 className="text-xl font-bold text-[#1F2937]">
-            Reset password / የይለፍ ቃል ቀይር
-          </h1>
-          <p className="mt-2 text-sm text-[#6B7280]">
-            Enter your new password to finish resetting your account.
-          </p>
+          <h1 className="text-xl font-bold text-[#1F2937]">{t('resetTitle')}</h1>
+          <p className="mt-2 text-sm text-[#6B7280]">{t('resetSubtitle')}</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-semibold text-[#1F2937] mb-1">
-              New password / አዲስ የይለፍ ቃል
-            </label>
+            <label className="block text-sm font-semibold text-[#1F2937] mb-1">{t('newPasswordLabel')}</label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
@@ -96,7 +95,7 @@ export default function ResetPasswordPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent outline-none transition bg-[#F9FAFB]"
+                className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent outline-none transition bg-[#F9FAFB] text-black"
               />
               <button
                 type="button"
@@ -109,9 +108,7 @@ export default function ResetPasswordPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-[#1F2937] mb-1">
-              Confirm password / የይለፍ ቃል አረጋግጥ
-            </label>
+            <label className="block text-sm font-semibold text-[#1F2937] mb-1">{t('confirmPasswordLabel')}</label>
             <div className="relative">
               <input
                 type={showConfirmPassword ? "text" : "password"}
@@ -119,7 +116,7 @@ export default function ResetPasswordPage() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent outline-none transition bg-[#F9FAFB]"
+                className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent outline-none transition bg-[#F9FAFB] text-black"
               />
               <button
                 type="button"
@@ -148,22 +145,29 @@ export default function ResetPasswordPage() {
             disabled={isLoading || !token}
             className="w-full bg-[#1E3A8A] text-white py-3.5 rounded-xl font-bold text-lg hover:bg-[#1E40AF] transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
           >
-            {isLoading ? "Resetting..." : "Reset password"}
+            {isLoading ? t('sendResetSending') : t('resetButton')}
           </button>
 
           <p className="text-center text-sm text-[#6B7280]">
-            Remembered your password?{" "}
+            {t('rememberPasswordPrompt')} {" "}
             <button
               type="button"
               onClick={() => router.push("/login")}
               className="text-[#1E3A8A] font-semibold hover:underline"
             >
-              Back to login
+              {t('backToLogin')}
             </button>
           </p>
         </form>
-        </div>
       </div>
-    
+    </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }

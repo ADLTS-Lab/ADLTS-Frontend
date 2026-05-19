@@ -4,7 +4,8 @@ import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
-import { LogOut, Globe } from "lucide-react";
+import { LogOut } from "lucide-react";
+import { useI18n } from "@/i18n/useI18n";
 
 type LayoutProps = {
   children: React.ReactNode;
@@ -14,6 +15,8 @@ type LayoutProps = {
 export default function Layout({ children, variant = "public" }: LayoutProps) {
   const router = useRouter();
   const { user, isAuthenticated, logout } = useAuthStore();
+  const isDashboard = variant === "dashboard";
+  const { t, lang, setLang } = useI18n();
 
   const handleLogout = () => {
     logout();
@@ -32,29 +35,34 @@ export default function Layout({ children, variant = "public" }: LayoutProps) {
           </div>
 
           <nav className="hidden md:flex items-center gap-6 text-sm text-slate-600">
-            <Link href="/" className="hover:text-blue-700">መነሻ</Link>
-            <Link href="/about" className="hover:text-blue-700">ስለ እኛ</Link>
-            <Link href="/" className="hover:text-blue-700">እንዴት ይሰራል</Link>
+            <Link href="/" className="hover:text-blue-700">{t('home')}</Link>
+            <Link href="/about" className="hover:text-blue-700">{t('about')}</Link>
+            <Link href="/contact" className="hover:text-blue-700">{t('contact')}</Link>
+            <Link href="/login" className="hover:text-blue-700">{t('login')}</Link>
           </nav>
 
           <div className="flex items-center gap-4">
-            <button className="hidden md:flex items-center gap-2 bg-slate-100 px-3 py-1 rounded-lg">
-              <Globe size={14} /> EN
+            <button
+              onClick={() => setLang(lang === 'en' ? 'am' : 'en')}
+              className="hidden md:flex items-center gap-2 bg-slate-100 px-3 py-1 rounded-lg"
+              aria-label="Toggle language"
+            >
+              {lang === 'en' ? 'EN' : 'አማ'}
             </button>
             {isAuthenticated ? (
               <button onClick={handleLogout} className="flex items-center gap-2 bg-blue-900 text-white px-4 py-2 rounded-lg">
-                <LogOut size={16} /> <span className="hidden sm:inline">Logout</span>
+                <LogOut size={16} /> <span className="hidden sm:inline">{t('logout')}</span>
               </button>
             ) : (
-              <Link href="/login" className="bg-blue-900 text-white px-4 py-2 rounded-lg">ግቡ</Link>
+              <Link href="/login" className="bg-blue-900 text-white px-4 py-2 rounded-lg">{t('login')}</Link>
             )}
           </div>
         </div>
       </header>
 
-      <div className={`flex flex-1 ${variant === "dashboard" ? "bg-[#F8FAFC]" : "bg-white"}`}>
-        {variant === "dashboard" && (
-          <aside className="w-64 bg-white border-r hidden lg:block">
+      <div className={`flex flex-1 ${isDashboard ? "bg-[#F8FAFC]" : "bg-white"}`}>
+        {isDashboard && (
+          <aside className="w-64 bg-white border-r border-slate-100 hidden lg:block sticky top-16 h-[calc(100vh-4rem)]">
             <div className="p-6">
               <div className="flex items-center gap-3 mb-6">
                 <div className="w-10 h-10 bg-blue-50 rounded-md flex items-center justify-center">🏛️</div>
@@ -65,26 +73,35 @@ export default function Layout({ children, variant = "public" }: LayoutProps) {
               </div>
 
               <nav className="space-y-2 text-sm">
-                <Link href={user?.role === "admin" ? "/admin/devices" : "/candidate/dashboard"} className="block py-2 px-3 rounded-lg hover:bg-slate-50 font-bold">Dashboard</Link>
-                <Link href="#" className="block py-2 px-3 rounded-lg hover:bg-slate-50">Exams</Link>
-                <Link href="#" className="block py-2 px-3 rounded-lg hover:bg-slate-50">Results</Link>
+                <Link href={user?.role === "admin" ? "/admin/devices" : "/candidate/dashboard"} className="block py-2 px-3 rounded-lg hover:bg-slate-50 font-bold">{t('dashboard')}</Link>
+                {user?.role === "admin" ? (
+                  <>
+                    <Link href="/admin/active-exams" className="block py-2 px-3 rounded-lg hover:bg-slate-50">{t('activeExams')}</Link>
+                    <Link href="/admin/candidates" className="block py-2 px-3 rounded-lg hover:bg-slate-50">{t('candidates')}</Link>
+                  </>
+                ) : (
+                  <Link href="/candidate/exams" className="block py-2 px-3 rounded-lg hover:bg-slate-50">{t('examHistory')}</Link>
+                )}
+                <Link href="#" className="block py-2 px-3 rounded-lg hover:bg-slate-50">{t('profile')}</Link>
+                <Link href="#" className="block py-2 px-3 rounded-lg hover:bg-slate-50">{t('settings')}</Link>
+                <button onClick={handleLogout} className="block w-full text-left py-2 px-3 rounded-lg hover:bg-slate-50 text-red-600">{t('logout')}</button>
               </nav>
             </div>
           </aside>
         )}
 
-        <main className="flex-grow">
-          <div className={`max-w-7xl mx-auto ${variant === "public" ? "px-6 py-10" : "px-6 py-8"}`}>{children}</div>
+        <main className="flex-1">
+          <div className={`max-w-7xl mx-auto ${isDashboard ? "px-6 py-8" : "px-6 py-10"}`}>{children}</div>
         </main>
       </div>
 
-      <footer className="bg-slate-50 border-t mt-8">
-        <div className="max-w-7xl mx-auto px-6 py-8 text-sm text-slate-500 flex flex-col md:flex-row justify-between items-center">
+      <footer className="bg-slate-50 border-t mt-auto">
+          <div className="max-w-7xl mx-auto px-6 py-8 text-sm text-slate-500 flex flex-col md:flex-row justify-between items-center">
           <div>© 2024 ADLTS Ethiopia. All rights reserved.</div>
           <div className="flex gap-4 mt-4 md:mt-0">
-            <Link href="/about" className="hover:text-blue-700">About</Link>
-            <Link href="/contact" className="hover:text-blue-700">Contact</Link>
-            <Link href="/privacy-policy" className="hover:text-blue-700">Privacy Policy</Link>
+            <Link href="/about" className="hover:text-blue-700">{t('about')}</Link>
+            <Link href="/contact" className="hover:text-blue-700">{t('contact')}</Link>
+            <Link href="/privacy-policy" className="hover:text-blue-700">{t('privacy')}</Link>
           </div>
         </div>
       </footer>

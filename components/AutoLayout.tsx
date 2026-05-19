@@ -11,8 +11,10 @@ type Props = {
 export default function AutoLayout({ children }: Props) {
   const pathname = usePathname() || "/";
 
-  // decide variant based on path
-  const isDashboard = pathname.startsWith("/candidate") || pathname.startsWith("/admin") || pathname.startsWith("/super-admin");
+  const isDashboard =
+    (pathname.startsWith("/candidate/") && !pathname.startsWith("/candidate/login") && !pathname.startsWith("/candidate/register")) ||
+    pathname.startsWith("/admin/") ||
+    pathname.startsWith("/super-admin/");
 
   return <Layout variant={isDashboard ? "dashboard" : "public"}>{children}</Layout>;
 }
