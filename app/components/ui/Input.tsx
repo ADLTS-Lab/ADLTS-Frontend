@@ -20,7 +20,11 @@ export const Input = ({ label, error, className = "", id, ...props }: InputProps
         className={`w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-light focus:border-transparent outline-none bg-slate-50 ${className}`}
         {...props}
       />
-      {error && <p className="text-xs text-error">{error}</p>}
+      {error && (
+        <p role="alert" className="text-xs text-error">
+          {error}
+        </p>
+      )}
     </div>
   );
 };

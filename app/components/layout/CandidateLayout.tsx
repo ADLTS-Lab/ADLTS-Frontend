@@ -63,7 +63,6 @@ export const CandidateLayout = ({ children, activeMenu }: CandidateLayoutProps) 
               localStorage.removeItem("auth-token");
               router.push("/login");
             }}
-            aria-label="Logout"
             className="w-full flex items-center gap-2 text-sm text-white/70 hover:text-white"
           >
             <LogOut size={16} /> Logout

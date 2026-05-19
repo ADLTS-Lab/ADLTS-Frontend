@@ -63,7 +63,7 @@ export const AdminLayout = ({ children, activeMenu }: AdminLayoutProps) => {
           </nav>
         </div>
         <div className="mt-auto p-6 bg-black/10 border-t border-white/5">
-          <button aria-label="Logout" onClick={logout} className="w-full text-left text-sm text-white/60 hover:text-white">
+          <button onClick={logout} className="w-full text-left text-sm text-white/60 hover:text-white">
             Logout
           </button>
         </div>

@@ -19,7 +19,7 @@ export const Button = ({
   disabled = false,
   className = "",
 }: ButtonProps) => {
-  const base = "px-4 py-2 rounded-xl font-semibold transition disabled:opacity-50";
+  const base = "px-4 py-2 rounded-xl font-semibold transition disabled:opacity-50 disabled:cursor-not-allowed";
   const variants = {
     primary: "bg-primary text-white hover:bg-primary-light",
     secondary: "border border-primary text-primary bg-white hover:bg-slate-50",
