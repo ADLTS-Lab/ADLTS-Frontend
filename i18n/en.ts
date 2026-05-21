@@ -132,6 +132,24 @@ const en = {
   notfound_back: 'Back to home / ወደ መነሻ',
   loginButton: 'Login',
   loginLoading: 'Logging in...',
+  // profile page
+  profileTitle: 'Candidate Profile',
+  personalInfo: 'Personal Information',
+  firstNameLabel: 'First Name',
+  lastNameLabel: 'Last Name',
+  phoneNumberLabel: 'Phone Number',
+  licenseCategoryLabel: 'License Category',
+  testCenterLabel: 'Test Center',
+  fayidaIdLabel: 'Fayida (National) ID',
+  updateProfileButton: 'Update Profile',
+  updatingProfile: 'Updating...',
+  profileUpdatedSuccess: 'Profile updated successfully!',
+  profileUpdateError: 'Unable to update profile.',
+  registrationStatusLabel: 'Registration Status',
+  landing_telemetry_title: 'Real-time Telemetry',
+  landing_telemetry_sub: 'LIDAR, radar, and vision feeds active',
+  error_roleMismatchAdmin: 'Invalid credentials for Admin role. Please switch to the Candidate tab or check your credentials.',
+  error_roleMismatchCandidate: 'Invalid credentials for Candidate role. Please switch to the Admin tab or check your credentials.',
 };
 
 export default en;

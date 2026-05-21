@@ -44,22 +44,23 @@ export default function LandingPage() {
           </div>
         </div>
 
-        {/* Hero Image placeholder */}
+        {/* Hero Image */}
         <div className="relative group">
-          <div className="rounded-[40px] overflow-hidden shadow-2xl bg-linear-to-br from-blue-100 to-slate-200 h-112.5 flex items-center justify-center">
-            <div className="text-center p-8">
-              <Brain size={64} className="text-blue-600 mx-auto mb-4" />
-              <p className="text-blue-800 font-bold">{t('landing_ai_powered')}</p>
-              <p className="text-slate-500 text-sm mt-2">{t('landing_ai_sensors_sub')}</p>
-            </div>
+          <div className="rounded-[40px] overflow-hidden shadow-2xl bg-slate-100 h-112.5 relative flex items-center justify-center border border-slate-100">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/hero_driving_test.png"
+              alt="Automated driving test course with holographic AI sensors"
+              className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-700 ease-out"
+            />
           </div>
-          <div className="absolute bottom-8 left-8 right-8 bg-white/20 backdrop-blur-xl border border-white/30 p-6 rounded-3xl flex items-center gap-4">
-            <div className="w-12 h-12 bg-blue-900 rounded-2xl flex items-center justify-center text-white">
-              <Brain size={24} />
+          <div className="absolute bottom-8 left-8 right-8 bg-white/90 backdrop-blur-xl border border-white/70 p-5 rounded-3xl flex items-center gap-4 shadow-xl">
+            <div className="w-12 h-12 bg-blue-900 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-md">
+              <Brain size={24} className="animate-pulse" />
             </div>
             <div>
-              <p className="text-white font-bold">{t('landing_ai_sensors_title')}</p>
-              <p className="text-white/70 text-xs">{t('landing_ai_sensors_sub')}</p>
+              <p className="text-slate-900 font-extrabold text-sm leading-none">{t('landing_telemetry_title')}</p>
+              <p className="text-slate-500 text-xs mt-1.5 leading-relaxed font-medium">{t('landing_telemetry_sub')}</p>
             </div>
           </div>
         </div>

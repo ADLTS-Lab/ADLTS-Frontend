@@ -16,12 +16,14 @@ export function useI18n() {
 
   // On mount, hydrate language from localStorage to avoid SSR/client mismatch
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("lang") as Lang | null;
-      if (stored && (stored === "en" || stored === "am")) {
-        setLang(stored);
-      }
-    } catch {}
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("lang") as Lang | null;
+        if (stored && (stored === "en" || stored === "am")) {
+          setLang(stored);
+        }
+      } catch {}
+    }
   }, []);
 
   useEffect(() => {

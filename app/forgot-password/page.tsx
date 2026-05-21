@@ -51,9 +51,6 @@ export default function ForgotPasswordPage() {
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center">
             <CheckCircle2 className="mx-auto mb-3 text-emerald-600" size={32} />
             <p className="text-sm font-semibold text-emerald-900">{successMessage}</p>
-            <p className="mt-2 text-sm text-emerald-800">
-              If your email exists in our system, you should receive a reset link shortly.
-            </p>
             <Link
               href="/login"
               className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#1E3A8A] hover:underline"

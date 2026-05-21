@@ -27,9 +27,21 @@ export default function UnifiedLoginPage() {
 
     try {
       const res = await login({ email, password });
-      const { access_token, entity_type, user } = res.data;
+      const { access_token, refresh_token, entity_type, user } = res.data;
 
-      setUser(user, access_token, entity_type);
+      // Validate selected role against logged-in entity_type
+      if (role === "admin" && entity_type !== "admin" && entity_type !== "super_admin") {
+        setError(t("error_roleMismatchAdmin"));
+        setIsLoading(false);
+        return;
+      }
+      if (role === "candidate" && entity_type !== "candidate") {
+        setError(t("error_roleMismatchCandidate"));
+        setIsLoading(false);
+        return;
+      }
+
+      setUser(user, access_token, entity_type, refresh_token);
 
       const nextRoute =
         entity_type === "candidate"

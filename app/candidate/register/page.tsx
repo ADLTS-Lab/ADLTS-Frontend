@@ -68,9 +68,10 @@ export default function CandidateRegisterPage() {
 
       // If backend returned a token, auto-login and redirect to dashboard
       const token = res?.data?.access_token || res?.access_token || res?.data?.token || res?.token;
+      const refreshToken = res?.data?.refresh_token || res?.refresh_token;
       const user = res?.data?.user || res?.user;
       if (token && user) {
-        setUser(user, token, user.role);
+        setUser(user, token, user.role, refreshToken);
         router.push("/candidate/dashboard");
         return;
       }

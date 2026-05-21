@@ -28,9 +28,47 @@ export default function CandidateExamHistoryPage() {
         <p className="text-sm text-slate-500 mt-1">{t('exams_description')}</p>
       </div>
 
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
+      {/* Mobile Card List (visible on mobile, hidden on md screens and up) */}
+      <div className="space-y-4 md:hidden">
+        {mockExams.map((exam) => {
+          const isPass = exam.result === "Pass";
+          return (
+            <div key={exam.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-xs font-semibold text-slate-400">{exam.date}</p>
+                  <h3 className="font-bold text-slate-900 text-base mt-1">{exam.examType}</h3>
+                </div>
+                <span className={`inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold ${isPass ? "bg-emerald-100 text-emerald-700" : "bg-rose-100 text-rose-700"}`}>
+                  {isPass ? t('result_pass') || 'Pass' : t('result_fail') || 'Fail'} ({exam.result})
+                </span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-2 text-xs pt-3 border-t border-slate-50">
+                <div>
+                  <p className="text-slate-400 uppercase text-[9px] font-bold tracking-wider">{t('exams_center')}</p>
+                  <p className="text-slate-700 font-semibold mt-0.5">{exam.center}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-slate-400 uppercase text-[9px] font-bold tracking-wider">{t('exams_score')}</p>
+                  <p className="text-slate-900 font-black mt-0.5 text-sm">{exam.score}%</p>
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-end">
+                <Link href={`/candidate/exams/${exam.id}`} className="text-blue-700 font-bold text-xs hover:underline flex items-center gap-1 bg-blue-50 px-3 py-1.5 rounded-lg active:scale-95 transition">
+                  {t('exams_viewBreakdown')} →
+                </Link>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop Table (hidden on mobile) */}
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden hidden md:block">
         <div className="overflow-x-auto">
-          <table className="w-full min-w-190 text-left">
+          <table className="w-full min-w-[760px] text-left">
             <thead className="bg-slate-50 text-xs uppercase tracking-widest text-slate-400">
               <tr>
                 <th className="px-6 py-4">{t('exams_date')}</th>

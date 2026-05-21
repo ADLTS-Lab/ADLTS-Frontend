@@ -6,6 +6,7 @@ const API_PREFIX = '/api/v1';
 
 const users = new Map();
 const tokens = new Map();
+const refreshTokens = new Map();
 const resetTokens = new Map();
 const candidateRecords = new Map();
 
@@ -114,6 +115,7 @@ function issueToken(user) {
   const accessToken = `mock-access-${user.role}-${randomUUID()}`;
   const refreshToken = `mock-refresh-${user.role}-${randomUUID()}`;
   tokens.set(accessToken, user.email);
+  refreshTokens.set(refreshToken, user.email);
   return {
     success: true,
     data: {
@@ -123,6 +125,38 @@ function issueToken(user) {
       user: toSafeUser(user),
     },
   };
+}
+
+function refreshTokensFromRequest(req, body = {}) {
+  let refreshToken = String(body.refresh_token || '').trim();
+  if (!refreshToken) {
+    refreshToken = getBearerToken(req);
+  }
+  return refreshToken;
+}
+
+async function handleTokenRefresh(req, res) {
+  const body = await parseBody(req);
+  const refreshToken = refreshTokensFromRequest(req, body);
+
+  if (!refreshToken) {
+    json(res, 400, { success: false, message: 'Refresh token is required.' });
+    return;
+  }
+
+  const email = refreshTokens.get(refreshToken);
+  if (!email) {
+    json(res, 401, { success: false, message: 'Invalid or expired refresh token.' });
+    return;
+  }
+
+  const user = users.get(email);
+  if (!user) {
+    json(res, 401, { success: false, message: 'Invalid or expired refresh token.' });
+    return;
+  }
+
+  json(res, 200, issueToken(user));
 }
 
 function authUserFromRequest(req) {
@@ -184,6 +218,15 @@ async function handleAuthRegister(req, res) {
   };
 
   users.set(email, user);
+  seedCandidateRecord({
+    id: user.id,
+    email: user.email,
+    first_name: user.first_name,
+    last_name: user.last_name,
+    status: 'active',
+    testCenter: user.testCenter,
+    licenseCategory: user.licenseCategory,
+  });
   json(res, 201, issueToken(user));
 }
 
@@ -269,7 +312,8 @@ async function patchCandidateStatus(req, res, pathname) {
   const body = await parseBody(req);
   const status = String(body.status || '').trim().toLowerCase();
 
-  if (!candidateId || !candidateRecords.has(candidateId)) {
+  const user = Array.from(users.values()).find((entry) => entry.id === candidateId && entry.role === 'candidate');
+  if (!user) {
     json(res, 404, { success: false, message: 'Candidate not found.' });
     return;
   }
@@ -279,7 +323,10 @@ async function patchCandidateStatus(req, res, pathname) {
     return;
   }
 
-  const candidate = candidateRecords.get(candidateId);
+  user.status = status;
+  users.set(user.email, user);
+
+  const candidate = candidateRecords.get(candidateId) || toCandidateRecord(user);
   candidate.status = status;
   candidateRecords.set(candidateId, candidate);
   json(res, 200, { success: true, message: 'Candidate status updated successfully.', data: candidate });
@@ -382,13 +429,12 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (url.pathname === `${API_PREFIX}/auth/refresh` && req.method === 'POST') {
-    const user = authUserFromRequest(req);
-    if (!user) {
-      json(res, 401, { success: false, message: 'Unauthorized.' });
-      return;
-    }
-    json(res, 200, issueToken(user));
+  if (
+    (url.pathname === `${API_PREFIX}/auth/refresh` ||
+      url.pathname === `${API_PREFIX}/auth/token/refresh`) &&
+    req.method === 'POST'
+  ) {
+    await handleTokenRefresh(req, res);
     return;
   }
 
@@ -398,6 +444,15 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (url.pathname === `${API_PREFIX}/candidates` && req.method === 'GET') {
+    const authUser = authUserFromRequest(req);
+    if (!authUser) {
+      json(res, 401, { success: false, message: 'Unauthorized.' });
+      return;
+    }
+    if (authUser.role !== 'admin' && authUser.role !== 'super_admin') {
+      json(res, 403, { success: false, message: 'Forbidden.' });
+      return;
+    }
     listCandidates(req, res);
     return;
   }

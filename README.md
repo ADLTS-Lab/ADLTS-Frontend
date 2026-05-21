@@ -1,36 +1,77 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ADLTS Frontend
+
+**Automated Driving License Testing System** – Frontend application for the Ethiopian digital driver licensing platform.
+
+> Built with Next.js 16, Tailwind CSS, TypeScript, and i18n support for Amharic/English.
+
+![Next.js](https://img.shields.io/badge/Next.js-16-black)
+![TypeScript](https://img.shields.io/badge/TypeScript-5-blue)
+![Tailwind](https://img.shields.io/badge/Tailwind-3-06B6D4)
+![License](https://img.shields.io/badge/License-MIT-green)
+
+
+---
+
+## Overview
+
+ADLTS Frontend provides a modern, bilingual interface for Ethiopia's automated driving license testing system. It supports:
+
+- **Candidates** – register, take exams, view results and history.
+- **Admins** – manage devices, monitor active exams, oversee candidates.
+- **Super Admins** – full system control (invitations, user management).
+- **Experts / Institutes / Transport Authorities** – invitation‑based onboarding (coming soon).
+
+The app is fully responsive, works with a real backend API, and includes a mock backend for local development.
+
+---
+
+## Features
+
+
+- **Authentication** (login, registration, OTP verification, password reset)
+- **Role‑based redirection** (candidate → candidate dashboard, admin → admin devices)
+- **Candidate Portal**
+  - Dashboard with profile, stats, upcoming test
+  - Exam history table
+  - Result detail page (score breakdown)
+- **Admin Portal**
+  - Device management dashboard (grid of devices with status, battery, storage)
+  - Active exams monitor (real‑time card grid)
+  - Candidate management table (search, status toggle)
+- **Bilingual UI** (Amharic / English) with persistent language toggle
+- **Mock backend** (local API routes for development)
+- **Protected routes** (unauthorised users redirected to login)
+- **Responsive design** (mobile, tablet, desktop)
+
+---
+
+## Tech Stack
+
+| Area | Technology |
+|------|------------|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript |
+| Styling | Tailwind CSS |
+| State Management | Zustand + localStorage persistence |
+| HTTP Client | Axios |
+| Icons | Lucide React |
+| i18n | Custom hook with local dictionaries (`en`, `am`) |
+| Dev Mock API | Local Next.js API routes (`app/api/v1/`) |
+| Testing (future) | Playwright |
+| Deployment | Vercel |
+
+---
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+- Node.js 20+ and npm
+- Git
+
+### Installation
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+git clone https://github.com/ADLTS-Lab/ADLTS-Frontend.git
+cd ADLTS-Frontend
+npm install
