@@ -1,28 +1,33 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Calendar, ChevronRight, MapPin, Award } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { getCurrentUser, type User } from "@/services/auth.service";
+import {
+  getCandidateExamStats,
+  getDashboardPastExams,
+  type CandidateExamStats,
+  type DashboardPastExam,
+} from "@/services/exams.service";
 import { useI18n } from "@/i18n/useI18n";
 
 export default function CandidateDashboard() {
-  const router = useRouter();
   const { user: storedUser, isAuthenticated, setUser } = useAuthStore();
   const [profile, setProfile] = useState<User | null>(storedUser);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [stats, setStats] = useState<CandidateExamStats>({
+    totalExams: 0,
+    averageScore: 0,
+    passedExams: 0,
+    incomplete: 0,
+  });
+  const [pastExams, setPastExams] = useState<DashboardPastExam[]>([]);
   const didInitRef = useRef(false);
 
   useEffect(() => {
     if (didInitRef.current) return;
     didInitRef.current = true;
-
-    const token = typeof window !== "undefined" ? localStorage.getItem("auth-token") : null;
-    if (!token) {
-      router.push("/login");
-      return;
-    }
 
     let isMounted = true;
 
@@ -47,12 +52,18 @@ export default function CandidateDashboard() {
 
     loadProfileOnce();
 
+    Promise.all([getCandidateExamStats(), getDashboardPastExams()]).then(([nextStats, nextPastExams]) => {
+      if (!isMounted) return;
+      setStats(nextStats);
+      setPastExams(nextPastExams);
+    });
+
     return () => {
       isMounted = false;
     };
     // Intentionally run once per mount; the effect calls setUser(), which would otherwise cause re-fetch + loading flicker.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [router]);
+  }, []);
 
   useEffect(() => {
     if (!profile && storedUser) setProfile(storedUser);
@@ -81,19 +92,6 @@ export default function CandidateDashboard() {
       </main>
     );
   }
-
-  const stats = {
-    totalExams: 4,
-    averageScore: 82,
-    passedExams: 3,
-    incomplete: 1,
-  };
-
-  const pastExams = [
-    { date: "Sep 15, 2024", type: "Theory Mock #4", score: "88/100", status: "Pass", color: "green" },
-    { date: "Aug 28, 2024", type: "Traffic Signs Quiz", score: "94/100", status: "Pass", color: "green" },
-    { date: "Aug 10, 2024", type: "Theory Mock #3", score: "42/100", status: "Fail", color: "red" },
-  ];
 
   return (
     <main className="space-y-6 md:space-y-8">
@@ -219,15 +217,7 @@ const StatCard = ({ label, value }: { label: string; value: string }) => (
   </div>
 );
 
-type PastExam = {
-  date: string;
-  type: string;
-  score: string;
-  status: string;
-  color: string;
-};
-
-const TableRow = ({ date, type, score, status, color }: PastExam) => {
+const TableRow = ({ date, type, score, status, color }: DashboardPastExam) => {
   const { t } = useI18n();
   const isPass = color === "green" || status === "Pass";
   return (

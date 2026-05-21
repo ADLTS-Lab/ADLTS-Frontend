@@ -18,11 +18,20 @@ export const useAuthStore = create<AuthState>()(
       token: null,
       role: null,
       isAuthenticated: false,
-      setUser: (user, token, role, refreshToken?: string) => {
+      setUser: (user, token, roleOrEntityType, refreshToken?: string) => {
+        const normalizedRole = roleOrEntityType ?? user?.role ?? null;
+        const userWithRole =
+          user && normalizedRole ? { ...user, role: normalizedRole } : user;
+
         if (token) localStorage.setItem('auth-token', token);
         if (refreshToken) localStorage.setItem('refresh-token', refreshToken);
-        if (role) localStorage.setItem('user-role', role);
-        set({ user, token, role, isAuthenticated: !!user });
+        if (normalizedRole) localStorage.setItem('user-role', normalizedRole);
+        set({
+          user: userWithRole,
+          token: token ?? null,
+          role: normalizedRole,
+          isAuthenticated: !!userWithRole,
+        });
       },
       logout: () => {
         localStorage.removeItem('auth-token');

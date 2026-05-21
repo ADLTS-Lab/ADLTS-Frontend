@@ -1,19 +1,9 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useAuthStore } from "@/store/authStore";
 import { useI18n } from '@/i18n/useI18n';
 
 export default function SuperAdminDashboard() {
-  const router = useRouter();
-  const { isAuthenticated, user } = useAuthStore();
   const { t } = useI18n();
-
-  useEffect(() => {
-    if (!isAuthenticated) router.push("/login");
-    if (user?.role !== "super_admin") router.push("/login");
-  }, [isAuthenticated, user, router]);
 
   return (
     <div className="py-6 md:py-8 max-w-4xl">

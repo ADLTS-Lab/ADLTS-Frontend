@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, ShieldCheck } from "lucide-react";
-import api from "@/lib/api";
+import { resetPassword } from "@/services/password.service";
 import { useI18n } from "@/i18n/useI18n";
 
 function ResetPasswordForm() {
@@ -49,26 +49,21 @@ function ResetPasswordForm() {
     setIsLoading(true);
 
     try {
-      const response = await api.post("/auth/password/reset", {
+      const message = await resetPassword({
         token,
         password,
         confirm_password: confirmPassword,
       });
 
-      setSuccess(
-        response.data?.message || "Password reset successfully. Redirecting to login..."
-      );
+      setSuccess(message);
       setPassword("");
       setConfirmPassword("");
 
       setTimeout(() => {
         router.replace("/login");
       }, 1200);
-    } catch (err: any) {
-      const message = err.response?.data?.message ?? "";
-      setError(
-        message || "Unable to reset password. Please try again."
-      );
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Unable to reset password. Please try again.");
     } finally {
       setIsLoading(false);
     }

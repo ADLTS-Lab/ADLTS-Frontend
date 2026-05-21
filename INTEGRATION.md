@@ -22,13 +22,24 @@ This document lists the minimal steps to make the frontend ready for backend int
 
 - If using a private Postman mock, set `NEXT_PUBLIC_MOCK_API_KEY` to the PMAK value.
 
-## 2. API client
+## 2. Service layer
+
+Pages should import from `services/`, not `lib/api` directly:
+
+| Service | Real endpoints (Postman) | Mock-only until backend ships |
+|---------|--------------------------|-------------------------------|
+| `auth.service.ts` | login, register, logout, `/me` by role | local fallback flag |
+| `candidates.service.ts` | `GET /candidates`, `PATCH /candidates/:id/status`, `GET\|PATCH /candidates/me` | — |
+| `exams.service.ts` | — | exam list, detail, stats, active exams |
+| `devices.service.ts` | — | device list + summary |
+
+## 3. API client
 
 - `lib/api.ts` (axios) attaches `Authorization: Bearer <access_token>` from `localStorage`.
 - On `401`, the client calls `POST /auth/token/refresh` with `{ refresh_token }` (or Bearer refresh token), then retries the original request.
 - Official Postman path: `/auth/token/refresh`. Compatibility alias: `/auth/refresh` (same handler).
 
-## 3. Mock API routes (Next.js — `app/api/v1/`)
+## 4. Mock API routes (Next.js — `app/api/v1/`)
 
 These mirror the Postman contract for local/Vercel deployment. Shared state lives in `app/api/v1/_mock-auth.ts`.
 
@@ -51,20 +62,20 @@ These mirror the Postman contract for local/Vercel deployment. Shared state live
 - Admin: `admin@adlts.et` / `password123`
 - Super admin: `superadmin@adlts.et` / `password123`
 
-## 4. Auth flows to verify locally
+## 5. Auth flows to verify locally
 
 1. `POST /auth/login` — saves `auth-token`, `refresh-token`, `user-role` in `localStorage`.
 2. `GET /candidates/me` (or role-specific `/me`) — dashboard profile load.
 3. Admin: `GET /candidates`, `PATCH /candidates/:id/status` on `/admin/candidates`.
 4. Token refresh: force `401` (e.g. clear `auth-token` only) and confirm silent refresh via `/auth/token/refresh`.
 
-## 5. Deployment to Vercel
+## 6. Deployment to Vercel
 
 1. Set `NEXT_PUBLIC_API_BASE_URL=/api/v1` in Vercel project environment variables.
 2. Deploy; Next.js serves mock routes from `app/api/v1/**/route.ts` on the same origin (no CORS, no separate backend).
 3. When the real backend is ready, change `NEXT_PUBLIC_API_BASE_URL` to the deployed API URL (e.g. `https://api.example.com/api/v1`). No page-level changes required if contracts match Postman.
 
-## 6. What will be replaced by the real backend
+## 7. What will be replaced by the real backend
 
 | Layer | Replace when backend is live |
 |-------|------------------------------|
@@ -77,13 +88,13 @@ These mirror the Postman contract for local/Vercel deployment. Shared state live
 
 **Temporary mock-only endpoints** (not in full production scope yet): local fallback via `NEXT_PUBLIC_ALLOW_LOCAL_FALLBACK` and `adlts-registered-users` in `localStorage`.
 
-## 7. Clean-up before production merge
+## 8. Clean-up before production merge
 
 - Remove dev fallbacks when the backend is authoritative.
 - Remove debug console logs.
 - Set `NEXT_PUBLIC_API_BASE_URL` to the deployed backend in CI/Vercel.
 
-## 8. Quick local verification
+## 9. Quick local verification
 
 ```bash
 npm run dev

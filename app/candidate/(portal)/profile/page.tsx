@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { User as UserIcon, Mail, Phone, MapPin, Award, CreditCard as CardIcon, Save, RefreshCw, CheckCircle, AlertCircle } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-import { getCurrentUser, updateCandidateProfile, type User } from "@/services/auth.service";
+import { getCurrentUser, type User } from "@/services/auth.service";
+import { updateMyCandidateProfile } from "@/services/candidates.service";
 import { useI18n } from "@/i18n/useI18n";
 
 export default function CandidateProfile() {
-  const router = useRouter();
   const { user: storedUser, token: storedToken, role: storedRole, isAuthenticated, setUser } = useAuthStore();
   const [profile, setProfile] = useState<User | null>(storedUser);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
@@ -30,12 +29,6 @@ export default function CandidateProfile() {
   useEffect(() => {
     if (didInitRef.current) return;
     didInitRef.current = true;
-
-    const token = typeof window !== "undefined" ? localStorage.getItem("auth-token") : null;
-    if (!token) {
-      router.push("/login");
-      return;
-    }
 
     let isMounted = true;
 
@@ -71,7 +64,7 @@ export default function CandidateProfile() {
     return () => {
       isMounted = false;
     };
-  }, [router, storedUser, setUser]);
+  }, [storedUser, setUser]);
 
   // Sync state if storedUser updates from outside
   useEffect(() => {
@@ -91,13 +84,23 @@ export default function CandidateProfile() {
     setIsSaving(true);
 
     try {
-      const updatedUser = await updateCandidateProfile({
+      const updated = await updateMyCandidateProfile({
         first_name: firstName,
         last_name: lastName,
         phone: phone,
       });
 
-      if (updatedUser) {
+      if (updated) {
+        const updatedUser: User = {
+          id: updated.id,
+          email: updated.email,
+          role: 'candidate',
+          first_name: updated.first_name,
+          last_name: updated.last_name,
+          phone: updated.phone,
+          licenseCategory: updated.licenseCategory,
+          testCenter: updated.testCenter,
+        };
         setProfile(updatedUser);
         setUser(updatedUser, storedToken || undefined, storedRole || undefined);
         setSuccessMessage(t("profileUpdatedSuccess"));

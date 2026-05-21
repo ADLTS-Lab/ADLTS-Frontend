@@ -1,19 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import api from "@/lib/api";
+import {
+  listCandidates,
+  updateCandidateStatus,
+  type CandidateRecord,
+} from "@/services/candidates.service";
 import { useI18n } from '@/i18n/useI18n';
-
-type CandidateRecord = {
-  id: string;
-  email: string;
-  first_name: string;
-  last_name: string;
-  name: string;
-  status: "active" | "suspended";
-  licenseCategory: string;
-  testCenter: string;
-};
 
 export default function AdminCandidatesPage() {
   const { t } = useI18n();
@@ -28,17 +21,10 @@ export default function AdminCandidatesPage() {
       setError("");
 
       try {
-        const response = await api.get("/candidates", {
-          params: search ? { search } : undefined,
-        });
-
-        setCandidates(response.data?.data || []);
+        const data = await listCandidates(search ? { search } : undefined);
+        setCandidates(data);
       } catch (err: unknown) {
-        const message =
-          typeof err === "object" && err !== null && "response" in err
-            ? ((err as { response?: { data?: { message?: string } } }).response?.data?.message ?? "")
-            : "";
-        setError(message || "Unable to load candidates.");
+        setError(err instanceof Error ? err.message : "Unable to load candidates.");
       } finally {
         setIsLoading(false);
       }
@@ -53,15 +39,10 @@ export default function AdminCandidatesPage() {
     const nextStatus = candidate.status === "active" ? "suspended" : "active";
 
     try {
-      const response = await api.patch(`/candidates/${candidate.id}/status`, { status: nextStatus });
-      const updated = response.data?.data as CandidateRecord;
+      const { candidate: updated } = await updateCandidateStatus(candidate.id, nextStatus);
       setCandidates((current) => current.map((item) => (item.id === candidate.id ? updated : item)));
     } catch (err: unknown) {
-      const message =
-        typeof err === "object" && err !== null && "response" in err
-          ? ((err as { response?: { data?: { message?: string } } }).response?.data?.message ?? "")
-          : "";
-      setError(message || "Unable to update candidate status.");
+      setError(err instanceof Error ? err.message : "Unable to update candidate status.");
     }
   };
 
