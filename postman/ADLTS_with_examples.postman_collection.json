@@ -1,0 +1,148 @@
+{
+  "info": {
+    "_postman_id": "786996f5-262f-43e1-bb39-faa8d268e140",
+    "name": "ADLTS - Automated Driving License Testing System API (with examples)",
+    "description": "Complete API collection with example responses for frontend integration testing.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register Candidate",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('user_id', response.data.user.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"name\": \"አበበ ተስፋዬ\",\n  \"email\": \"abebe.tesfaye@example.com\",\n  \"phone\": \"+251912345678\",\n  \"password\": \"SecurePassword123!\",\n  \"confirm_password\": \"SecurePassword123!\",\n  \"fayda_id\": \"ET-1234567890\",\n  \"role\": \"candidate\"\n}" },
+            "url": { "raw": "{{base_url}}/auth/register", "path": ["auth","register"] }
+          },
+          "response": [
+            {
+              "name": "Example - Register Success",
+              "originalRequest": {},
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"access_token\": \"mock-access-token\",\n    \"refresh_token\": \"mock-refresh-token\",\n    \"entity_type\": \"candidate\",\n    \"user\": {\n      \"id\": \"local-123\",\n      \"email\": \"integration@example.com\",\n      \"role\": \"candidate\",\n      \"first_name\": \"Integration\",\n      \"last_name\": \"Test\"\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('access_token', response.data.access_token);",
+                  "    pm.collectionVariables.set('refresh_token', response.data.refresh_token);",
+                  "    pm.collectionVariables.set('user_id', response.data.user.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"abebe.tesfaye@example.com\",\n  \"password\": \"SecurePassword123!\"\n}" },
+            "url": { "raw": "{{base_url}}/auth/login", "path": ["auth","login"] }
+          },
+          "response": [
+            {
+              "name": "Example - Login Success",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"data\": {\n    \"access_token\": \"mock-access-token\",\n    \"refresh_token\": \"mock-refresh-token\",\n    \"entity_type\": \"candidate\",\n    \"user\": {\n      \"id\": \"local-123\",\n      \"email\": \"integration@example.com\",\n      \"role\": \"candidate\",\n      \"first_name\": \"Integration\",\n      \"last_name\": \"Test\"\n    }\n  }\n}"
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token",
+          "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}" }, "url": { "raw": "{{base_url}}/auth/refresh", "path": ["auth","refresh"] } },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}" }, "url": { "raw": "{{base_url}}/auth/logout", "path": ["auth","logout"] } },
+          "response": []
+        },
+        {
+          "name": "Forgot Password",
+          "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"email\": \"abebe.tesfaye@example.com\"\n}" }, "url": { "raw": "{{base_url}}/auth/forgot-password", "path": ["auth","forgot-password"] } },
+          "response": [
+            {
+              "name": "Example - Forgot Password",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"If your email exists in our system, you will receive a reset link shortly.\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Reset Password",
+          "request": { "auth": { "type": "noauth" }, "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"token\": \"reset-token-from-email\",\n  \"new_password\": \"NewSecurePassword456!\",\n  \"confirm_password\": \"NewSecurePassword456!\"\n}" }, "url": { "raw": "{{base_url}}/auth/reset-password", "path": ["auth","reset-password"] } },
+          "response": [
+            {
+              "name": "Example - Reset Password",
+              "originalRequest": {},
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "header": [{ "key": "Content-Type", "value": "application/json" }],
+              "body": "{\n  \"success\": true,\n  \"message\": \"Password reset successful\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "User Profile",
+      "item": [
+        {
+          "name": "Get My Profile",
+          "request": { "method": "GET", "header": [], "url": { "raw": "{{base_url}}/users/me", "path": ["users","me"] } },
+          "response": []
+        },
+        {
+          "name": "Update My Profile",
+          "request": { "method": "PATCH", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"name\": \"Updated Name\"\n}" }, "url": { "raw": "{{base_url}}/users/me", "path": ["users","me"] } },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "base_url", "value": "https://api.adlt.et/api/v1" },
+    { "key": "access_token", "value": "" },
+    { "key": "refresh_token", "value": "" },
+    { "key": "user_id", "value": "" }
+  ]
+}

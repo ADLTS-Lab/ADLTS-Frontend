@@ -1,0 +1,242 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { Calendar, ChevronRight, MapPin, Award } from "lucide-react";
+import { useAuthStore } from "@/store/authStore";
+import { getCurrentUser, type User } from "@/services/auth.service";
+import {
+  getCandidateExamStats,
+  getDashboardPastExams,
+  type CandidateExamStats,
+  type DashboardPastExam,
+} from "@/services/exams.service";
+import { useI18n } from "@/i18n/useI18n";
+
+export default function CandidateDashboard() {
+  const { user: storedUser, isAuthenticated, setUser } = useAuthStore();
+  const [profile, setProfile] = useState<User | null>(storedUser);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [stats, setStats] = useState<CandidateExamStats>({
+    totalExams: 0,
+    averageScore: 0,
+    passedExams: 0,
+    incomplete: 0,
+  });
+  const [pastExams, setPastExams] = useState<DashboardPastExam[]>([]);
+  const didInitRef = useRef(false);
+
+  useEffect(() => {
+    if (didInitRef.current) return;
+    didInitRef.current = true;
+
+    let isMounted = true;
+
+    const loadProfileOnce = async () => {
+      // If we already have a user from the persisted store, skip the extra loading flicker.
+      if (storedUser) {
+        setIsProfileLoading(false);
+        return;
+      }
+
+      setIsProfileLoading(true);
+      const currentUser = await getCurrentUser();
+      if (!isMounted) return;
+
+      if (currentUser) {
+        setProfile(currentUser);
+        setUser(currentUser);
+      }
+
+      setIsProfileLoading(false);
+    };
+
+    loadProfileOnce();
+
+    Promise.all([getCandidateExamStats(), getDashboardPastExams()]).then(([nextStats, nextPastExams]) => {
+      if (!isMounted) return;
+      setStats(nextStats);
+      setPastExams(nextPastExams);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+    // Intentionally run once per mount; the effect calls setUser(), which would otherwise cause re-fetch + loading flicker.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!profile && storedUser) setProfile(storedUser);
+  }, [profile, storedUser]);
+
+  const { t } = useI18n();
+
+  if ((!isAuthenticated && typeof window === "undefined") || isProfileLoading) {
+    return (
+      <main className="space-y-6 md:space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 bg-white rounded-3xl p-6 md:p-8 border border-slate-100 animate-pulse">
+            <div className="h-5 w-48 bg-slate-100 rounded mb-4" />
+            <div className="h-4 w-full max-w-md bg-slate-100 rounded mb-3" />
+            <div className="h-10 w-56 bg-slate-100 rounded-full" />
+          </div>
+          <div className="bg-white rounded-3xl p-6 border border-slate-100 animate-pulse">
+            <div className="h-5 w-32 bg-slate-100 rounded mb-6" />
+            <div className="space-y-4">
+              <div className="h-10 bg-slate-100 rounded-xl" />
+              <div className="h-10 bg-slate-100 rounded-xl" />
+              <div className="h-10 bg-slate-100 rounded-xl" />
+            </div>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="space-y-6 md:space-y-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 bg-[#283C86] rounded-3xl p-6 md:p-8 text-white relative overflow-hidden flex flex-col justify-center">
+          <div className="max-w-md z-10">
+            <p className="text-base md:text-lg mb-6 md:mb-8 leading-relaxed opacity-90">{t('dashboardHero')}</p>
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <button className="bg-white text-blue-900 px-5 md:px-6 py-3 rounded-full font-bold flex items-center justify-center gap-2 text-sm md:text-base w-full sm:w-auto shadow-md hover:bg-slate-50 transition active:scale-95">
+                <span className="w-5 h-5 bg-blue-900 text-white rounded-full flex items-center justify-center text-xs">▶</span>
+                {t('startNewExam')}
+              </button>
+              <button className="bg-white/10 hover:bg-white/20 border border-white/20 px-5 md:px-6 py-3 rounded-full font-bold text-sm md:text-base w-full sm:w-auto transition active:scale-95">
+                {t('readGuides')}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+          <h3 className="font-bold text-slate-700 mb-6">{t('yourStatus')}</h3>
+          <div className="space-y-6">
+            <StatusItem icon={<Award className="text-blue-600" />} label={t('licenseCategory')} value={profile?.licenseCategory || "Category B"} />
+            <StatusItem icon={<MapPin className="text-blue-600" />} label={t('testCenter')} value={profile?.testCenter || "Addis Ababa Center"} />
+            <StatusItem icon={<Calendar className="text-blue-600" />} label={t('nextExam')} value="Oct 24, 2024" />
+          </div>
+          <div className="mt-8 pt-6 border-t border-slate-50 flex justify-between items-center">
+            <span className="text-xs font-bold text-slate-400">{t('registrationStatus')}</span>
+            <span className="px-2 py-1 bg-green-100 text-green-700 text-[10px] rounded-md font-bold">{t('registrationStatus') === 'Registration status' ? 'Active' : 'ንቁ'}</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 min-[340px]:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+        <StatCard label={t('stat_totalExams')} value={stats.totalExams.toString().padStart(2, "0")} />
+        <StatCard label={t('stat_averageScore')} value={`${stats.averageScore}%`} />
+        <StatCard label={t('stat_passedExams')} value={stats.passedExams.toString().padStart(2, "0")} />
+        <StatCard label={t('stat_incomplete')} value={stats.incomplete.toString().padStart(2, "0")} />
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">{t('candidateSmall')}</p>
+          <p className="text-xl font-bold text-slate-900">{profile?.name || `${profile?.first_name || "Candidate"} ${profile?.last_name || ""}`.trim()}</p>
+          <p className="text-sm text-slate-500 mt-1">{profile?.email || "No email available"}</p>
+        </div>
+      </div>
+
+      {/* Mobile Card List (visible on mobile, hidden on md screens and up) */}
+      <div className="space-y-3 md:hidden">
+        <div className="flex justify-between items-center px-1">
+          <h3 className="font-bold text-blue-950 text-base">{t('pastExamsTitle')}</h3>
+          <button className="text-blue-600 text-xs font-bold flex items-center gap-1">
+            {t('viewAll')} <ChevronRight size={14} />
+          </button>
+        </div>
+        {pastExams.map((exam, idx) => {
+          const isPass = exam.color === "green" || exam.status === "Pass";
+          return (
+            <div key={idx} className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 space-y-3">
+              <div className="flex justify-between items-start">
+                <div className="flex items-center gap-2">
+                  <Calendar size={14} className="text-slate-400" />
+                  <span className="text-xs font-semibold text-slate-500">{exam.date}</span>
+                </div>
+                <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold ${isPass ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                  {isPass ? t('result_pass') || 'Pass' : t('result_fail') || 'Fail'} ({exam.status})
+                </span>
+              </div>
+              <div className="flex justify-between items-center pt-1">
+                <span className="font-bold text-slate-800 text-sm">{exam.type}</span>
+                <span className={`font-bold text-sm ${isPass ? "text-blue-700" : "text-red-500"}`}>{exam.score}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Desktop Table (hidden on mobile) */}
+      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden hidden md:block">
+        <div className="p-4 md:p-6 flex justify-between items-center border-b border-slate-50">
+          <h3 className="font-bold text-blue-950 text-base md:text-lg">{t('pastExamsTitle')}</h3>
+          <button className="text-blue-600 text-xs md:text-sm font-bold flex items-center gap-1">
+            {t('viewAll')} <ChevronRight size={16} />
+          </button>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left min-w-[500px]">
+            <thead className="bg-slate-50/50 text-[10px] uppercase font-bold text-slate-400">
+              <tr>
+                <th className="px-4 md:px-6 py-4">የፈተና ቀን (Date)</th>
+                <th className="px-4 md:px-6 py-4">የፈተና አይነት (Type)</th>
+                <th className="px-4 md:px-6 py-4">ውጤት (Score)</th>
+                <th className="px-4 md:px-6 py-4">ሁኔታ (Result)</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-50">
+              {pastExams.map((exam, idx) => (
+                <TableRow key={idx} {...exam} />
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  );
+}
+
+const StatusItem = ({ icon, label, value }: { icon: React.ReactNode; label: string; value: string }) => (
+  <div className="flex items-center gap-4">
+    <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">{icon}</div>
+    <div>
+      <p className="text-[10px] font-bold text-slate-400 uppercase leading-none mb-1">{label}</p>
+      <p className="text-sm font-bold text-slate-800 leading-none">{value}</p>
+    </div>
+  </div>
+);
+
+const StatCard = ({ label, value }: { label: string; value: string }) => (
+  <div className="bg-white p-4 rounded-2xl md:rounded-3xl border border-slate-100 shadow-sm flex flex-col items-center text-center">
+    <span className="text-xl md:text-3xl font-bold text-blue-900 mb-1">{value}</span>
+    <span className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider line-clamp-2 leading-tight">{label}</span>
+  </div>
+);
+
+const TableRow = ({ date, type, score, status, color }: DashboardPastExam) => {
+  const { t } = useI18n();
+  const isPass = color === "green" || status === "Pass";
+  return (
+    <tr className="text-xs md:text-sm font-medium text-slate-700 group hover:bg-slate-50/50 transition-colors">
+      <td className="px-4 md:px-6 py-4 flex items-center gap-3 whitespace-nowrap">
+        <Calendar size={14} className="text-slate-300" /> {date}
+      </td>
+      <td className="px-4 md:px-6 py-4">{type}</td>
+      <td className={`px-4 md:px-6 py-4 font-bold ${isPass ? "text-blue-700" : "text-red-500"}`}>{score}</td>
+      <td className="px-4 md:px-6 py-4">
+        <span
+          className={`px-2 md:px-3 py-1 rounded-full text-[9px] md:text-[10px] font-bold flex w-fit items-center gap-1 ${
+            isPass ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+          }`}
+        >
+          <span className={`w-1 h-1 rounded-full ${isPass ? "bg-green-700" : "bg-red-700"}`} />
+          {isPass ? t('result_pass') || 'Pass' : t('result_fail') || 'Fail'} ({status})
+        </span>
+      </td>
+    </tr>
+  );
+};
