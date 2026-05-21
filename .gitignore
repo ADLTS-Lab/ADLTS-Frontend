@@ -30,8 +30,10 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files (Explicitly ignore all environment files)
+.env
+.env.*
+!.env.example # Allow the example file to be committed
 
 # vercel
 .vercel
@@ -54,3 +56,8 @@ Thumbs.db
 .env.development.local
 .env.test.local
 .env.production.local
+
+# Postman
+*.postman_environment.json
+# (Optional) ignore collections if you don't want to track them at all:
+# *.postman_collection.json
