@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { useI18n } from "@/i18n/useI18n";
-import api from "@/lib/api";
+import { requestPasswordReset } from "@/services/password.service";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -20,17 +20,11 @@ export default function ForgotPasswordPage() {
     setIsLoading(true);
 
     try {
-      const response = await api.post("/auth/password/forgot", { email });
-      setSuccessMessage(
-        response.data?.message || "Check your email for reset link"
-      );
+      const message = await requestPasswordReset(email);
+      setSuccessMessage(message);
       setEmail("");
     } catch (err: unknown) {
-      const message =
-        typeof err === "object" && err !== null && "response" in err
-          ? ((err as { response?: { data?: { message?: string } } }).response?.data?.message ?? "")
-          : "";
-      setError(message || "Unable to send reset link. Please try again.");
+      setError(err instanceof Error ? err.message : "Unable to send reset link. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -51,9 +45,6 @@ export default function ForgotPasswordPage() {
           <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center">
             <CheckCircle2 className="mx-auto mb-3 text-emerald-600" size={32} />
             <p className="text-sm font-semibold text-emerald-900">{successMessage}</p>
-            <p className="mt-2 text-sm text-emerald-800">
-              If your email exists in our system, you should receive a reset link shortly.
-            </p>
             <Link
               href="/login"
               className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#1E3A8A] hover:underline"

@@ -15,11 +15,13 @@ type MockUser = {
   phone?: string;
   licenseCategory?: string;
   testCenter?: string;
+  status?: string;
 };
 
 type MockState = {
   users: Map<string, MockUser>;
   tokens: Map<string, string>;
+  refreshTokens: Map<string, string>;
 };
 
 declare global {
@@ -41,6 +43,7 @@ const state: MockState = globalThis.__adltsMockAuthState ?? {
         phone: '+251900000000',
         licenseCategory: 'B',
         testCenter: 'Bole Test Center',
+        status: 'active',
       },
     ],
     [
@@ -63,11 +66,32 @@ const state: MockState = globalThis.__adltsMockAuthState ?? {
         name: 'Super Admin User',
       },
     ],
+    [
+      'suspended.mary@example.com',
+      {
+        id: 'candidate-3',
+        email: 'suspended.mary@example.com',
+        password: 'password123',
+        role: 'candidate',
+        first_name: 'Mary',
+        last_name: 'Kebede',
+        phone: '+251911223344',
+        licenseCategory: 'A',
+        testCenter: 'Adama Center',
+        status: 'suspended',
+      },
+    ],
   ]),
   tokens: new Map<string, string>(),
+  refreshTokens: new Map<string, string>(),
 };
 
 globalThis.__adltsMockAuthState = state;
+
+// Ensure state always has refreshTokens mapped (for backward compatibility during fast refreshes)
+if (!state.refreshTokens) {
+  state.refreshTokens = new Map<string, string>();
+}
 
 function sanitizeUser(user: MockUser) {
   const { password: _password, ...safeUser } = user;
@@ -76,13 +100,16 @@ function sanitizeUser(user: MockUser) {
 
 function responseShape(user: MockUser) {
   const token = `mock-token-${user.role}-${user.id}-${randomUUID()}`;
+  const refreshToken = `mock-refresh-${user.role}-${user.id}-${randomUUID()}`;
+  
   state.tokens.set(token, user.email);
+  state.refreshTokens.set(refreshToken, user.email);
 
   return {
     success: true,
     data: {
       access_token: token,
-      refresh_token: `mock-refresh-${user.id}`,
+      refresh_token: refreshToken,
       entity_type: user.role,
       user: sanitizeUser(user),
     },
@@ -97,7 +124,7 @@ function getBearerToken(request: NextRequest) {
   return match?.[1] ?? null;
 }
 
-function getAuthenticatedUser(request: NextRequest) {
+export function getAuthenticatedUser(request: NextRequest) {
   const token = getBearerToken(request);
   if (!token) return null;
 
@@ -153,6 +180,7 @@ export function registerCandidateUser(body: Record<string, unknown>) {
     phone: String(body.phone ?? '+251900000000'),
     licenseCategory: 'B',
     testCenter: 'Bole Test Center',
+    status: 'active',
   };
 
   state.users.set(email, user);
@@ -182,5 +210,65 @@ export function passwordResetResponse() {
   return {
     success: true,
     message: 'Password reset instructions have been queued.',
+  };
+}
+
+export function refreshUserTokens(refreshToken: string) {
+  const email = state.refreshTokens.get(refreshToken);
+  if (!email) return null;
+
+  const user = state.users.get(email);
+  if (!user) return null;
+
+  return responseShape(user);
+}
+
+export function listCandidates(search?: string) {
+  const candidatesList = Array.from(state.users.values())
+    .filter((user) => user.role === 'candidate')
+    .map((user) => ({
+      id: user.id,
+      email: user.email,
+      first_name: user.first_name ?? 'Candidate',
+      last_name: user.last_name ?? 'User',
+      name: user.name ?? `${user.first_name ?? 'Candidate'} ${user.last_name ?? 'User'}`.trim(),
+      status: user.status ?? 'active',
+      licenseCategory: user.licenseCategory ?? 'B',
+      testCenter: user.testCenter ?? 'Bole Test Center',
+    }));
+
+  if (!search) {
+    return candidatesList;
+  }
+
+  const term = search.toLowerCase();
+  return candidatesList.filter((candidate) => {
+    const haystack = [
+      candidate.name,
+      candidate.email,
+      candidate.status,
+      candidate.first_name,
+      candidate.last_name,
+    ].join(' ').toLowerCase();
+    return haystack.includes(term);
+  });
+}
+
+export function updateCandidateStatus(id: string, status: 'active' | 'suspended') {
+  const user = Array.from(state.users.values()).find((u) => u.id === id);
+  if (!user || user.role !== 'candidate') return null;
+
+  user.status = status;
+  state.users.set(user.email, user);
+
+  return {
+    id: user.id,
+    email: user.email,
+    first_name: user.first_name ?? 'Candidate',
+    last_name: user.last_name ?? 'User',
+    name: user.name ?? `${user.first_name ?? 'Candidate'} ${user.last_name ?? 'User'}`.trim(),
+    status: user.status,
+    licenseCategory: user.licenseCategory ?? 'B',
+    testCenter: user.testCenter ?? 'Bole Test Center',
   };
 }

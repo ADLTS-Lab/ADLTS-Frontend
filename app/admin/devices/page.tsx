@@ -1,83 +1,50 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Battery, Megaphone, Plus, RotateCcw, Settings, Thermometer, Ticket, Wifi, AlertTriangle, Power } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
+import { listDevices, type DeviceRecord, type DeviceSummary } from "@/services/devices.service";
 
-const mockDevices = [
-  {
-    type: "Tablet Node",
-    name: "ADLT-ET-001",
-    location: "Addis Ababa Center A",
-    utilization: 68,
-    battery: 94,
-    detailLabel: "Temp",
-    detailValue: "32°C",
-    status: "Online",
-  },
-  {
-    type: "Server Module",
-    name: "ADLT-ET-042",
-    location: "Dire Dawa Region 02",
-    utilization: 92,
-    battery: 81,
-    detailLabel: "Latency",
-    detailValue: "12ms",
-    status: "Warning",
-  },
-  {
-    type: "Terminal Unit",
-    name: "ADLT-ET-109",
-    location: "Bahir Dar Hub",
-    utilization: 0,
-    battery: 0,
-    detailLabel: "Sync",
-    detailValue: "None",
-    status: "Offline",
-  },
-  {
-    type: "Biometric Scanner",
-    name: "ADLT-ET-004",
-    location: "Addis Ababa Center B",
-    utilization: 14,
-    battery: 48,
-    detailLabel: "Last Auth",
-    detailValue: "2m ago",
-    status: "Online",
-  },
-  {
-    type: "Mobile Unit",
-    name: "ADLT-ET-221",
-    location: "Hawassa Center Hub",
-    utilization: 45,
-    battery: 100,
-    detailLabel: "Signal",
-    detailValue: "-45dBm",
-    status: "Online",
-  },
-];
+function isAdminPortalRole(role: string | null | undefined) {
+  return role === "admin" || role === "super_admin";
+}
 
 export default function AdminDeviceDashboard() {
-  const router = useRouter();
   const { isAuthenticated, user } = useAuthStore();
+  const [devices, setDevices] = useState<DeviceRecord[]>([]);
+  const [summary, setSummary] = useState<DeviceSummary>({ total: 0, online: 0, warning: 0, offline: 0 });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const token = typeof window !== "undefined" ? localStorage.getItem("auth-token") : null;
+    if (!isAuthenticated || !isAdminPortalRole(user?.role)) return;
 
-    if (!isAuthenticated && !token) {
-      router.push("/login");
-    } else if (isAuthenticated && user?.role !== "admin") {
-      router.push("/candidate/dashboard");
-    }
-  }, [isAuthenticated, user, router]);
+    let isMounted = true;
 
-  if ((!isAuthenticated && typeof window === "undefined") || (isAuthenticated && user?.role !== "admin")) return null;
+    listDevices()
+      .then((data) => {
+        if (!isMounted) return;
+        setDevices(data);
+        setSummary({
+          total: data.length,
+          online: data.filter((d) => d.status === "Online").length,
+          warning: data.filter((d) => d.status === "Warning").length,
+          offline: data.filter((d) => d.status === "Offline").length,
+        });
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
 
-  const totalDevices = mockDevices.length;
-  const onlineCount = mockDevices.filter((device) => device.status === "Online").length;
-  const warningCount = mockDevices.filter((device) => device.status === "Warning").length;
-  const offlineCount = mockDevices.filter((device) => device.status === "Offline").length;
+    return () => {
+      isMounted = false;
+    };
+  }, [isAuthenticated, user?.role]);
+
+  if ((!isAuthenticated && typeof window === "undefined") || (isAuthenticated && !isAdminPortalRole(user?.role))) {
+    return null;
+  }
+
+  const { total: totalDevices, online: onlineCount, warning: warningCount, offline: offlineCount } = summary;
 
   return (
     <main className="space-y-8">
@@ -101,9 +68,13 @@ export default function AdminDeviceDashboard() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {mockDevices.map((device) => (
-          <DeviceNode key={device.name} {...device} />
-        ))}
+        {isLoading ? (
+          <p className="text-sm text-slate-500 col-span-full">Loading devices…</p>
+        ) : (
+          devices.map((device) => (
+            <DeviceNode key={device.name} {...device} />
+          ))
+        )}
 
         <div className="border-2 border-dashed border-slate-300 rounded-4xl flex flex-col items-center justify-center p-8 bg-slate-50/50 hover:bg-white transition-all cursor-pointer group">
           <div className="w-12 h-12 bg-white rounded-xl shadow-sm border border-slate-100 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">

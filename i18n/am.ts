@@ -132,6 +132,24 @@ const am = {
   notfound_back: 'Back to home / ወደ መነሻ',
   loginButton: 'ግባ',
   loginLoading: 'በመግባት ላይ...',
+  // profile page
+  profileTitle: 'የእጩው መግለጫ (Profile)',
+  personalInfo: 'የግል መረጃ',
+  firstNameLabel: 'መጀመሪያ ስም',
+  lastNameLabel: 'የአባት ስም',
+  phoneNumberLabel: 'ስልክ ቁጥር',
+  licenseCategoryLabel: 'የፈቃድ ምድብ',
+  testCenterLabel: 'የፈተና ማዕከል',
+  fayidaIdLabel: 'ፋይዳ (ብሔራዊ) መታወቂያ',
+  updateProfileButton: 'መረጃ አሻሽል',
+  updatingProfile: 'በማሻሻል ላይ...',
+  profileUpdatedSuccess: 'መረጃዎ በተሳካ ሁኔታ ተሻሽሏል!',
+  profileUpdateError: 'መረጃውን ማሻሻል አልተቻለም።',
+  registrationStatusLabel: 'የምዝገባ ሁኔታ',
+  landing_telemetry_title: 'የቀጥታ ስርጭት መረጃ (Telemetry)',
+  landing_telemetry_sub: 'ላይዳር፣ ራዳር እና የካሜራ መረጃዎች ዝግጁ ናቸው',
+  error_roleMismatchAdmin: 'ለአስተዳዳሪ ሚና የተሳሳቱ ምስክርነቶች። እባክዎ ወደ እጩዎች ትር ይቀይሩ ወይም መረጃዎን ያረጋግጡ።',
+  error_roleMismatchCandidate: 'ለእጩዎች ሚና የተሳሳቱ ምስክርነቶች። እባክዎ ወደ አስተዳዳሪ ትር ይቀይሩ ወይም መረጃዎን ያረጋግጡ።',
 };
 
 export default am;

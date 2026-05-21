@@ -179,11 +179,13 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
 // ---------- Logout ----------
 export async function logout(): Promise<void> {
   try {
-    await api.post('/auth/logout');
+    const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refresh-token') : null;
+    await api.post('/auth/logout', { refresh_token: refreshToken });
   } catch (error) {
     console.error('Logout API error', error);
   }
   localStorage.removeItem('auth-token');
+  localStorage.removeItem('refresh-token');
   localStorage.removeItem('user-role');
 }
 
@@ -209,6 +211,51 @@ export async function getCurrentUser(): Promise<User | null> {
   } catch {
     return null;
   }
+}
+
+// ---------- Update Profile ----------
+export async function updateCandidateProfile(data: Partial<User>): Promise<User | null> {
+  const role = typeof window !== 'undefined' ? localStorage.getItem('user-role') : null;
+  
+  try {
+    if (role === 'candidate') {
+      const res = await api.patch('/candidates/me', data);
+      return res.data.data;
+    } else if (role === 'admin') {
+      const res = await api.patch('/admins/me', data);
+      return res.data.data;
+    } else if (role === 'super_admin') {
+      const res = await api.patch('/super-admins/me', data);
+      return res.data.data;
+    }
+  } catch (error) {
+    if (ALLOW_LOCAL_FALLBACK) {
+      if (typeof window !== 'undefined') {
+        const storedUsers = localStorage.getItem(LOCAL_REGISTERED_USERS_KEY);
+        if (storedUsers) {
+          const parsed = JSON.parse(storedUsers) as any[];
+          const currentToken = localStorage.getItem('auth-token');
+          const userIdx = parsed.findIndex(u => `local-token-${u.id}` === currentToken || u.email?.toLowerCase() === data.email?.toLowerCase());
+          if (userIdx > -1) {
+            parsed[userIdx] = { ...parsed[userIdx], ...data };
+            localStorage.setItem(LOCAL_REGISTERED_USERS_KEY, JSON.stringify(parsed));
+            return {
+              id: parsed[userIdx].id,
+              email: parsed[userIdx].email,
+              role: parsed[userIdx].role,
+              first_name: parsed[userIdx].first_name,
+              last_name: parsed[userIdx].last_name,
+              phone: parsed[userIdx].phone,
+              licenseCategory: parsed[userIdx].licenseCategory,
+              testCenter: parsed[userIdx].testCenter,
+            };
+          }
+        }
+      }
+    }
+    throw error;
+  }
+  return null;
 }
 
 // ---------- Candidate Registration ----------
