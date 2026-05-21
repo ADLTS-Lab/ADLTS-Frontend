@@ -2,7 +2,13 @@ import { randomUUID } from 'crypto';
 
 import type { NextRequest } from 'next/server';
 
-type MockRole = 'candidate' | 'admin' | 'super_admin';
+type MockRole =
+  | 'candidate'
+  | 'admin'
+  | 'super_admin'
+  | 'expert'
+  | 'institute'
+  | 'transport_authority';
 
 type MockUser = {
   id: string;
@@ -61,9 +67,44 @@ const state: MockState = globalThis.__adltsMockAuthState ?? {
       {
         id: 'super-admin-1',
         email: 'superadmin@adlts.et',
-        password: 'password123',
+        password: 'SuperPass123!',
         role: 'super_admin',
         name: 'Super Admin User',
+      },
+    ],
+    [
+      'expert@adlts.et',
+      {
+        id: 'expert-1',
+        email: 'expert@adlts.et',
+        password: 'ExpertPass123!',
+        role: 'expert',
+        first_name: 'Expert',
+        last_name: 'User',
+        name: 'Expert User',
+        phone: '+251911111111',
+      },
+    ],
+    [
+      'institute@adlts.et',
+      {
+        id: 'institute-1',
+        email: 'institute@adlts.et',
+        password: 'InstPass123!',
+        role: 'institute',
+        name: 'Institute User',
+        phone: '+251922222222',
+      },
+    ],
+    [
+      'authority@adlts.et',
+      {
+        id: 'authority-1',
+        email: 'authority@adlts.et',
+        password: 'AuthPass123!',
+        role: 'transport_authority',
+        name: 'Transport Authority User',
+        phone: '+251933333333',
       },
     ],
     [

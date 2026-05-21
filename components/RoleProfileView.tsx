@@ -1,0 +1,38 @@
+"use client";
+
+import { useAuthStore } from "@/store/authStore";
+import { useI18n } from "@/i18n/useI18n";
+
+export default function RoleProfileView() {
+  const { user } = useAuthStore();
+  const { t } = useI18n();
+
+  const displayName =
+    user?.name || `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "—";
+
+  return (
+    <div className="max-w-lg">
+      <h1 className="text-2xl font-bold text-slate-900 mb-6">{t("roleProfile_title")}</h1>
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-4 text-sm">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">
+            {t("roleProfile_name")}
+          </p>
+          <p className="font-semibold text-slate-900">{displayName}</p>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">
+            {t("roleProfile_email")}
+          </p>
+          <p className="text-slate-700">{user?.email || "—"}</p>
+        </div>
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">
+            {t("roleProfile_role")}
+          </p>
+          <p className="text-slate-700">{user?.role || "—"}</p>
+        </div>
+      </div>
+    </div>
+  );
+}

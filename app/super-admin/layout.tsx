@@ -1,9 +1,8 @@
 "use client";
 
-import { CandidatePortalShell } from "@/components/PortalShell";
+import { SuperAdminPortalShell } from "@/components/PortalShell";
 import { useRequireAuth } from "@/hooks/useRequireAuth";
 
-/** Super admin keeps the same sidebar chrome as before (candidate-style nav). */
 export default function SuperAdminPortalLayout({
   children,
 }: {
@@ -15,5 +14,5 @@ export default function SuperAdminPortalLayout({
     return null;
   }
 
-  return <CandidatePortalShell>{children}</CandidatePortalShell>;
+  return <SuperAdminPortalShell>{children}</SuperAdminPortalShell>;
 }

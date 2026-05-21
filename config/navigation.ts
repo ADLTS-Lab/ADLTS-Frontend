@@ -8,6 +8,7 @@ import {
   User as UserIcon,
   Users,
 } from 'lucide-react';
+import { ROLE_HOME_ROUTE, type AppRole } from './routes';
 
 export type NavItem = {
   href: string;
@@ -32,8 +33,23 @@ export const ADMIN_NAV: NavItem[] = [
   { href: '#', labelKey: 'settings', icon: Settings, disabled: true },
 ];
 
-export const PORTAL_DASHBOARD_HREF: Record<'candidate' | 'admin' | 'super_admin', string> = {
-  candidate: '/candidate/dashboard',
-  admin: '/admin/devices',
-  super_admin: '/super-admin/dashboard',
-};
+function minimalPortalNav(dashboardHref: string, profileHref: string): NavItem[] {
+  return [
+    { href: dashboardHref, labelKey: 'dashboard', icon: LayoutDashboard },
+    { href: profileHref, labelKey: 'profile', icon: UserIcon },
+    { href: '#', labelKey: 'settings', icon: Settings, disabled: true },
+  ];
+}
+
+export const SUPER_ADMIN_NAV = minimalPortalNav(
+  '/super-admin/dashboard',
+  '/super-admin/profile'
+);
+export const EXPERT_NAV = minimalPortalNav('/expert/dashboard', '/expert/profile');
+export const INSTITUTE_NAV = minimalPortalNav('/institute/dashboard', '/institute/profile');
+export const TRANSPORT_AUTHORITY_NAV = minimalPortalNav(
+  '/transport-authority/dashboard',
+  '/transport-authority/profile'
+);
+
+export const PORTAL_DASHBOARD_HREF: Record<AppRole, string> = ROLE_HOME_ROUTE;

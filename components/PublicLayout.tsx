@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { useI18n } from "@/i18n/useI18n";
-import { PORTAL_DASHBOARD_HREF } from "@/config/navigation";
+import { getHomeRouteForRole } from "@/config/routes";
 
 type PublicLayoutProps = {
   children: React.ReactNode;
@@ -22,12 +22,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
     router.push("/login");
   };
 
-  const dashboardHref =
-    user?.role === "admin"
-      ? PORTAL_DASHBOARD_HREF.admin
-      : user?.role === "super_admin"
-        ? PORTAL_DASHBOARD_HREF.super_admin
-        : PORTAL_DASHBOARD_HREF.candidate;
+  const dashboardHref = getHomeRouteForRole(user?.role);
 
   const displayName =
     user?.name || `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || user?.email;

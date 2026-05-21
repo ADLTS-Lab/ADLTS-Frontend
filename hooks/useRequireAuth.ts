@@ -3,8 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
+import { getHomeRouteForRole, type AppRole } from '@/config/routes';
 
-type PortalRole = 'candidate' | 'admin' | 'super_admin';
+export type PortalRole = AppRole;
 
 function hasSessionToken() {
   return typeof window !== 'undefined' && !!localStorage.getItem('auth-token');
@@ -12,7 +13,6 @@ function hasSessionToken() {
 
 /**
  * Client-side portal guard (middleware deferred).
- * Returns ready=true once auth state is resolved and access is allowed.
  */
 export function useRequireAuth(allowedRoles: PortalRole[]) {
   const router = useRouter();
@@ -27,14 +27,10 @@ export function useRequireAuth(allowedRoles: PortalRole[]) {
       return;
     }
 
-    if (isAuthenticated && user?.role && !allowedRoles.includes(user.role as PortalRole)) {
-      if (user.role === 'admin' || user.role === 'super_admin') {
-        router.replace('/admin/devices');
-      } else if (user.role === 'candidate') {
-        router.replace('/candidate/dashboard');
-      } else {
-        router.replace('/login');
-      }
+    const userRole = user?.role;
+
+    if (userRole && !allowedRoles.includes(userRole as PortalRole)) {
+      router.replace(getHomeRouteForRole(userRole));
       return;
     }
 

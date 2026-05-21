@@ -22,6 +22,7 @@ const am = {
   forgotPassword: 'የይለፍ ቃል ረሳኸው?',
   forgotSubtitle: 'ኢሜይልህን አስገባ እና የእድሳት አገናኝ እንልክልሃለን።',
   register: 'መመዝገቢያ',
+  registerPrompt: 'መለያ የለዎት? ይመዝገቡ',
   sendResetLink: 'የእድሳት አገናኝ ይላኩ',
   sendResetSending: 'በመላክ ላይ...',
   resetTitle: 'የይለፍ ቃል ቀይር',
@@ -125,6 +126,14 @@ const am = {
   // super admin
   superAdmin_dashboard_title: 'Super Admin Dashboard (Placeholder)',
   superAdmin_dashboard_subtitle: 'This is a placeholder page for super_admin routes.',
+  dashboard_welcome_super_admin: 'የሱፐር አስተዳዳሪ ዳሽቦርድ እንኳን ደህና መጡ',
+  dashboard_welcome_expert: 'የባለሙያ ዳሽቦርድ እንኳን ደህና መጡ',
+  dashboard_welcome_institute: 'የተቋም ዳሽቦርድ እንኳን ደህና መጡ',
+  dashboard_welcome_transport_authority: 'የትራንስፖርት ባለስልጣን ዳሽቦርድ እንኳን ደህና መጡ',
+  roleProfile_title: 'ፕሮፋይል',
+  roleProfile_email: 'ኢሜይል',
+  roleProfile_role: 'ሚና',
+  roleProfile_name: 'ስም',
   // not found
   notfound_code: '404',
   notfound_title: 'Page not found / ገጹ አልተገኘም',

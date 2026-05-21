@@ -206,6 +206,15 @@ export async function getCurrentUser(): Promise<User | null> {
     } else if (role === 'super_admin') {
       const res = await api.get('/super-admins/me');
       return res.data.data;
+    } else if (role === 'expert') {
+      const res = await api.get('/experts/me');
+      return res.data.data;
+    } else if (role === 'institute') {
+      const res = await api.get('/institutes/me');
+      return res.data.data;
+    } else if (role === 'transport_authority') {
+      const res = await api.get('/transport-authorities/me');
+      return res.data.data;
     }
     return null;
   } catch {

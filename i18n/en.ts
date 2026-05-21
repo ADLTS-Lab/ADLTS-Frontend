@@ -22,6 +22,7 @@ const en = {
   forgotPassword: 'Forgot password?',
   forgotSubtitle: 'Enter your email and we\'ll send you a reset link.',
   register: 'Register',
+  registerPrompt: "Don't have an account? Register",
   sendResetLink: 'Send reset link',
   sendResetSending: 'Sending...',
   resetTitle: 'Reset password',
@@ -125,6 +126,14 @@ const en = {
   // super admin
   superAdmin_dashboard_title: 'Super Admin Dashboard (Placeholder)',
   superAdmin_dashboard_subtitle: 'This is a placeholder page for super_admin routes.',
+  dashboard_welcome_super_admin: 'Welcome Super Admin Dashboard',
+  dashboard_welcome_expert: 'Welcome Expert Dashboard',
+  dashboard_welcome_institute: 'Welcome Institute Dashboard',
+  dashboard_welcome_transport_authority: 'Welcome Transport Authority Dashboard',
+  roleProfile_title: 'Profile',
+  roleProfile_email: 'Email',
+  roleProfile_role: 'Role',
+  roleProfile_name: 'Name',
   // not found
   notfound_code: '404',
   notfound_title: 'Page not found / ገጹ አልተገኘም',

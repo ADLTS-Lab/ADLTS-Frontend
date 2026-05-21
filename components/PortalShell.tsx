@@ -6,7 +6,16 @@ import { useRouter, usePathname } from "next/navigation";
 import { LogOut, Menu, X } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { useI18n } from "@/i18n/useI18n";
-import { ADMIN_NAV, CANDIDATE_NAV, PORTAL_DASHBOARD_HREF, type NavItem } from "@/config/navigation";
+import {
+  ADMIN_NAV,
+  CANDIDATE_NAV,
+  EXPERT_NAV,
+  INSTITUTE_NAV,
+  PORTAL_DASHBOARD_HREF,
+  SUPER_ADMIN_NAV,
+  TRANSPORT_AUTHORITY_NAV,
+  type NavItem,
+} from "@/config/navigation";
 
 type PortalShellProps = {
   children: React.ReactNode;
@@ -237,6 +246,41 @@ export function CandidatePortalShell({ children }: { children: React.ReactNode }
 export function AdminPortalShell({ children }: { children: React.ReactNode }) {
   return (
     <PortalShell navItems={ADMIN_NAV} dashboardHref={PORTAL_DASHBOARD_HREF.admin}>
+      {children}
+    </PortalShell>
+  );
+}
+
+export function SuperAdminPortalShell({ children }: { children: React.ReactNode }) {
+  return (
+    <PortalShell navItems={SUPER_ADMIN_NAV} dashboardHref={PORTAL_DASHBOARD_HREF.super_admin}>
+      {children}
+    </PortalShell>
+  );
+}
+
+export function ExpertPortalShell({ children }: { children: React.ReactNode }) {
+  return (
+    <PortalShell navItems={EXPERT_NAV} dashboardHref={PORTAL_DASHBOARD_HREF.expert}>
+      {children}
+    </PortalShell>
+  );
+}
+
+export function InstitutePortalShell({ children }: { children: React.ReactNode }) {
+  return (
+    <PortalShell navItems={INSTITUTE_NAV} dashboardHref={PORTAL_DASHBOARD_HREF.institute}>
+      {children}
+    </PortalShell>
+  );
+}
+
+export function TransportAuthorityPortalShell({ children }: { children: React.ReactNode }) {
+  return (
+    <PortalShell
+      navItems={TRANSPORT_AUTHORITY_NAV}
+      dashboardHref={PORTAL_DASHBOARD_HREF.transport_authority}
+    >
       {children}
     </PortalShell>
   );
