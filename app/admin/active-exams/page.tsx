@@ -1,20 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { listActiveExams, type ActiveExam } from "@/services/exams.service";
+import { listActiveExamsSafe, type ActiveExam } from "@/services/exams.service";
 import { useI18n } from '@/i18n/useI18n';
 
 export default function AdminActiveExamsPage() {
   const { t } = useI18n();
   const [activeExams, setActiveExams] = useState<ActiveExam[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     let isMounted = true;
 
-    listActiveExams()
-      .then((data) => {
-        if (isMounted) setActiveExams(data);
+    setIsLoading(true);
+    setError("");
+
+    listActiveExamsSafe()
+      .then(({ data, error: nextError }) => {
+        if (!isMounted) return;
+        setActiveExams(data);
+        setError(nextError ?? "");
       })
       .finally(() => {
         if (isMounted) setIsLoading(false);
@@ -32,6 +38,8 @@ export default function AdminActiveExamsPage() {
         <h1 className="text-2xl font-bold text-slate-900">{t('activeExams_monitor_title')}</h1>
         <p className="text-sm text-slate-500 mt-1">{t('activeExams_monitor_subtitle')}</p>
       </div>
+
+      {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
 
       {isLoading ? (
         <p className="text-sm text-slate-500">{t('loadingCandidates')}</p>

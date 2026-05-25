@@ -16,9 +16,11 @@ type MockUser = {
   password: string;
   role: MockRole;
   first_name?: string;
+  middle_name?: string;
   last_name?: string;
   name?: string;
   phone?: string;
+  phone_number?: string;
   licenseCategory?: string;
   testCenter?: string;
   status?: string;
@@ -75,8 +77,10 @@ const state: MockState = globalThis.__adltsMockAuthState ?? {
         password: 'password123',
         role: 'candidate',
         first_name: 'Candidate',
+        middle_name: 'A.',
         last_name: 'User',
         phone: '+251900000000',
+        phone_number: '+251900000000',
         licenseCategory: 'B',
         testCenter: 'Bole Test Center',
         status: 'active',
@@ -90,8 +94,10 @@ const state: MockState = globalThis.__adltsMockAuthState ?? {
         password: 'SecurePassword123!',
         role: 'candidate',
         first_name: 'Abebe',
+        middle_name: 'Tesfaye',
         last_name: 'Tesfaye',
         phone: '+251912345678',
+        phone_number: '+251912345678',
         licenseCategory: 'C',
         testCenter: 'Bahir Dar Center',
         status: 'active',
@@ -140,8 +146,10 @@ const state: MockState = globalThis.__adltsMockAuthState ?? {
         password: 'password123',
         role: 'candidate',
         first_name: 'Mary',
+        middle_name: 'K.',
         last_name: 'Kebede',
         phone: '+251911223344',
+        phone_number: '+251911223344',
         licenseCategory: 'A',
         testCenter: 'Adama Center',
         status: 'suspended',
@@ -182,6 +190,23 @@ function responseShape(user: MockUser) {
   };
 }
 
+function registrationResponse(user: MockUser) {
+  const session = responseShape(user);
+  return {
+    ...session,
+    access_token: session.data.access_token,
+    refresh_token: session.data.refresh_token,
+    entity_type: session.data.entity_type,
+    user: session.data.user,
+    data: {
+      ...session.data,
+      candidate: session.data.user,
+      otp_sent: true,
+      token: session.data.access_token,
+    },
+  };
+}
+
 function getBearerToken(request: NextRequest) {
   const header = request.headers.get('authorization');
   if (!header) return null;
@@ -218,10 +243,10 @@ export function loginUser(email: string, password: string) {
 export function registerCandidateUser(body: Record<string, unknown>) {
   const email = String(body.email ?? '').trim().toLowerCase();
   const password = String(body.password ?? '');
-  const confirmPassword = String(body.confirm_password ?? '');
+  const confirmPassword = String(body.confirm_password ?? password);
 
-  if (!email || !password || !confirmPassword) {
-    return { error: 'Email, password, and confirm_password are required.', status: 400 };
+  if (!email || !password) {
+    return { error: 'Email and password are required.', status: 400 };
   }
 
   if (password !== confirmPassword) {
@@ -234,7 +259,9 @@ export function registerCandidateUser(body: Record<string, unknown>) {
   }
 
   const firstName = String(body.first_name ?? body.name ?? 'Candidate').trim().split(/\s+/)[0] || 'Candidate';
+  const middleName = String(body.middle_name ?? '').trim() || undefined;
   const lastName = String(body.last_name ?? 'User').trim().split(/\s+/)[0] || 'User';
+  const phoneNumber = String(body.phone_number ?? body.phone ?? '+251900000000');
 
   const user: MockUser = {
     id: `candidate-${randomUUID()}`,
@@ -242,14 +269,31 @@ export function registerCandidateUser(body: Record<string, unknown>) {
     password,
     role: 'candidate',
     first_name: firstName,
+    middle_name: middleName,
     last_name: lastName,
-    phone: String(body.phone ?? '+251900000000'),
+    phone: phoneNumber,
+    phone_number: phoneNumber,
     licenseCategory: 'B',
     testCenter: 'Bole Test Center',
     status: 'active',
   };
 
   state.users.set(email, user);
+  return registrationResponse(user);
+}
+
+export function verifyCandidateOtpUser(body: Record<string, unknown>) {
+  const email = String(body.email ?? '').trim().toLowerCase();
+  const user = state.users.get(email);
+
+  if (!email) {
+    return { error: 'Email is required.', status: 400 };
+  }
+
+  if (!user || user.role !== 'candidate') {
+    return { error: 'Candidate not found.', status: 404 };
+  }
+
   return responseShape(user);
 }
 

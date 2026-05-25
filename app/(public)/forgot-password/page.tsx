@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { useI18n } from "@/i18n/useI18n";
 import { requestPasswordReset } from "@/services/password.service";
+import { extractApiError } from "@/services/api-utils";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -13,10 +14,30 @@ export default function ForgotPasswordPage() {
   const [error, setError] = useState("");
   const { t } = useI18n();
 
+  const validateEmail = () => {
+    if (!email.trim()) {
+      return "Please enter the email address tied to your account.";
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(email.trim())) {
+      return "Please enter a valid email address.";
+    }
+
+    return "";
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccessMessage("");
+
+    const validationError = validateEmail();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -24,7 +45,7 @@ export default function ForgotPasswordPage() {
       setSuccessMessage(message);
       setEmail("");
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Unable to send reset link. Please try again.");
+      setError(extractApiError(err, "Unable to send reset link. Please try again."));
     } finally {
       setIsLoading(false);
     }

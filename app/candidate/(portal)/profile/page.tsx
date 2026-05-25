@@ -6,6 +6,7 @@ import { useAuthStore } from "@/store/authStore";
 import { getCurrentUser, type User } from "@/services/auth.service";
 import { updateMyCandidateProfile } from "@/services/candidates.service";
 import { useI18n } from "@/i18n/useI18n";
+import { extractApiError } from "@/services/api-utils";
 
 export default function CandidateProfile() {
   const { user: storedUser, token: storedToken, role: storedRole, isAuthenticated, setUser } = useAuthStore();
@@ -44,19 +45,27 @@ export default function CandidateProfile() {
       }
 
       setIsProfileLoading(true);
-      const currentUser = await getCurrentUser();
-      if (!isMounted) return;
+      try {
+        const currentUser = await getCurrentUser();
+        if (!isMounted) return;
 
-      if (currentUser) {
-        setProfile(currentUser);
-        setUser(currentUser);
-        setFirstName(currentUser.first_name || "");
-        setLastName(currentUser.last_name || "");
-        setPhone(currentUser.phone || "");
-        setEmail(currentUser.email || "");
+        if (currentUser) {
+          setProfile(currentUser);
+          setUser(currentUser);
+          setFirstName(currentUser.first_name || "");
+          setLastName(currentUser.last_name || "");
+          setPhone(currentUser.phone || "");
+          setEmail(currentUser.email || "");
+        }
+      } catch (err) {
+        if (isMounted) {
+          setErrorMessage(extractApiError(err, t("profileUpdateError")));
+        }
+      } finally {
+        if (isMounted) {
+          setIsProfileLoading(false);
+        }
       }
-
-      setIsProfileLoading(false);
     };
 
     loadProfileOnce();
@@ -113,7 +122,7 @@ export default function CandidateProfile() {
         setErrorMessage(t("profileUpdateError"));
       }
     } catch (err) {
-      setErrorMessage(t("profileUpdateError"));
+      setErrorMessage(extractApiError(err, t("profileUpdateError")));
     } finally {
       setIsSaving(false);
     }
@@ -161,7 +170,7 @@ export default function CandidateProfile() {
   return (
     <main className="max-w-4xl mx-auto space-y-6 md:space-y-8">
       {/* Header Profile Section */}
-      <div className="bg-gradient-to-r from-blue-900 via-blue-800 to-indigo-900 rounded-3xl p-6 md:p-8 text-white shadow-md relative overflow-hidden">
+      <div className="bg-linear-to-r from-blue-900 via-blue-800 to-indigo-900 rounded-3xl p-6 md:p-8 text-white shadow-md relative overflow-hidden">
         <div className="absolute right-0 top-0 translate-x-10 -translate-y-10 w-40 h-40 bg-white/5 rounded-full blur-2xl" />
         <div className="absolute left-0 bottom-0 -translate-x-10 translate-y-10 w-40 h-40 bg-white/5 rounded-full blur-2xl" />
 

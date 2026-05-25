@@ -7,15 +7,19 @@ import { getCurrentUser, type User } from "@/services/auth.service";
 import {
   getCandidateExamStats,
   getDashboardPastExams,
+  getCandidateUpcomingExam,
   type CandidateExamStats,
   type DashboardPastExam,
+  type UpcomingExam,
 } from "@/services/exams.service";
 import { useI18n } from "@/i18n/useI18n";
+import { extractApiError } from "@/services/api-utils";
 
 export default function CandidateDashboard() {
   const { user: storedUser, isAuthenticated, setUser } = useAuthStore();
   const [profile, setProfile] = useState<User | null>(storedUser);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [error, setError] = useState("");
   const [stats, setStats] = useState<CandidateExamStats>({
     totalExams: 0,
     averageScore: 0,
@@ -23,6 +27,7 @@ export default function CandidateDashboard() {
     incomplete: 0,
   });
   const [pastExams, setPastExams] = useState<DashboardPastExam[]>([]);
+  const [upcomingExam, setUpcomingExam] = useState<UpcomingExam | null>(null);
   const didInitRef = useRef(false);
 
   useEffect(() => {
@@ -39,24 +44,50 @@ export default function CandidateDashboard() {
       }
 
       setIsProfileLoading(true);
-      const currentUser = await getCurrentUser();
-      if (!isMounted) return;
+      try {
+        const currentUser = await getCurrentUser();
+        if (!isMounted) return;
 
-      if (currentUser) {
-        setProfile(currentUser);
-        setUser(currentUser);
+        if (currentUser) {
+          setProfile(currentUser);
+          setUser(currentUser);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(extractApiError(err, "Unable to load candidate profile and exam data right now."));
+        }
+      } finally {
+        if (isMounted) {
+          setIsProfileLoading(false);
+        }
       }
-
-      setIsProfileLoading(false);
     };
 
     loadProfileOnce();
 
-    Promise.all([getCandidateExamStats(), getDashboardPastExams()]).then(([nextStats, nextPastExams]) => {
-      if (!isMounted) return;
-      setStats(nextStats);
-      setPastExams(nextPastExams);
-    });
+    Promise.allSettled([getCandidateExamStats(), getDashboardPastExams(), getCandidateUpcomingExam()]).then(
+      ([statsResult, pastExamsResult, upcomingExamResult]) => {
+        if (!isMounted) return;
+
+        if (statsResult.status === "fulfilled") {
+          setStats(statsResult.value);
+        } else {
+          setError((current) => current || extractApiError(statsResult.reason, "Unable to load exam statistics right now."));
+        }
+
+        if (pastExamsResult.status === "fulfilled") {
+          setPastExams(pastExamsResult.value);
+        } else {
+          setError((current) => current || extractApiError(pastExamsResult.reason, "Unable to load recent exams right now."));
+        }
+
+        if (upcomingExamResult.status === "fulfilled") {
+          setUpcomingExam(upcomingExamResult.value);
+        } else {
+          setError((current) => current || extractApiError(upcomingExamResult.reason, "Unable to load the upcoming exam right now."));
+        }
+      }
+    );
 
     return () => {
       isMounted = false;
@@ -95,6 +126,8 @@ export default function CandidateDashboard() {
 
   return (
     <main className="space-y-6 md:space-y-8">
+      {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-[#283C86] rounded-3xl p-6 md:p-8 text-white relative overflow-hidden flex flex-col justify-center">
           <div className="max-w-md z-10">
@@ -116,7 +149,7 @@ export default function CandidateDashboard() {
           <div className="space-y-6">
             <StatusItem icon={<Award className="text-blue-600" />} label={t('licenseCategory')} value={profile?.licenseCategory || "Category B"} />
             <StatusItem icon={<MapPin className="text-blue-600" />} label={t('testCenter')} value={profile?.testCenter || "Addis Ababa Center"} />
-            <StatusItem icon={<Calendar className="text-blue-600" />} label={t('nextExam')} value="Oct 24, 2024" />
+            <StatusItem icon={<Calendar className="text-blue-600" />} label={t('nextExam')} value={upcomingExam?.date || "Oct 24, 2024"} />
           </div>
           <div className="mt-8 pt-6 border-t border-slate-50 flex justify-between items-center">
             <span className="text-xs font-bold text-slate-400">{t('registrationStatus')}</span>
@@ -179,7 +212,7 @@ export default function CandidateDashboard() {
           </button>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[500px]">
+          <table className="w-full text-left min-w-125">
             <thead className="bg-slate-50/50 text-[10px] uppercase font-bold text-slate-400">
               <tr>
                 <th className="px-4 md:px-6 py-4">የፈተና ቀን (Date)</th>

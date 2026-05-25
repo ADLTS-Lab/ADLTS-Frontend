@@ -7,6 +7,7 @@ import { login } from "@/services/auth.service";
 import { useAuthStore } from "@/store/authStore";
 import { useI18n } from "@/i18n/useI18n";
 import { getHomeRouteForRole } from "@/config/routes";
+import { extractApiError } from "@/services/api-utils";
 
 export default function UnifiedLoginPage() {
   const router = useRouter();
@@ -18,9 +19,29 @@ export default function UnifiedLoginPage() {
   const setUser = useAuthStore((s) => s.setUser);
   const { t } = useI18n();
 
+  const validateForm = () => {
+    if (!email.trim() || !password.trim()) {
+      return "Please enter both your email and password.";
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(email.trim())) {
+      return "Please enter a valid email address.";
+    }
+
+    return "";
+  };
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -32,11 +53,7 @@ export default function UnifiedLoginPage() {
       const nextRoute = getHomeRouteForRole(entity_type ?? user.role);
       router.push(nextRoute);
     } catch (err: unknown) {
-      const responseMessage =
-        typeof err === "object" && err !== null && "response" in err
-          ? ((err as { response?: { data?: { message?: string } } }).response?.data?.message ?? "")
-          : "";
-      setError(responseMessage || "Login failed");
+      setError(extractApiError(err, "Login failed. Please check your email and password.", "auth-login"));
     } finally {
       setIsLoading(false);
     }

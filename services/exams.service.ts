@@ -1,12 +1,6 @@
 import api from '@/lib/api';
 
-import { extractApiError } from './api-utils';
-
-/**
- * MOCK-ONLY: Exam endpoints are not in the current Postman user-management collection.
- * When the backend adds them (e.g. GET /exams, GET /exams/:id, GET /admin/exams/active),
- * replace the mock fallbacks below with real api calls — pages stay unchanged.
- */
+import { ApiSuccess, extractApiError } from './api-utils';
 
 export type ExamResult = 'Pass' | 'Fail';
 
@@ -54,6 +48,16 @@ export interface ActiveExam {
   violations: number;
   status: ActiveExamStatus;
 }
+
+export interface UpcomingExam {
+  id: string;
+  date: string;
+  title: string;
+  center: string;
+  status?: string;
+}
+
+type ExamEnvelope<T> = ApiSuccess<T>;
 
 const MOCK_EXAM_SUMMARIES: ExamSummary[] = [
   { id: 'exam-001', date: '2026-05-02', examType: 'Theory', score: 88, result: 'Pass', center: 'Bole Test Center' },
@@ -166,63 +170,140 @@ const MOCK_DASHBOARD_PAST_EXAMS: DashboardPastExam[] = [
   { date: 'Aug 10, 2024', type: 'Theory Mock #3', score: '42/100', status: 'Fail', color: 'red' },
 ];
 
-/** Candidate exam history — MOCK-ONLY until GET /exams (or /candidates/me/exams) exists */
-export async function listCandidateExams(): Promise<ExamSummary[]> {
-  try {
-    const response = await api.get<{ success: boolean; data: ExamSummary[] }>('/exams');
-    if (response.data?.data?.length) return response.data.data;
-  } catch {
-    // fall through to mock
-  }
-  return MOCK_EXAM_SUMMARIES;
+const MOCK_UPCOMING_EXAM: UpcomingExam = {
+  id: 'upcoming-001',
+  date: 'Oct 24, 2024',
+  title: 'Practical Exam',
+  center: 'Addis Ababa Center',
+  status: 'Scheduled',
+};
+
+function isMissingEndpoint(err: unknown): boolean {
+  if (typeof err !== 'object' || err === null || !('response' in err)) return false;
+  const status = (err as { response?: { status?: number } }).response?.status;
+  return status === 404 || status === 405;
 }
 
-/** Candidate exam detail — MOCK-ONLY until GET /exams/:id exists */
-export function getCandidateExamById(examId: string): ExamDetail | null {
-  return MOCK_EXAM_DETAILS.find((exam) => exam.id === examId) ?? null;
+async function getEnvelope<T>(path: string): Promise<T | null> {
+  try {
+    const response = await api.get<ExamEnvelope<T>>(path);
+    return response.data?.data ?? null;
+  } catch (err) {
+    if (isMissingEndpoint(err)) {
+      return null;
+    }
+
+    throw new Error(extractApiError(err, 'Unable to load exam data.'));
+  }
 }
 
-/** Dashboard aggregate stats — MOCK-ONLY until backend exposes stats endpoint */
-export async function getCandidateExamStats(): Promise<CandidateExamStats> {
-  try {
-    const response = await api.get<{ success: boolean; data: CandidateExamStats }>('/exams/stats');
-    if (response.data?.data) return response.data.data;
-  } catch {
-    // fall through
+async function getFromFirstAvailable<T>(paths: string[]): Promise<T | null> {
+  for (const path of paths) {
+    const data = await getEnvelope<T>(path);
+    if (data !== null) {
+      return data;
+    }
+  }
+  return null;
+}
+
+function buildCandidateStatsFromSummaries(exams: ExamSummary[]): CandidateExamStats {
+  if (!exams.length) {
+    return {
+      totalExams: 0,
+      averageScore: 0,
+      passedExams: 0,
+      incomplete: 0,
+    };
   }
 
-  const exams = MOCK_EXAM_SUMMARIES;
-  const passed = exams.filter((e) => e.result === 'Pass').length;
-  const avg = exams.reduce((sum, e) => sum + e.score, 0) / exams.length;
+  const passedExams = exams.filter((exam) => exam.result === 'Pass').length;
+  const averageScore = Math.round(exams.reduce((sum, exam) => sum + exam.score, 0) / exams.length);
 
   return {
     totalExams: exams.length,
-    averageScore: Math.round(avg),
-    passedExams: passed,
-    incomplete: exams.length - passed,
+    averageScore,
+    passedExams,
+    incomplete: exams.length - passedExams,
   };
 }
 
-/** Dashboard recent rows — MOCK-ONLY */
-export async function getDashboardPastExams(): Promise<DashboardPastExam[]> {
-  try {
-    const response = await api.get<{ success: boolean; data: DashboardPastExam[] }>('/exams/recent');
-    if (response.data?.data?.length) return response.data.data;
-  } catch {
-    // fall through
-  }
-  return MOCK_DASHBOARD_PAST_EXAMS;
+function getMockCandidateExamById(examId: string): ExamDetail | null {
+  return MOCK_EXAM_DETAILS.find((exam) => exam.id === examId) ?? null;
 }
 
-/** Admin live monitor — MOCK-ONLY until GET /admin/exams/active (or similar) exists */
+function normalizeUpcomingExam(data: unknown): UpcomingExam | null {
+  if (!data || typeof data !== 'object') return null;
+
+  const exam = data as Partial<UpcomingExam> & {
+    examType?: string;
+    name?: string;
+    center?: string;
+    location?: string;
+    starts_at?: string;
+    date?: string;
+  };
+
+  const date = exam.date ?? exam.starts_at?.slice(0, 10);
+  if (!date) return null;
+
+  return {
+    id: exam.id ?? 'upcoming-exam',
+    date,
+    title: exam.title ?? exam.examType ?? exam.name ?? 'Upcoming Exam',
+    center: exam.center ?? exam.location ?? 'Test Center',
+    status: exam.status,
+  };
+}
+
+/** Candidate exam history — prefers backend data, falls back only when the endpoint is missing. */
+export async function listCandidateExams(): Promise<ExamSummary[]> {
+  const data = await getFromFirstAvailable<ExamSummary[]>(['/candidates/me/exams', '/exams']);
+  return data ?? MOCK_EXAM_SUMMARIES;
+}
+
+/** Candidate exam detail — prefers backend data, falls back only when the endpoint is missing. */
+export async function fetchCandidateExamById(examId: string): Promise<ExamDetail | null> {
+  const data = await getFromFirstAvailable<ExamDetail>([
+    `/candidates/me/exams/${examId}`,
+    `/exams/${examId}`,
+  ]);
+
+  return data ?? getMockCandidateExamById(examId);
+}
+
+/** Backward-compatible sync wrapper used by the current detail page. */
+export function getCandidateExamById(examId: string): ExamDetail | null {
+  return getMockCandidateExamById(examId);
+}
+
+/** Dashboard aggregate stats — prefers backend data, falls back only when the endpoint is missing. */
+export async function getCandidateExamStats(): Promise<CandidateExamStats> {
+  const data = await getFromFirstAvailable<CandidateExamStats>(['/candidates/me/exams/stats', '/exams/stats']);
+  return data ?? buildCandidateStatsFromSummaries(MOCK_EXAM_SUMMARIES);
+}
+
+/** Dashboard recent rows — prefers backend data, falls back only when the endpoint is missing. */
+export async function getDashboardPastExams(): Promise<DashboardPastExam[]> {
+  const data = await getFromFirstAvailable<DashboardPastExam[]>(['/candidates/me/exams/recent', '/exams/recent']);
+  return data ?? MOCK_DASHBOARD_PAST_EXAMS;
+}
+
+/** Upcoming candidate exam — used by the dashboard hero/status card. */
+export async function getCandidateUpcomingExam(): Promise<UpcomingExam> {
+  const data = await getFromFirstAvailable<UpcomingExam>([
+    '/candidates/me/exams/upcoming',
+    '/candidates/me/upcoming-exam',
+    '/exams/upcoming',
+  ]);
+
+  return normalizeUpcomingExam(data) ?? MOCK_UPCOMING_EXAM;
+}
+
+/** Admin live monitor — prefers backend data, falls back only when the endpoint is missing. */
 export async function listActiveExams(): Promise<ActiveExam[]> {
-  try {
-    const response = await api.get<{ success: boolean; data: ActiveExam[] }>('/admin/exams/active');
-    if (response.data?.data?.length) return response.data.data;
-  } catch {
-    // fall through
-  }
-  return MOCK_ACTIVE_EXAMS;
+  const data = await getFromFirstAvailable<ActiveExam[]>(['/admin/exams/active', '/exams/active']);
+  return data ?? MOCK_ACTIVE_EXAMS;
 }
 
 /** Optional: wrap errors for pages that need explicit failure */

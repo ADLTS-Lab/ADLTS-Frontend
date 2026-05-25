@@ -1,4 +1,5 @@
 import api from '@/lib/api';
+import { extractApiError, shouldUseLocalFallback } from './api-utils';
 
 const LOCAL_REGISTERED_USERS_KEY = 'adlts-registered-users';
 const ALLOW_LOCAL_FALLBACK = process.env.NEXT_PUBLIC_ALLOW_LOCAL_FALLBACK === 'true';
@@ -14,26 +15,78 @@ export interface User {
   email: string;
   role: string; // 'candidate', 'admin', 'super_admin', etc.
   first_name?: string;
+  middle_name?: string;
   last_name?: string;
   name?: string; // for admin/super_admin
   phone?: string;
+  phone_number?: string;
   // candidate-specific
   licenseCategory?: string;
   testCenter?: string;
 }
 
-export interface LoginResponse {
+export interface RefreshTokenResponse {
   success: boolean;
   data: {
     access_token: string;
-    refresh_token?: string;
+    refresh_token: string;
     entity_type: string;
     user: User;
   };
+  message?: string;
 }
 
-type RawLoginResponse =
-  | LoginResponse
+export interface LoginResponse extends RefreshTokenResponse {}
+
+export interface CurrentUserResponse {
+  success: boolean;
+  data: User;
+  message?: string;
+}
+
+export interface CandidateRegistrationRequest {
+  first_name: string;
+  middle_name?: string;
+  last_name: string;
+  email: string;
+  password: string;
+  phone_number?: string;
+  /**
+   * Backward-compatible alias used by the current registration form.
+   * The service normalizes this to `phone_number` before sending.
+   */
+  phone?: string;
+  fayida_id?: string;
+  birth_date?: string;
+  gender?: 'male' | 'female' | 'other';
+}
+
+export interface CandidateRegistrationResponse {
+  success: boolean;
+  message?: string;
+  access_token?: string;
+  refresh_token?: string;
+  entity_type?: string;
+  token?: string;
+  user?: User;
+  data?: {
+    candidate?: User;
+    user?: User;
+    otp_sent?: boolean;
+    access_token?: string;
+    refresh_token?: string;
+    entity_type?: string;
+    token?: string;
+  };
+}
+
+export interface OtpVerificationData {
+  email: string;
+  code: string;
+}
+
+type RawSessionResponse =
+  | RefreshTokenResponse
   | {
       success?: boolean;
       message?: string;
@@ -53,24 +106,9 @@ type RawLoginResponse =
       user?: User;
     };
 
-// Registration types for candidate
-export interface CandidateRegistrationData {
-  first_name: string;
-  last_name: string;
-  email: string;
-  password: string;
-  phone: string;
-  fayida_id?: string;
-  birth_date?: string;
-  gender?: 'male' | 'female' | 'other';
-}
+export type CandidateRegistrationData = CandidateRegistrationRequest;
 
-export interface OtpVerificationData {
-  email: string;
-  code: string;
-}
-
-type LocalRegisteredUser = CandidateRegistrationData & {
+type LocalRegisteredUser = CandidateRegistrationRequest & {
   role: 'candidate';
   id: string;
   licenseCategory?: string;
@@ -90,9 +128,10 @@ function readLocalRegisteredUsers(): LocalRegisteredUser[] {
   }
 }
 
-function saveLocalRegisteredUser(user: CandidateRegistrationData): LocalRegisteredUser {
+function saveLocalRegisteredUser(user: CandidateRegistrationRequest): LocalRegisteredUser {
   const localUser: LocalRegisteredUser = {
     ...user,
+    phone_number: user.phone_number ?? user.phone,
     id: `local-${Date.now()}`,
     role: 'candidate',
     licenseCategory: 'B',
@@ -117,7 +156,13 @@ function findLocalRegisteredUser(email: string, password: string): LocalRegister
   return match || null;
 }
 
-function buildLocalLoginResponse(user: LocalRegisteredUser): LoginResponse {
+function findLocalRegisteredUserByEmail(email: string): LocalRegisteredUser | null {
+  const users = readLocalRegisteredUsers();
+  const match = users.find((user) => user.email === email);
+  return match || null;
+}
+
+function buildLocalSessionResponse(user: LocalRegisteredUser): RefreshTokenResponse {
   return {
     success: true,
     data: {
@@ -129,8 +174,10 @@ function buildLocalLoginResponse(user: LocalRegisteredUser): LoginResponse {
         email: user.email,
         role: user.role,
         first_name: user.first_name,
+        middle_name: user.middle_name,
         last_name: user.last_name,
         phone: user.phone,
+        phone_number: user.phone_number ?? user.phone,
         licenseCategory: user.licenseCategory,
         testCenter: user.testCenter,
       },
@@ -138,7 +185,47 @@ function buildLocalLoginResponse(user: LocalRegisteredUser): LoginResponse {
   };
 }
 
-function normalizeLoginResponse(raw: RawLoginResponse): LoginResponse {
+function buildLocalRegistrationResponse(user: LocalRegisteredUser): CandidateRegistrationResponse {
+  const sessionUser: User = {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    first_name: user.first_name,
+    middle_name: user.middle_name,
+    last_name: user.last_name,
+    phone: user.phone,
+    phone_number: user.phone_number ?? user.phone,
+    licenseCategory: user.licenseCategory,
+    testCenter: user.testCenter,
+  };
+
+  const accessToken = `local-token-${user.id}`;
+  const refreshToken = `local-refresh-${user.id}`;
+
+  return {
+    success: true,
+    message: 'Candidate registration captured locally.',
+    access_token: accessToken,
+    refresh_token: refreshToken,
+    entity_type: 'candidate',
+    user: sessionUser,
+    data: {
+      candidate: sessionUser,
+      user: sessionUser,
+      access_token: accessToken,
+      refresh_token: refreshToken,
+      token: accessToken,
+      entity_type: 'candidate',
+      otp_sent: true,
+    },
+  };
+}
+
+function buildLocalOtpVerificationResponse(user: LocalRegisteredUser): RefreshTokenResponse {
+  return buildLocalSessionResponse(user);
+}
+
+function normalizeSessionResponse(raw: RawSessionResponse): RefreshTokenResponse {
   const payload: any = 'data' in raw && raw.data ? raw.data : raw;
   const user = payload.user;
   const accessToken = payload.access_token || payload.token;
@@ -152,7 +239,7 @@ function normalizeLoginResponse(raw: RawLoginResponse): LoginResponse {
     success: raw.success ?? true,
     data: {
       access_token: accessToken,
-      refresh_token: payload.refresh_token,
+      refresh_token: payload.refresh_token ?? accessToken,
       entity_type: entityType,
       user,
     },
@@ -163,30 +250,50 @@ function normalizeLoginResponse(raw: RawLoginResponse): LoginResponse {
 export async function login(credentials: LoginCredentials): Promise<LoginResponse> {
   try {
     const response = await api.post('/auth/login', credentials);
-    return normalizeLoginResponse(response.data as RawLoginResponse);
+    return normalizeSessionResponse(response.data as RawSessionResponse);
   } catch (error: any) {
-    if (ALLOW_LOCAL_FALLBACK) {
+    if (ALLOW_LOCAL_FALLBACK && shouldUseLocalFallback(error)) {
       const localUser = findLocalRegisteredUser(credentials.email, credentials.password);
       if (localUser) {
-        return buildLocalLoginResponse(localUser);
+        return buildLocalSessionResponse(localUser);
       }
     }
 
-    throw error;
+    throw new Error(extractApiError(error, 'Login failed. Please check your email and password.', 'auth-login'));
+  }
+}
+
+// ---------- Refresh ----------
+export async function refreshAuthToken(refreshToken?: string): Promise<LoginResponse> {
+  const token = refreshToken ?? (typeof window !== 'undefined' ? localStorage.getItem('refresh-token') : null);
+
+  if (!token) {
+    throw new Error('Refresh token is required.');
+  }
+
+  try {
+    const response = await api.post('/auth/token/refresh', {
+      refresh_token: token,
+    });
+
+    return normalizeSessionResponse(response.data as RawSessionResponse);
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Your session has expired. Please sign in again.', 'auth-refresh'));
   }
 }
 
 // ---------- Logout ----------
 export async function logout(): Promise<void> {
   try {
-    const refreshToken = typeof window !== 'undefined' ? localStorage.getItem('refresh-token') : null;
-    await api.post('/auth/logout', { refresh_token: refreshToken });
+    await api.post('/auth/logout');
   } catch (error) {
     console.error('Logout API error', error);
   }
-  localStorage.removeItem('auth-token');
-  localStorage.removeItem('refresh-token');
-  localStorage.removeItem('user-role');
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('auth-token');
+    localStorage.removeItem('refresh-token');
+    localStorage.removeItem('user-role');
+  }
 }
 
 // ---------- Get Current User (by role) ----------
@@ -198,27 +305,27 @@ export async function getCurrentUser(): Promise<User | null> {
   // Real API
   try {
     if (role === 'candidate') {
-      const res = await api.get('/candidates/me');
+      const res = await api.get<CurrentUserResponse>('/candidates/me');
       return res.data.data;
     } else if (role === 'admin') {
-      const res = await api.get('/admins/me');
+      const res = await api.get<CurrentUserResponse>('/admins/me');
       return res.data.data;
     } else if (role === 'super_admin') {
-      const res = await api.get('/super-admins/me');
+      const res = await api.get<CurrentUserResponse>('/super-admins/me');
       return res.data.data;
     } else if (role === 'expert') {
-      const res = await api.get('/experts/me');
+      const res = await api.get<CurrentUserResponse>('/experts/me');
       return res.data.data;
     } else if (role === 'institute') {
-      const res = await api.get('/institutes/me');
+      const res = await api.get<CurrentUserResponse>('/institutes/me');
       return res.data.data;
     } else if (role === 'transport_authority') {
-      const res = await api.get('/transport-authorities/me');
+      const res = await api.get<CurrentUserResponse>('/transport-authorities/me');
       return res.data.data;
     }
     return null;
-  } catch {
-    return null;
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Unable to load your profile.', 'auth-session'));
   }
 }
 
@@ -238,7 +345,7 @@ export async function updateCandidateProfile(data: Partial<User>): Promise<User 
       return res.data.data;
     }
   } catch (error) {
-    if (ALLOW_LOCAL_FALLBACK) {
+    if (ALLOW_LOCAL_FALLBACK && shouldUseLocalFallback(error)) {
       if (typeof window !== 'undefined') {
         const storedUsers = localStorage.getItem(LOCAL_REGISTERED_USERS_KEY);
         if (storedUsers) {
@@ -262,35 +369,59 @@ export async function updateCandidateProfile(data: Partial<User>): Promise<User 
         }
       }
     }
-    throw error;
+    throw new Error(extractApiError(error, 'Unable to update profile.', 'auth-session'));
   }
   return null;
 }
 
 // ---------- Candidate Registration ----------
-export async function registerCandidate(data: CandidateRegistrationData): Promise<any> {
+export async function registerCandidate(
+  data: CandidateRegistrationRequest
+): Promise<CandidateRegistrationResponse> {
+  const phoneNumber = data.phone_number ?? data.phone;
   const payload = {
-    name: `${data.first_name} ${data.last_name}`.trim(),
+    first_name: data.first_name,
+    middle_name: data.middle_name,
+    last_name: data.last_name,
     email: data.email,
-    phone: data.phone,
     password: data.password,
-    confirm_password: data.password,
+    ...(phoneNumber ? { phone_number: phoneNumber } : {}),
     fayda_id: data.fayida_id,
     birth_date: data.birth_date,
     gender: data.gender,
-    role: 'candidate',
   };
 
-  const res = await api.post('/auth/register', payload);
+  try {
+    const res = await api.post<CandidateRegistrationResponse>('/auth/candidates/register', payload);
 
-  if (typeof window !== 'undefined' && ALLOW_LOCAL_FALLBACK) {
-    saveLocalRegisteredUser(data);
+    if (typeof window !== 'undefined' && ALLOW_LOCAL_FALLBACK) {
+      saveLocalRegisteredUser(data);
+    }
+
+    return res.data;
+  } catch (error) {
+    if (ALLOW_LOCAL_FALLBACK && shouldUseLocalFallback(error)) {
+      const localUser = saveLocalRegisteredUser(data);
+      return buildLocalRegistrationResponse(localUser);
+    }
+
+    throw new Error(extractApiError(error, 'Registration failed. Please try again.', 'auth-register'));
   }
-
-  return res.data;
 }
 
 // ---------- Verify OTP ----------
-export async function verifyOtp(data: OtpVerificationData): Promise<any> {
-  throw new Error('OTP verification is not available in the current mock collection.');
+export async function verifyOtp(data: OtpVerificationData): Promise<RefreshTokenResponse> {
+  try {
+    const res = await api.post<RefreshTokenResponse>('/auth/candidates/verify-otp', data);
+    return normalizeSessionResponse(res.data as RawSessionResponse);
+  } catch (error) {
+    if (ALLOW_LOCAL_FALLBACK && shouldUseLocalFallback(error)) {
+      const localUser = findLocalRegisteredUserByEmail(data.email);
+      if (localUser) {
+        return buildLocalOtpVerificationResponse(localUser);
+      }
+    }
+
+    throw new Error(extractApiError(error, 'Unable to verify OTP. Please try again.', 'auth-session'));
+  }
 }

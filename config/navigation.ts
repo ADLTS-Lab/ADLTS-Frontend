@@ -4,6 +4,9 @@ import {
   History,
   LayoutDashboard,
   Laptop,
+  FileText,
+  Mail,
+  ScrollText,
   Settings,
   User as UserIcon,
   Users,
@@ -30,6 +33,8 @@ export const ADMIN_NAV: NavItem[] = [
   { href: '/admin/devices', labelKey: 'dashboard', icon: Laptop },
   { href: '/admin/active-exams', labelKey: 'activeExams', icon: Activity },
   { href: '/admin/candidates', labelKey: 'candidates', icon: Users },
+  { href: '/admin/invitations', labelKey: 'invitations', icon: Mail },
+  { href: '/admin/reports', labelKey: 'reports', icon: FileText },
   { href: '#', labelKey: 'settings', icon: Settings, disabled: true },
 ];
 
@@ -41,10 +46,12 @@ function minimalPortalNav(dashboardHref: string, profileHref: string): NavItem[]
   ];
 }
 
-export const SUPER_ADMIN_NAV = minimalPortalNav(
-  '/super-admin/dashboard',
-  '/super-admin/profile'
-);
+export const SUPER_ADMIN_NAV: NavItem[] = [
+  { href: '/super-admin/dashboard', labelKey: 'dashboard', icon: LayoutDashboard },
+  { href: '/super-admin/profile', labelKey: 'profile', icon: UserIcon },
+  { href: '/super-admin/audits', labelKey: 'auditLogs', icon: ScrollText },
+  { href: '#', labelKey: 'settings', icon: Settings, disabled: true },
+];
 export const EXPERT_NAV = minimalPortalNav('/expert/dashboard', '/expert/profile');
 export const INSTITUTE_NAV = minimalPortalNav('/institute/dashboard', '/institute/profile');
 export const TRANSPORT_AUTHORITY_NAV = minimalPortalNav(

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { getRegionalAnalytics, getComplianceAlerts, RegionalAnalytics, ComplianceAlert } from "@/services/transport-authority.service";
+import { extractApiError } from "@/services/api-utils";
 import { Card } from "@/app/components/ui/Card";
 import { Button } from "@/app/components/ui/Button";
 import { useI18n } from "@/i18n/useI18n";
@@ -11,16 +12,18 @@ export default function TransportAuthorityDashboard() {
   const [analytics, setAnalytics] = useState<RegionalAnalytics | null>(null);
   const [alerts, setAlerts] = useState<ComplianceAlert[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
+      setError(null);
       try {
         const [analyticsRes, alertsRes] = await Promise.all([getRegionalAnalytics(), getComplianceAlerts()]);
         if (analyticsRes.success) setAnalytics(analyticsRes.data);
         if (alertsRes.success) setAlerts(alertsRes.data);
       } catch (err) {
-        console.error("Failed to load authority data", err);
+        setError(extractApiError(err, "Failed to load authority data"));
       } finally {
         setLoading(false);
       }
@@ -30,6 +33,11 @@ export default function TransportAuthorityDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+      {error && (
+        <div className="border border-rose-200 bg-rose-50 rounded-lg p-4">
+          <p className="text-sm text-rose-700">{error}</p>
+        </div>
+      )}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Regional Authority Portal</h1>

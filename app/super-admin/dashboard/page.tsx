@@ -5,22 +5,25 @@ import { getSystemMetrics, getRecentAudits, SystemMetrics, AuditLog } from "@/se
 import { Card } from "@/app/components/ui/Card";
 import { Button } from "@/app/components/ui/Button";
 import { useI18n } from "@/i18n/useI18n";
+import { extractApiError } from "@/services/api-utils";
 
 export default function SuperAdminDashboard() {
   const { t } = useI18n();
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
   const [audits, setAudits] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
+      setError("");
       try {
         const [metricsRes, auditsRes] = await Promise.all([getSystemMetrics(), getRecentAudits()]);
         if (metricsRes.success) setMetrics(metricsRes.data);
         if (auditsRes.success) setAudits(auditsRes.data);
       } catch (err) {
-        console.error("Failed to load dashboard data", err);
+        setError(extractApiError(err, "Unable to load dashboard data."));
       } finally {
         setLoading(false);
       }
@@ -37,6 +40,10 @@ export default function SuperAdminDashboard() {
         </div>
         <Button variant="primary">Generate System Report</Button>
       </div>
+
+      {error ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
+      ) : null}
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

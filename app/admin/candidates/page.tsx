@@ -7,6 +7,7 @@ import {
   type CandidateRecord,
 } from "@/services/candidates.service";
 import { useI18n } from '@/i18n/useI18n';
+import { extractApiError } from "@/services/api-utils";
 
 export default function AdminCandidatesPage() {
   const { t } = useI18n();
@@ -24,7 +25,7 @@ export default function AdminCandidatesPage() {
         const data = await listCandidates(search ? { search } : undefined);
         setCandidates(data);
       } catch (err: unknown) {
-        setError(err instanceof Error ? err.message : "Unable to load candidates.");
+        setError(extractApiError(err, "Unable to load candidates."));
       } finally {
         setIsLoading(false);
       }
@@ -42,7 +43,7 @@ export default function AdminCandidatesPage() {
       const { candidate: updated } = await updateCandidateStatus(candidate.id, nextStatus);
       setCandidates((current) => current.map((item) => (item.id === candidate.id ? updated : item)));
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Unable to update candidate status.");
+      setError(extractApiError(err, "Unable to update candidate status."));
     }
   };
 

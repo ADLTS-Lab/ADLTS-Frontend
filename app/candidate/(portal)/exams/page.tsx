@@ -4,18 +4,25 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { listCandidateExams, type ExamSummary } from "@/services/exams.service";
 import { useI18n } from "@/i18n/useI18n";
+import { extractApiError } from "@/services/api-utils";
 
 export default function CandidateExamHistoryPage() {
   const { t } = useI18n();
   const [exams, setExams] = useState<ExamSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     let isMounted = true;
+    setIsLoading(true);
+    setError("");
 
     listCandidateExams()
       .then((data) => {
         if (isMounted) setExams(data);
+      })
+      .catch((err) => {
+        if (isMounted) setError(extractApiError(err, "Unable to load exam history right now."));
       })
       .finally(() => {
         if (isMounted) setIsLoading(false);
@@ -33,6 +40,8 @@ export default function CandidateExamHistoryPage() {
         <h1 className="text-2xl font-bold text-slate-900">{t('exams_title')}</h1>
         <p className="text-sm text-slate-500 mt-1">{t('exams_description')}</p>
       </div>
+
+      {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
 
       {isLoading ? (
         <p className="text-sm text-slate-500">{t('loadingCandidates')}</p>
@@ -76,7 +85,7 @@ export default function CandidateExamHistoryPage() {
 
           <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden hidden md:block">
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] text-left">
+              <table className="w-full min-w-190 text-left">
                 <thead className="bg-slate-50 text-xs uppercase tracking-widest text-slate-400">
                   <tr>
                     <th className="px-6 py-4">{t('exams_date')}</th>

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Battery, Megaphone, Plus, RotateCcw, Settings, Thermometer, Ticket, Wifi, AlertTriangle, Power } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-import { listDevices, type DeviceRecord, type DeviceSummary } from "@/services/devices.service";
+import { listDevicesSafe, type DeviceRecord, type DeviceSummary } from "@/services/devices.service";
 
 function isAdminPortalRole(role: string | null | undefined) {
   return role === "admin" || role === "super_admin";
@@ -14,22 +14,21 @@ export default function AdminDeviceDashboard() {
   const [devices, setDevices] = useState<DeviceRecord[]>([]);
   const [summary, setSummary] = useState<DeviceSummary>({ total: 0, online: 0, warning: 0, offline: 0 });
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!isAuthenticated || !isAdminPortalRole(user?.role)) return;
 
     let isMounted = true;
+    setIsLoading(true);
+    setError("");
 
-    listDevices()
-      .then((data) => {
+    listDevicesSafe()
+      .then(({ devices: data, summary: nextSummary, error: nextError }) => {
         if (!isMounted) return;
         setDevices(data);
-        setSummary({
-          total: data.length,
-          online: data.filter((d) => d.status === "Online").length,
-          warning: data.filter((d) => d.status === "Warning").length,
-          offline: data.filter((d) => d.status === "Offline").length,
-        });
+        setSummary(nextSummary);
+        setError(nextError ?? "");
       })
       .finally(() => {
         if (isMounted) setIsLoading(false);
@@ -66,6 +65,8 @@ export default function AdminDeviceDashboard() {
         <SummaryCard label="Warning State" value={warningCount.toString()} sub="Battery/Storage" color="orange" />
         <SummaryCard label="Offline/Emergency" value={offlineCount.toString()} sub="!" color="red" />
       </div>
+
+      {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {isLoading ? (

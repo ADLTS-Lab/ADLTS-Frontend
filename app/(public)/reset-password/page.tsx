@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, ShieldCheck } from "lucide-react";
 import { resetPassword } from "@/services/password.service";
 import { useI18n } from "@/i18n/useI18n";
+import { extractApiError } from "@/services/api-utils";
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -22,7 +23,7 @@ function ResetPasswordForm() {
 
   useEffect(() => {
     if (!token) {
-      setError("Reset token is missing from the link.");
+      setError("This reset link is missing a valid token. Please request a new password reset link.");
     }
   }, [token]);
 
@@ -32,17 +33,17 @@ function ResetPasswordForm() {
     setSuccess("");
 
     if (!token) {
-      setError("Reset token is missing from the link.");
+      setError("This reset link is missing a valid token. Please request a new password reset link.");
       return;
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match / የይለፍ ቃሎች አይዛመዱም");
+      setError("Passwords do not match. Please enter the same password in both fields.");
       return;
     }
 
     if (password.length < 8) {
-      setError("Password must be at least 8 characters / የይለፍ ቃል ቢያንስ 8 ቁምፊዎች መሆን አለበት");
+      setError("Password must be at least 8 characters long.");
       return;
     }
 
@@ -63,7 +64,7 @@ function ResetPasswordForm() {
         router.replace("/login");
       }, 1200);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Unable to reset password. Please try again.");
+      setError(extractApiError(err, "Unable to reset password. Please try again."));
     } finally {
       setIsLoading(false);
     }

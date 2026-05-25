@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { registerCandidate } from "@/services/auth.service";
 import { useAuthStore } from "@/store/authStore";
+import { extractApiError } from "@/services/api-utils";
 
 export default function CandidateRegisterPage() {
   const router = useRouter();
@@ -25,6 +26,27 @@ export default function CandidateRegisterPage() {
   const [isLoading, setIsLoading] = useState(false);
   const setUser = useAuthStore((s) => s.setUser);
 
+  const validateForm = () => {
+    if (!formData.first_name.trim() || !formData.last_name.trim() || !formData.email.trim() || !formData.phone.trim() || !formData.password.trim()) {
+      return "Please fill in all required fields before continuing.";
+    }
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(formData.email.trim())) {
+      return "Please enter a valid email address.";
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      return "Passwords do not match.";
+    }
+
+    if (formData.password.length < 8) {
+      return "Password must be at least 8 characters long.";
+    }
+
+    return "";
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setError("");
@@ -34,24 +56,14 @@ export default function CandidateRegisterPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setIsLoading(true);
 
-    // Validation
-    if (!formData.first_name || !formData.last_name || !formData.email || !formData.phone || !formData.password) {
-      setError("ሁሉም አስፈላጊ መስኮች መሞላት አለባቸው / All required fields must be filled");
-      setIsLoading(false);
+    const validationError = validateForm();
+    if (validationError) {
+      setError(validationError);
       return;
     }
-    if (formData.password !== formData.confirmPassword) {
-      setError("የይለፍ ቃሎች አይዛመዱም / Passwords do not match");
-      setIsLoading(false);
-      return;
-    }
-    if (formData.password.length < 8) {
-      setError("የይለፍ ቃል ቢያንስ 8 ቁምፊዎች መሆን አለበት / Password must be at least 8 characters");
-      setIsLoading(false);
-      return;
-    }
+
+    setIsLoading(true);
 
     try {
       // Call register API (mock or real)
@@ -78,7 +90,7 @@ export default function CandidateRegisterPage() {
 
       router.push("/login?registered=true");
     } catch (err: any) {
-      setError(err.message || "Registration failed. Please try again.");
+      setError(extractApiError(err, "Registration failed. Please try again.", "auth-register"));
     } finally {
       setIsLoading(false);
     }

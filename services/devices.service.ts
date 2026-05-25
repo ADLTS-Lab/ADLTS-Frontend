@@ -89,13 +89,21 @@ function summarizeDevices(devices: DeviceRecord[]): DeviceSummary {
   };
 }
 
+function isMissingEndpoint(err: unknown): boolean {
+  if (typeof err !== 'object' || err === null || !('response' in err)) return false;
+  const status = (err as { response?: { status?: number } }).response?.status;
+  return status === 404 || status === 405;
+}
+
 /** Admin device grid — MOCK-ONLY until GET /devices exists */
 export async function listDevices(): Promise<DeviceRecord[]> {
   try {
     const response = await api.get<{ success: boolean; data: DeviceRecord[] }>('/devices');
     if (response.data?.data?.length) return response.data.data;
-  } catch {
-    // fall through to mock
+  } catch (err) {
+    if (!isMissingEndpoint(err)) {
+      throw err;
+    }
   }
   return MOCK_DEVICES;
 }

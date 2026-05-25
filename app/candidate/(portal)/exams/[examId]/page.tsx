@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getCandidateExamById } from "@/services/exams.service";
+import { fetchCandidateExamById } from "@/services/exams.service";
 import { useI18n } from "@/i18n/useI18n";
 
 export default async function CandidateExamDetailPage({ params }: { params: Promise<{ examId: string }> }) {
   const { examId } = await params;
   const { t } = useI18n();
-  const exam = getCandidateExamById(examId);
+  const exam = await fetchCandidateExamById(examId);
 
   if (!exam) {
     notFound();
