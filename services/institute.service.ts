@@ -1,4 +1,19 @@
 import { ApiSuccess } from './api-utils';
+import { BookingRequest, getRecentInstitutionRequests, getBookingPage, getLoggedInInstitutionId } from './institution.service';
+
+type CompletedExamMock = {
+  institutionId: string;
+  passed: boolean;
+  completedAt: string;
+};
+
+const MOCK_COMPLETED_EXAMS: CompletedExamMock[] = [
+  { institutionId: 'bole-driving-institute', passed: true, completedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString() },
+  { institutionId: 'bole-driving-institute', passed: true, completedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString() },
+  { institutionId: 'bole-driving-institute', passed: false, completedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 12).toISOString() },
+  { institutionId: 'kality-driving-school', passed: true, completedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 9).toISOString() },
+  { institutionId: 'kality-driving-school', passed: false, completedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString() },
+];
 
 export type InstituteOverview = {
   activeStudents: number;
@@ -6,55 +21,38 @@ export type InstituteOverview = {
   passRate: number; // percentage
 };
 
-export type Enrollment = {
-  id: string;
-  candidateName: string;
-  enrollmentDate: string;
-  licenseCategory: string;
-  status: 'Enrolled' | 'In Training' | 'Ready for Exam';
-};
-
 export async function getInstituteOverview(): Promise<ApiSuccess<InstituteOverview>> {
   await new Promise((resolve) => setTimeout(resolve, 500));
+
+  const institutionId = getLoggedInInstitutionId();
+  const result = await getBookingPage({ institutionId, page: 1, pageSize: 1000 });
+  const now = new Date();
+
+  const activeStudents = result.items.filter((booking) => booking.status === 'Approved').length;
+  const upcomingExams = result.items.filter((booking) => booking.status === 'Approved' && new Date(booking.preferredDate).getTime() >= now.getTime()).length;
+
+  const completedExams = MOCK_COMPLETED_EXAMS.filter((exam) => !institutionId || exam.institutionId === institutionId);
+  const passRate = completedExams.length
+    ? Number(((completedExams.filter((exam) => exam.passed).length / completedExams.length) * 100).toFixed(1))
+    : 0;
 
   return {
     success: true,
     data: {
-      activeStudents: 145,
-      upcomingExams: 22,
-      passRate: 82.5,
+      activeStudents,
+      upcomingExams,
+      passRate,
     },
   };
 }
 
-export async function getRecentEnrollments(): Promise<ApiSuccess<Enrollment[]>> {
+export async function getRecentEnrollments(): Promise<ApiSuccess<BookingRequest[]>> {
   await new Promise((resolve) => setTimeout(resolve, 750));
 
+  const data = await getRecentInstitutionRequests(5);
   return {
     success: true,
-    data: [
-      {
-        id: 'enr-1',
-        candidateName: 'John Doe',
-        enrollmentDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2).toISOString(),
-        licenseCategory: 'Auto (B)',
-        status: 'Enrolled',
-      },
-      {
-        id: 'enr-2',
-        candidateName: 'Jane Smith',
-        enrollmentDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 5).toISOString(),
-        licenseCategory: 'Motorcycle (A)',
-        status: 'In Training',
-      },
-      {
-        id: 'enr-3',
-        candidateName: 'Mary Johnson',
-        enrollmentDate: new Date(Date.now() - 1000 * 60 * 60 * 24 * 30).toISOString(),
-        licenseCategory: 'Commercial (C)',
-        status: 'Ready for Exam',
-      },
-    ],
+    data,
   };
 }
 

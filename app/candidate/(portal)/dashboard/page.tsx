@@ -40,8 +40,17 @@ export default function CandidateDashboard() {
       try {
         const bookings = await getAllBookings();
         if (!isMounted) return;
+        const currentUserId = storedUser?.id;
         const currentEmail = String(candidateEmail || storedUser?.email || '').toLowerCase();
-        const mine = currentEmail ? bookings.filter((booking) => booking.candidateDetails?.email?.toLowerCase() === currentEmail) : bookings;
+        const mine = bookings.filter((booking) => {
+          const bookingCandidateId = booking.candidateId || booking.candidateDetails?.candidateId;
+          const bookingEmail = booking.candidateDetails?.email?.toLowerCase();
+
+          if (currentUserId && bookingCandidateId === currentUserId) return true;
+          if (currentEmail && bookingEmail === currentEmail) return true;
+
+          return false;
+        });
         setBooking(mine[0] ?? null);
       } catch (err) {
         console.error(err);

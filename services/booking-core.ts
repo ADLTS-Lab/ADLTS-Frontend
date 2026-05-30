@@ -22,6 +22,7 @@ export const MOCK_BOOKING_INSTITUTIONS: BookingInstitution[] = [
 ];
 
 export type BookingCandidateDetails = {
+  candidateId?: string;
   name: string;
   email: string;
   phone?: string;
@@ -34,6 +35,7 @@ export interface BookingRequest {
   institutionId: string;
   institution: string;
   institutionName: string;
+  candidateId?: string;
   licenseCategory: LicenseCategory;
   bloodType: string;
   preferredDate: string;
@@ -126,6 +128,7 @@ function normalizeCandidateDetails(raw: unknown): BookingCandidateDetails | unde
   if (!name && !email) return undefined;
 
   return {
+    candidateId: typeof candidate.candidateId === 'string' ? candidate.candidateId : typeof candidate.candidate_id === 'string' ? candidate.candidate_id : undefined,
     name,
     email,
     phone: typeof candidate.phone === 'string' ? candidate.phone : undefined,
@@ -184,6 +187,16 @@ function normalizeBooking(raw: unknown): BookingRequest | null {
     institutionId,
     institution: institutionDetails.name,
     institutionName: institutionDetails.name,
+    candidateId:
+      typeof data.candidateId === 'string'
+        ? data.candidateId
+        : typeof data.candidate_id === 'string'
+          ? data.candidate_id
+          : typeof data.candidateDetails === 'object' && data.candidateDetails && typeof (data.candidateDetails as Record<string, unknown>).candidateId === 'string'
+            ? String((data.candidateDetails as Record<string, unknown>).candidateId)
+            : typeof data.candidate_details === 'object' && data.candidate_details && typeof (data.candidate_details as Record<string, unknown>).candidateId === 'string'
+              ? String((data.candidate_details as Record<string, unknown>).candidateId)
+              : undefined,
     licenseCategory: normalizeLicenseCategory(data.licenseCategory || data.license_category),
     bloodType: typeof data.bloodType === 'string' ? data.bloodType : typeof data.blood_type === 'string' ? data.blood_type : '',
     preferredDate:
@@ -357,6 +370,7 @@ function buildBackendSubmissionPayload(submission: BookingSubmission) {
     institute_id: submission.institutionId,
     institution_id: submission.institutionId,
     institution_name: submission.institutionName,
+    candidate_id: submission.candidateDetails?.candidateId,
     license_category: submission.licenseCategory,
     bloodType: submission.bloodType,
     blood_type: submission.bloodType,
@@ -379,6 +393,7 @@ function buildLocalBooking(submission: BookingSubmission): BookingRequest {
     institutionId: submission.institutionId || institutionDetails.id,
     institution: institutionDetails.name,
     institutionName: institutionDetails.name,
+    candidateId: submission.candidateDetails?.candidateId,
     licenseCategory: submission.licenseCategory,
     bloodType: submission.bloodType,
     preferredDate: submission.preferredDate,
@@ -514,7 +529,9 @@ export async function submitBookingRequest(submission: BookingSubmission): Promi
 
     return buildLocalBooking(submission);
   } catch (error) {
-    if (ALLOW_LOCAL_FALLBACK && shouldUseLocalFallback(error)) {
+    const responseStatus = (error as { response?: { status?: number } } | undefined)?.response?.status;
+
+    if (ALLOW_LOCAL_FALLBACK && (shouldUseLocalFallback(error) || responseStatus === 403)) {
       const bookings = readStoredBookings();
       const booking = buildLocalBooking(submission);
       bookings.push(booking);

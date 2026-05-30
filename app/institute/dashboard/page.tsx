@@ -2,12 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { getInstituteOverview, InstituteOverview } from "@/services/institute.service";
-import { getRecentInstitutionRequests } from "@/services/institution.service";
+import { approveInstitutionRequest, getRecentInstitutionRequests, rejectInstitutionRequest } from "@/services/institution.service";
 import { subscribeToBookingChanges, type BookingRequest } from "@/services/booking.service";
 import { extractApiError } from "@/services/api-utils";
 import { Card } from "@/app/components/ui/Card";
 import { Button } from "@/app/components/ui/Button";
 import { useI18n } from "@/i18n/useI18n";
+import BookingRequestDetailsModal from "@/components/BookingRequestDetailsModal";
 
 export default function InstituteDashboard() {
   const { t } = useI18n();
@@ -15,6 +16,7 @@ export default function InstituteDashboard() {
   const [requests, setRequests] = useState<BookingRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<BookingRequest | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -44,6 +46,32 @@ export default function InstituteDashboard() {
 
     return unsubscribe;
   }, []);
+
+  const handleRequestAction = async (request: BookingRequest, action: 'approve' | 'reject') => {
+    try {
+      if (action === 'approve') {
+        await approveInstitutionRequest(request.id);
+      } else {
+        await rejectInstitutionRequest(request.id);
+      }
+
+      setSelectedRequest(null);
+      await loadAndRefresh();
+    } catch (err) {
+      setError(extractApiError(err, 'Failed to update booking status.'));
+    }
+  };
+
+  const loadAndRefresh = async () => {
+    try {
+      const overviewRes = await getInstituteOverview();
+      if (overviewRes.success) setOverview(overviewRes.data);
+      const requestsRes = await getRecentInstitutionRequests(5);
+      setRequests(requestsRes);
+    } catch (err) {
+      setError(extractApiError(err, 'Failed to refresh dashboard data'));
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
@@ -111,7 +139,15 @@ export default function InstituteDashboard() {
               ) : (
                 requests.map((request) => (
                   <tr key={request.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-slate-900">{request.candidateDetails?.name || 'Unknown Candidate'}</td>
+                    <td className="px-6 py-4 font-medium text-slate-900">
+                      <button
+                        type="button"
+                        onClick={() => setSelectedRequest(request)}
+                        className="text-left font-semibold text-blue-700 hover:text-blue-900 transition"
+                      >
+                        {request.candidateDetails?.name || 'Unknown Candidate'}
+                      </button>
+                    </td>
                     <td className="px-6 py-4">
                       {new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(request.createdAt))}
                     </td>
@@ -131,6 +167,16 @@ export default function InstituteDashboard() {
           </table>
         </div>
       </Card>
+
+      {selectedRequest && (
+        <BookingRequestDetailsModal
+          request={selectedRequest}
+          onClose={() => setSelectedRequest(null)}
+          onApprove={() => void handleRequestAction(selectedRequest, 'approve')}
+          onReject={() => void handleRequestAction(selectedRequest, 'reject')}
+          title="Candidate Details"
+        />
+      )}
     </div>
   );
 }

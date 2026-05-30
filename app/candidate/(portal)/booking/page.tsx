@@ -82,6 +82,7 @@ export default function CandidateBookingPage() {
         preferredSession,
         additionalNotes,
         candidateDetails: {
+          candidateId: user?.id || '',
           name: user?.name || `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'Candidate User',
           email: user?.email || '',
           phone: user?.phone || '',
