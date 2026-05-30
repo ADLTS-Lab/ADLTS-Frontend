@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getInstituteOverview, InstituteOverview } from "@/services/institute.service";
 import { approveInstitutionRequest, getRecentInstitutionRequests, rejectInstitutionRequest } from "@/services/institution.service";
 import { subscribeToBookingChanges, type BookingRequest } from "@/services/booking.service";
@@ -9,6 +9,7 @@ import { Card } from "@/app/components/ui/Card";
 import { Button } from "@/app/components/ui/Button";
 import { useI18n } from "@/i18n/useI18n";
 import BookingRequestDetailsModal from "@/components/BookingRequestDetailsModal";
+import { CheckCircle, ChevronDown, Eye, MoreVertical, XCircle } from "lucide-react";
 
 export default function InstituteDashboard() {
   const { t } = useI18n();
@@ -17,6 +18,8 @@ export default function InstituteDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<BookingRequest | null>(null);
+  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const actionsMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -47,6 +50,17 @@ export default function InstituteDashboard() {
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(event.target as Node)) {
+        setOpenDropdownId(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   const handleRequestAction = async (request: BookingRequest, action: 'approve' | 'reject') => {
     try {
       if (action === 'approve') {
@@ -60,6 +74,11 @@ export default function InstituteDashboard() {
     } catch (err) {
       setError(extractApiError(err, 'Failed to update booking status.'));
     }
+  };
+
+  const openRequestDetails = (request: BookingRequest) => {
+    setSelectedRequest(request);
+    setOpenDropdownId(null);
   };
 
   const loadAndRefresh = async () => {
@@ -100,7 +119,7 @@ export default function InstituteDashboard() {
             {loading ? (
               <div className="h-9 w-20 bg-slate-200 animate-pulse rounded mt-2"></div>
             ) : (
-              <p className={`text-3xl font-bold mt-2 ${stat.color}`}>{stat.value || "—"}</p>
+              <p className={`text-3xl font-bold mt-2 ${stat.color}`}>{stat.value ?? "—"}</p>
             )}
           </Card>
         ))}
@@ -117,9 +136,14 @@ export default function InstituteDashboard() {
             <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
               <tr>
                 <th className="px-6 py-4 font-medium">Candidate Name</th>
+                <th className="px-6 py-4 font-medium">Email</th>
+                <th className="px-6 py-4 font-medium">Phone Number</th>
                 <th className="px-6 py-4 font-medium">Booking Date</th>
+                <th className="px-6 py-4 font-medium">Preferred Exam Date</th>
+                <th className="px-6 py-4 font-medium">Preferred Session</th>
                 <th className="px-6 py-4 font-medium">License Category</th>
                 <th className="px-6 py-4 font-medium">Status</th>
+                <th className="px-6 py-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 bg-white">
@@ -142,15 +166,19 @@ export default function InstituteDashboard() {
                     <td className="px-6 py-4 font-medium text-slate-900">
                       <button
                         type="button"
-                        onClick={() => setSelectedRequest(request)}
+                        onClick={() => openRequestDetails(request)}
                         className="text-left font-semibold text-blue-700 hover:text-blue-900 transition"
                       >
                         {request.candidateDetails?.name || 'Unknown Candidate'}
                       </button>
                     </td>
+                    <td className="px-6 py-4 text-sm text-slate-600">{request.candidateDetails?.email || '—'}</td>
+                    <td className="px-6 py-4 text-sm text-slate-600">{request.candidateDetails?.phone || '—'}</td>
                     <td className="px-6 py-4">
                       {new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(request.createdAt))}
                     </td>
+                    <td className="px-6 py-4 text-sm text-slate-600">{request.preferredDate || '—'}</td>
+                    <td className="px-6 py-4 text-sm text-slate-600">{request.preferredSession || '—'}</td>
                     <td className="px-6 py-4">{request.licenseCategory}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
@@ -159,6 +187,54 @@ export default function InstituteDashboard() {
                       }`}>
                         {request.status}
                       </span>
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="relative inline-block text-left" ref={actionsMenuRef}>
+                        <button
+                          type="button"
+                          onClick={() => setOpenDropdownId((current) => (current === request.id ? null : request.id))}
+                          className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                        >
+                          <MoreVertical className="h-4 w-4" />
+                          Actions
+                          <ChevronDown className="h-4 w-4 text-slate-400" />
+                        </button>
+
+                        {openDropdownId === request.id && (
+                          <div className="absolute right-0 z-50 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg">
+                            <button
+                              type="button"
+                              onClick={() => openRequestDetails(request)}
+                              className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+                            >
+                              <Eye className="h-4 w-4 text-slate-400" />
+                              {t('viewCandidate')}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                setOpenDropdownId(null);
+                                await handleRequestAction(request, 'approve');
+                              }}
+                              className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-medium text-emerald-700 transition hover:bg-emerald-50"
+                            >
+                              <CheckCircle className="h-4 w-4" />
+                              Approve Request
+                            </button>
+                            <button
+                              type="button"
+                              onClick={async () => {
+                                setOpenDropdownId(null);
+                                await handleRequestAction(request, 'reject');
+                              }}
+                              className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-medium text-rose-700 transition hover:bg-rose-50"
+                            >
+                              <XCircle className="h-4 w-4" />
+                              Reject Request
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))

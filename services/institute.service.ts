@@ -1,5 +1,6 @@
 import { ApiSuccess } from './api-utils';
-import { BookingRequest, getRecentInstitutionRequests, getBookingPage, getLoggedInInstitutionId } from './institution.service';
+import { BookingRequest, getRecentInstitutionRequests, getLoggedInInstitutionId } from './institution.service';
+import { getBookingPage } from './booking.service';
 
 type CompletedExamMock = {
   institutionId: string;

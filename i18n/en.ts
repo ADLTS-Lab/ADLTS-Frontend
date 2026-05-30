@@ -19,6 +19,12 @@ const en = {
   booking: 'Booking',
   profile: 'Profile',
   settings: 'Settings',
+  notifications: 'Notifications',
+  markAllAsRead: 'Mark all as read',
+  markAsRead: 'Mark as read',
+  viewCandidate: 'View Candidate',
+  notificationsEmpty: 'No notifications yet.',
+  unread: 'Unread',
   // login/forgot/reset
   loginTitle: 'Login to ADLTS',
   candidateLabel: 'Candidate',

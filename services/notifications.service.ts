@@ -1,4 +1,4 @@
-import api from '@/lib/api';
+export * from './notification.service';import api from '@/lib/api';
 
 import { extractApiError, shouldUseLocalFallback } from './api-utils';
 

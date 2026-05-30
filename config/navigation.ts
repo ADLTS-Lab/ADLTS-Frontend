@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   Activity,
   Calendar,
+  Bell,
   History,
   LayoutDashboard,
   Laptop,
@@ -26,7 +27,7 @@ export const CANDIDATE_NAV: NavItem[] = [
   { href: '/candidate/dashboard', labelKey: 'dashboard', icon: LayoutDashboard },
   { href: '/candidate/booking', labelKey: 'booking', icon: Calendar },
   { href: '/candidate/exams', labelKey: 'examHistory', icon: History },
-  { href: '/candidate/notifications', labelKey: 'notifications', icon: Mail },
+  { href: '/candidate/notifications', labelKey: 'notifications', icon: Bell },
   { href: '/candidate/profile', labelKey: 'profile', icon: UserIcon },
   { href: '/candidate/settings', labelKey: 'settings', icon: Settings },
 ];
@@ -37,6 +38,7 @@ export const ADMIN_NAV: NavItem[] = [
   { href: '/admin/active-exams', labelKey: 'activeExams', icon: Activity },
   { href: '/admin/candidates', labelKey: 'candidates', icon: Users },
   { href: '/admin/invitations', labelKey: 'invitations', icon: Mail },
+  { href: '/admin/notifications', labelKey: 'notifications', icon: Bell },
   { href: '/admin/reports', labelKey: 'reports', icon: FileText },
   { href: '#', labelKey: 'settings', icon: Settings, disabled: true },
 ];
@@ -52,6 +54,7 @@ function minimalPortalNav(dashboardHref: string, profileHref: string): NavItem[]
 export const SUPER_ADMIN_NAV: NavItem[] = [
   { href: '/super-admin/dashboard', labelKey: 'dashboard', icon: LayoutDashboard },
   { href: '/super-admin/profile', labelKey: 'profile', icon: UserIcon },
+  { href: '/super-admin/notifications', labelKey: 'notifications', icon: Bell },
   { href: '/super-admin/audits', labelKey: 'auditLogs', icon: ScrollText },
   { href: '#', labelKey: 'settings', icon: Settings, disabled: true },
 ];
@@ -59,6 +62,7 @@ export const EXPERT_NAV = minimalPortalNav('/expert/dashboard', '/expert/profile
 export const INSTITUTE_NAV = [
   { href: '/institute/dashboard', labelKey: 'dashboard', icon: LayoutDashboard },
   { href: '/institute/requests', labelKey: 'requests', icon: FileText },
+  { href: '/institute/notifications', labelKey: 'notifications', icon: Bell },
   { href: '/institute/profile', labelKey: 'profile', icon: UserIcon },
   { href: '/institute/settings', labelKey: 'settings', icon: Settings },
 ];

@@ -9,10 +9,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, message: 'Unauthorized.' }, { status: 401 });
   }
 
-  if (user.role !== 'candidate') {
-    return NextResponse.json({ success: false, message: 'Forbidden.' }, { status: 403 });
-  }
-
   const result = listNotifications(user, parseNotificationQuery(request));
   return NextResponse.json({ success: true, data: result.items, unreadCount: result.unreadCount });
 }

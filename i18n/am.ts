@@ -19,6 +19,12 @@ const am = {
   booking: 'ማስያዣ',
   profile: 'ፕሮፋይል',
   settings: 'ማስተካከያ',
+  notifications: 'ማሳወቂያዎች',
+  markAllAsRead: 'ሁሉንም እንደ ተነበበ ምልክት አድርግ',
+  markAsRead: 'እንደ ተነበበ ምልክት አድርግ',
+  viewCandidate: 'ዕጩውን ይመልከቱ',
+  notificationsEmpty: 'ማሳወቂያ አልተገኘም።',
+  unread: 'አልተነበበም',
   // login/forgot/reset
   loginTitle: 'ወደ ስርዓቱ ግባ',
   candidateLabel: 'እጩዎች',

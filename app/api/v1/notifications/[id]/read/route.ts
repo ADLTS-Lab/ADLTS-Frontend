@@ -19,10 +19,6 @@ export async function PATCH(
     return NextResponse.json({ success: false, message: 'Unauthorized.' }, { status: 401 });
   }
 
-  if (user.role !== 'candidate') {
-    return NextResponse.json({ success: false, message: 'Forbidden.' }, { status: 403 });
-  }
-
   const result = markNotificationRead(user, id);
   if ('error' in result) {
     return NextResponse.json({ success: false, message: result.error }, { status: result.status });

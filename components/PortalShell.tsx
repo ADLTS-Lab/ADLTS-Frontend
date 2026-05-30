@@ -3,10 +3,17 @@
 import React from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { LogOut, Menu, X } from "lucide-react";
+import { BadgeCheck, Bell, Building2, CheckCheck, GraduationCap, Landmark, LogOut, Menu, Shield, User, X } from "lucide-react";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { logout as logoutService } from "@/services/auth.service";
 import { useI18n } from "@/i18n/useI18n";
+import {
+  getNotificationsPage,
+  markAllNotificationsAsRead,
+  markNotificationAsRead,
+  subscribeToNotificationChanges,
+  type AppNotification,
+} from "@/services/notification.service";
 import {
   ADMIN_NAV,
   CANDIDATE_NAV,
@@ -24,12 +31,78 @@ type PortalShellProps = {
   dashboardHref: string;
 };
 
+type AvatarConfig = {
+  icon: React.ComponentType<{ size?: number; className?: string }>;
+  wrapperClassName: string;
+  iconClassName: string;
+  label: string;
+};
+
+function getAvatarConfig(role?: string): AvatarConfig {
+  switch (role) {
+    case 'candidate':
+      return {
+        icon: User,
+        wrapperClassName: 'bg-sky-100 text-sky-700 ring-1 ring-sky-200',
+        iconClassName: 'text-sky-700',
+        label: 'Candidate avatar',
+      };
+    case 'institute':
+      return {
+        icon: Building2,
+        wrapperClassName: 'bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200',
+        iconClassName: 'text-emerald-700',
+        label: 'Institute avatar',
+      };
+    case 'expert':
+      return {
+        icon: GraduationCap,
+        wrapperClassName: 'bg-violet-100 text-violet-700 ring-1 ring-violet-200',
+        iconClassName: 'text-violet-700',
+        label: 'Expert avatar',
+      };
+    case 'admin':
+      return {
+        icon: Shield,
+        wrapperClassName: 'bg-amber-100 text-amber-700 ring-1 ring-amber-200',
+        iconClassName: 'text-amber-700',
+        label: 'Admin avatar',
+      };
+    case 'super_admin':
+      return {
+        icon: BadgeCheck,
+        wrapperClassName: 'bg-rose-100 text-rose-700 ring-1 ring-rose-200',
+        iconClassName: 'text-rose-700',
+        label: 'Super admin avatar',
+      };
+    case 'transport_authority':
+      return {
+        icon: Landmark,
+        wrapperClassName: 'bg-cyan-100 text-cyan-700 ring-1 ring-cyan-200',
+        iconClassName: 'text-cyan-700',
+        label: 'Transport authority avatar',
+      };
+    default:
+      return {
+        icon: User,
+        wrapperClassName: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200',
+        iconClassName: 'text-slate-700',
+        label: 'User avatar',
+      };
+  }
+}
+
 export default function PortalShell({ children, navItems, dashboardHref }: PortalShellProps) {
   const router = useRouter();
   const pathname = usePathname() || "/";
   const { user } = useAuthSession();
   const { t, lang, setLang } = useI18n();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
+  const [notifications, setNotifications] = React.useState<AppNotification[]>([]);
+  const [unreadCount, setUnreadCount] = React.useState(0);
+  const [notificationLoading, setNotificationLoading] = React.useState(false);
+  const notificationPanelRef = React.useRef<HTMLDivElement | null>(null);
   const hideTopDashboardLink = dashboardHref === PORTAL_DASHBOARD_HREF.candidate;
 
   const handleLogout = async () => {
@@ -37,8 +110,62 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
     router.push("/");
   };
 
+  const avatarConfig = getAvatarConfig(user?.role);
+  const AvatarIcon = avatarConfig.icon;
+
   const displayName =
     user?.name || `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || user?.email || "User";
+
+  const loadNotifications = React.useCallback(async () => {
+    setNotificationLoading(true);
+    try {
+      const result = await getNotificationsPage({ page: 1, pageSize: 5 });
+      setNotifications(result.items);
+      setUnreadCount(result.unreadCount);
+    } finally {
+      setNotificationLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (!user) {
+      setNotifications([]);
+      setUnreadCount(0);
+      return;
+    }
+
+    void loadNotifications();
+    const unsubscribe = subscribeToNotificationChanges(() => {
+      void loadNotifications();
+    });
+
+    return unsubscribe;
+  }, [loadNotifications, user]);
+
+  React.useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      if (notificationPanelRef.current && !notificationPanelRef.current.contains(event.target as Node)) {
+        setIsNotificationsOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, []);
+
+  const handleMarkNotificationRead = async (id: string) => {
+    const updated = await markNotificationAsRead(id);
+    if (updated) {
+      setNotifications((current) => current.map((item) => (item.id === id ? updated : item)));
+      setUnreadCount((current) => Math.max(0, current - 1));
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    await markAllNotificationsAsRead();
+    setNotifications((current) => current.map((item) => ({ ...item, read: true })));
+    setUnreadCount(0);
+  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -73,12 +200,11 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
                   className="flex items-center gap-3 hover:bg-slate-50 p-2 rounded-xl transition -ml-2"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
-                  <div className="w-10 h-10 bg-blue-900 text-white rounded-full flex items-center justify-center font-black">
-                    {(user?.name || user?.first_name || user?.email || "U").charAt(0).toUpperCase()}
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-full ${avatarConfig.wrapperClassName}`} aria-label={avatarConfig.label}>
+                    <AvatarIcon size={18} className={avatarConfig.iconClassName} />
                   </div>
                   <div>
                     <div className="font-bold text-slate-800 text-sm truncate max-w-35">{displayName}</div>
-                    <div className="text-[11px] text-slate-400 capitalize">{user?.role?.replace('_', ' ') || "Role"}</div>
                   </div>
                 </Link>
                 <nav className="space-y-1 text-sm">
@@ -145,6 +271,84 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
           )}
 
           <div className="flex items-center gap-4">
+            <div className="relative" ref={notificationPanelRef}>
+              <button
+                onClick={() => setIsNotificationsOpen((current) => !current)}
+                className="relative inline-flex items-center justify-center rounded-full border border-slate-200 bg-white p-2.5 text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+                aria-label={t('notifications')}
+              >
+                <Bell size={18} />
+                {unreadCount > 0 && (
+                  <span className="absolute -right-1 -top-1 inline-flex min-w-5 items-center justify-center rounded-full bg-rose-600 px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+                    {unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {isNotificationsOpen && (
+                <div className="absolute right-0 top-full z-50 mt-3 w-88 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+                  <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                    <div>
+                      <p className="text-sm font-bold text-slate-900">{t('notifications')}</p>
+                      <p className="text-xs text-slate-500">{unreadCount} unread</p>
+                    </div>
+                    <button
+                      onClick={() => void handleMarkAllRead()}
+                      disabled={unreadCount === 0}
+                      className="inline-flex items-center rounded-lg px-2.5 py-1 text-xs font-semibold text-blue-700 transition hover:bg-blue-50 disabled:opacity-40"
+                    >
+                      <CheckCheck className="mr-1.5 h-3.5 w-3.5" />
+                      {t('markAllAsRead')}
+                    </button>
+                  </div>
+
+                  <div className="max-h-96 divide-y divide-slate-100 overflow-y-auto">
+                    {notificationLoading ? (
+                      <div className="p-4 text-sm text-slate-500">Loading notifications...</div>
+                    ) : notifications.length === 0 ? (
+                      <div className="p-6 text-center text-sm text-slate-500">{t('notificationsEmpty')}</div>
+                    ) : (
+                      notifications.map((notification) => (
+                        <div key={notification.id} className={`p-4 ${notification.read ? 'bg-white' : 'bg-blue-50/40'}`}>
+                          <div className="flex items-start gap-3">
+                            <div className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${notification.read ? 'bg-slate-300' : 'bg-blue-600'}`} />
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-start justify-between gap-3">
+                                <div>
+                                  <p className="text-sm font-bold text-slate-900">{notification.title}</p>
+                                  <p className="mt-1 text-xs leading-5 text-slate-600">{notification.message}</p>
+                                  <p className="mt-1 text-[11px] text-slate-400">
+                                    {new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(notification.createdAt))}
+                                  </p>
+                                </div>
+                                {!notification.read && (
+                                  <button
+                                    onClick={() => void handleMarkNotificationRead(notification.id)}
+                                    className="inline-flex shrink-0 items-center rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-700 transition hover:bg-slate-50"
+                                  >
+                                    {t('markAsRead')}
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="border-t border-slate-100 bg-slate-50 px-4 py-3">
+                    <Link
+                      href={user?.role ? `/${user.role.replace('_', '-')}/notifications` : '#'}
+                      onClick={() => setIsNotificationsOpen(false)}
+                      className="inline-flex items-center text-sm font-semibold text-blue-700 hover:text-blue-900"
+                    >
+                      {t('notifications')} {user?.role ? 'page' : ''}
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
             <button
               onClick={() => setLang(lang === "en" ? "am" : "en")}
               className="flex items-center gap-2 bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-slate-800 hover:bg-slate-50 transition text-xs md:text-sm font-semibold"
@@ -155,19 +359,18 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
             <div className="flex items-center gap-3">
               <Link 
                 href={user?.role ? `/${user.role.replace('_', '-')}/profile` : "#"}
-                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 transition cursor-pointer"
+                className="hidden sm:flex items-center gap-3 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200 hover:bg-slate-100 transition cursor-pointer"
               >
-                <span className="w-7 h-7 rounded-full bg-blue-900 text-white flex items-center justify-center text-xs font-black">
-                  {(user?.name || user?.first_name || user?.email || "U").charAt(0).toUpperCase()}
+                <span className={`flex h-9 w-9 items-center justify-center rounded-full ${avatarConfig.wrapperClassName}`} aria-hidden="true">
+                  <AvatarIcon size={18} className={avatarConfig.iconClassName} />
                 </span>
                 <div className="leading-tight">
                   <div className="text-xs font-bold text-slate-800">{displayName}</div>
-                  <div className="text-[10px] text-slate-500 capitalize">{user?.role?.replace('_', ' ') || "user"}</div>
                 </div>
               </Link>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 bg-blue-900 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition"
+                className="flex items-center gap-2 rounded-full bg-blue-900 px-4 py-2 text-white transition hover:bg-blue-800"
               >
                 <LogOut size={16} /> <span className="hidden sm:inline">{t("logout")}</span>
               </button>
@@ -181,14 +384,13 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
           <div className="p-6">
             <Link 
               href={user?.role ? `/${user.role.replace('_', '-')}/profile` : "#"}
-              className="flex items-center gap-3 mb-6 hover:bg-slate-50 p-2 rounded-xl transition -ml-2"
+              className="mb-6 flex items-center gap-3 rounded-xl p-2 transition hover:bg-slate-50 -ml-2"
             >
-              <div className="w-10 h-10 bg-blue-900 text-white rounded-full flex items-center justify-center font-black">
-                {(user?.name || user?.first_name || user?.email || "U").charAt(0).toUpperCase()}
+              <div className={`flex h-10 w-10 items-center justify-center rounded-full ${avatarConfig.wrapperClassName}`} aria-hidden="true">
+                <AvatarIcon size={18} className={avatarConfig.iconClassName} />
               </div>
               <div>
                 <div className="font-bold text-slate-800">{displayName}</div>
-                <div className="text-[11px] text-slate-400 capitalize">{user?.role?.replace('_', ' ') || "Role"}</div>
               </div>
             </Link>
             <nav className="space-y-1 text-sm">
