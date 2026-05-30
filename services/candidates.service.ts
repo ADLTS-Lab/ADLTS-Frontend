@@ -15,6 +15,9 @@ export interface CandidateRecord {
   licenseCategory: string;
   testCenter: string;
   phone?: string;
+  birth_date?: string;
+  gender?: string;
+  address?: string;
 }
 
 export interface ListCandidatesParams {
@@ -75,7 +78,7 @@ export async function getMyCandidateProfile(): Promise<CandidateRecord | null> {
 
 /** Candidate self — PATCH /candidates/me */
 export async function updateMyCandidateProfile(
-  data: Partial<Pick<CandidateRecord, 'first_name' | 'last_name' | 'phone' | 'licenseCategory' | 'testCenter'>>
+  data: Partial<Pick<CandidateRecord, 'first_name' | 'last_name' | 'phone' | 'licenseCategory' | 'testCenter' | 'birth_date' | 'gender' | 'address'>>
 ): Promise<CandidateRecord | null> {
   try {
     const response = await api.patch<{ success: boolean; data: CandidateRecord }>('/candidates/me', data);

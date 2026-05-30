@@ -10,7 +10,7 @@ const refreshTokens = new Map();
 const resetTokens = new Map();
 const candidateRecords = new Map();
 
-function seedUser({ id, email, password, role, first_name, last_name, name, phone }) {
+function seedUser({ id, email, password, role, first_name, last_name, name, phone, institutionId, institutionName }) {
   users.set(email.toLowerCase(), {
     id,
     email: email.toLowerCase(),
@@ -20,6 +20,8 @@ function seedUser({ id, email, password, role, first_name, last_name, name, phon
     last_name,
     name,
     phone,
+    institutionId,
+    institutionName,
     licenseCategory: role === 'candidate' ? 'B' : undefined,
     testCenter: role === 'candidate' ? 'Bole Test Center' : undefined,
   });
@@ -31,7 +33,7 @@ seedUser({ id: 'admin-2', email: 'admin@adlts.et', password: 'AdminSecure123!', 
 seedUser({ id: 'candidate-1', email: 'candidate@adlts.et', password: 'password123', role: 'candidate', first_name: 'Candidate', last_name: 'User', phone: '+251900000000' });
 seedUser({ id: 'candidate-2', email: 'abebe.tesfaye@example.com', password: 'SecurePassword123!', role: 'candidate', first_name: 'Abebe', last_name: 'Tesfaye', phone: '+251912345678' });
 seedUser({ id: 'expert-1', email: 'expert.john@example.com', password: 'ExpertSecure123!', role: 'expert', first_name: 'Expert', last_name: 'John', phone: '+251911111111' });
-seedUser({ id: 'institute-1', email: 'institute.jane@example.com', password: 'InstituteSecure123!', role: 'institute', name: 'Institute Jane', phone: '+251922222222' });
+seedUser({ id: 'institute-1', email: 'institute.jane@example.com', password: 'InstituteSecure123!', role: 'institute', name: 'Bole Driving Institute', institutionId: 'bole-driving-institute', institutionName: 'Bole Driving Institute', phone: '+251922222222' });
 seedUser({ id: 'authority-1', email: 'authority.jane@example.com', password: 'AuthoritySecure123!', role: 'transport_authority', name: 'Authority Jane', phone: '+251933333333' });
 
 function seedCandidateRecord({ id, email, name, first_name, last_name, status = 'active', testCenter = 'Bole Test Center', licenseCategory = 'B' }) {

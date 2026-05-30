@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { User as UserIcon, Mail, Phone, MapPin, Award, CreditCard as CardIcon, Save, RefreshCw, CheckCircle, AlertCircle } from "lucide-react";
+import { User as UserIcon, Mail, Phone, MapPin, Award, CreditCard as CardIcon, Save, RefreshCw, CheckCircle, AlertCircle, Lock } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-import { getCurrentUser, type User } from "@/services/auth.service";
+import { getCurrentUser, changePassword, type User } from "@/services/auth.service";
 import { updateMyCandidateProfile } from "@/services/candidates.service";
 import { useI18n } from "@/i18n/useI18n";
 import { extractApiError } from "@/services/api-utils";
@@ -19,6 +19,17 @@ export default function CandidateProfile() {
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [gender, setGender] = useState("");
+  const [address, setAddress] = useState("");
+  
+  // Password State
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordSuccess, setPasswordSuccess] = useState("");
+  const [passwordError, setPasswordError] = useState("");
   
   // UI feedback states
   const [isSaving, setIsSaving] = useState(false);
@@ -40,6 +51,9 @@ export default function CandidateProfile() {
         setLastName(storedUser.last_name || "");
         setPhone(storedUser.phone || "");
         setEmail(storedUser.email || "");
+        setBirthDate(storedUser.birth_date || "");
+        setGender(storedUser.gender || "");
+        setAddress(storedUser.address || "");
         setIsProfileLoading(false);
         return;
       }
@@ -56,6 +70,9 @@ export default function CandidateProfile() {
           setLastName(currentUser.last_name || "");
           setPhone(currentUser.phone || "");
           setEmail(currentUser.email || "");
+          setBirthDate(currentUser.birth_date || "");
+          setGender(currentUser.gender || "");
+          setAddress(currentUser.address || "");
         }
       } catch (err) {
         if (isMounted) {
@@ -83,6 +100,9 @@ export default function CandidateProfile() {
       setLastName(storedUser.last_name || "");
       setPhone(storedUser.phone || "");
       setEmail(storedUser.email || "");
+      setBirthDate(storedUser.birth_date || "");
+      setGender(storedUser.gender || "");
+      setAddress(storedUser.address || "");
     }
   }, [storedUser, isSaving]);
 
@@ -97,6 +117,9 @@ export default function CandidateProfile() {
         first_name: firstName,
         last_name: lastName,
         phone: phone,
+        birth_date: birthDate,
+        gender: gender,
+        address: address,
       });
 
       if (updated) {
@@ -109,6 +132,9 @@ export default function CandidateProfile() {
           phone: updated.phone,
           licenseCategory: updated.licenseCategory,
           testCenter: updated.testCenter,
+          birth_date: updated.birth_date,
+          gender: updated.gender,
+          address: updated.address,
         };
         setProfile(updatedUser);
         setUser(updatedUser, storedToken || undefined, storedRole || undefined);
@@ -128,11 +154,39 @@ export default function CandidateProfile() {
     }
   };
 
+  const handlePasswordChange = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordSuccess("");
+    setPasswordError("");
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError(t("yourStatus") === "Your status" ? "New passwords do not match." : "አዲስ የይለፍ ቃላት አይطابقም።");
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      await changePassword(currentPassword, newPassword);
+      setPasswordSuccess(t("yourStatus") === "Your status" ? "Password changed successfully." : "የይለፍ ቃል በተሳካ ሁኔታ ተቀይሯል።");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setTimeout(() => setPasswordSuccess(""), 5000);
+    } catch (err) {
+      setPasswordError(extractApiError(err, "Unable to change password."));
+    } finally {
+      setIsChangingPassword(false);
+    }
+  };
+
   const handleReset = () => {
     if (profile) {
       setFirstName(profile.first_name || "");
       setLastName(profile.last_name || "");
       setPhone(profile.phone || "");
+      setBirthDate(profile.birth_date || "");
+      setGender(profile.gender || "");
+      setAddress(profile.address || "");
       setSuccessMessage("");
       setErrorMessage("");
     }
@@ -210,9 +264,8 @@ export default function CandidateProfile() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Profile Edit Form */}
-        <div className="md:col-span-2 bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
+        <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
           <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
             <UserIcon className="text-blue-900" size={22} />
             <h2 className="text-lg font-bold text-slate-800">{t("personalInfo")}</h2>
@@ -256,17 +309,58 @@ export default function CandidateProfile() {
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">{t("phoneNumberLabel")}</label>
-              <div className="relative">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">{t("phoneNumberLabel")}</label>
+                <div className="relative">
+                  <input
+                    type="tel"
+                    required
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    className="w-full px-4 py-3 pl-11 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-slate-50/50 text-slate-800 font-medium"
+                  />
+                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">{t("dateOfBirthLabel")}</label>
                 <input
-                  type="tel"
-                  required
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full px-4 py-3 pl-11 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-slate-50/50 text-slate-800 font-medium"
+                  type="date"
+                  value={birthDate}
+                  onChange={(e) => setBirthDate(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-slate-50/50 text-slate-800 font-medium"
                 />
-                <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">{t("genderLabel")}</label>
+                <select
+                  value={gender}
+                  onChange={(e) => setGender(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-slate-50/50 text-slate-800 font-medium appearance-none"
+                >
+                  <option value="">{t("yourStatus") === "Your status" ? "Select Gender" : "ፆታ ምረጥ"}</option>
+                  <option value="male">{t("yourStatus") === "Your status" ? "Male" : "ወንድ"}</option>
+                  <option value="female">{t("yourStatus") === "Your status" ? "Female" : "ሴት"}</option>
+                  <option value="other">{t("yourStatus") === "Your status" ? "Other" : "ሌላ"}</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">{t("addressLabel")}</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    className="w-full px-4 py-3 pl-11 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-slate-50/50 text-slate-800 font-medium"
+                  />
+                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                </div>
               </div>
             </div>
 
@@ -300,66 +394,84 @@ export default function CandidateProfile() {
           </form>
         </div>
 
-        {/* License & Exam Registration Details Info Column */}
-        <div className="space-y-6">
-          <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-            <h3 className="font-bold text-slate-800 mb-6 border-b border-slate-50 pb-3">
-              {t("yourStatus")}
-            </h3>
-            
-            <div className="space-y-5">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-900 shrink-0">
-                  <Award size={20} />
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
-                    {t("licenseCategoryLabel")}
-                  </p>
-                  <p className="text-sm font-extrabold text-slate-800">
-                    {profile?.licenseCategory || "Category B"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-900 shrink-0">
-                  <MapPin size={20} />
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
-                    {t("testCenterLabel")}
-                  </p>
-                  <p className="text-sm font-extrabold text-slate-800">
-                    {profile?.testCenter || "Addis Ababa Center"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center text-blue-900 shrink-0">
-                  <CardIcon size={20} className="stroke-[1.5]" />
-                </div>
-                <div>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5">
-                    {t("fayidaIdLabel")}
-                  </p>
-                  <p className="text-sm font-extrabold text-slate-800 font-mono">
-                    {(profile as any)?.fayida_id || "ET-09247183-C"}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-8 pt-6 border-t border-slate-100 flex justify-between items-center">
-              <span className="text-xs font-bold text-slate-400">{t("registrationStatusLabel")}</span>
-              <span className="px-2 py-1 bg-green-100 text-green-700 text-[10px] rounded-md font-extrabold">
-                {t("status_active") === "active" ? "Active" : "ንቁ"}
-              </span>
-            </div>
+        {/* Change Password Form */}
+        <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
+          <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
+            <Lock className="text-blue-900" size={22} />
+            <h2 className="text-lg font-bold text-slate-800">{t("changePassword") || "Change Password"}</h2>
           </div>
+
+          {passwordSuccess && (
+            <div className="flex items-center gap-3 p-4 mb-6 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl shadow-sm">
+              <CheckCircle className="text-emerald-600 shrink-0" size={20} />
+              <p className="text-sm font-semibold">{passwordSuccess}</p>
+            </div>
+          )}
+
+          {passwordError && (
+            <div className="flex items-center gap-3 p-4 mb-6 bg-red-50 border border-red-200 text-red-800 rounded-2xl shadow-sm">
+              <AlertCircle className="text-red-600 shrink-0" size={20} />
+              <p className="text-sm font-semibold">{passwordError}</p>
+            </div>
+          )}
+
+          <form onSubmit={handlePasswordChange} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">{t("currentPassword") || "Current Password"}</label>
+                <input
+                  type="password"
+                  required
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-slate-50/50 text-slate-800 font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">{t("newPassword") || "New Password"}</label>
+                <input
+                  type="password"
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-slate-50/50 text-slate-800 font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-bold text-slate-700 mb-2">{t("confirmPassword") || "Confirm Password"}</label>
+                <input
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-slate-50/50 text-slate-800 font-medium"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-4 pt-4 border-t border-slate-100">
+              <button
+                type="submit"
+                disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
+                className="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-xl transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isChangingPassword ? (
+                  <>
+                    <RefreshCw className="animate-spin" size={18} />
+                    <span>{t("updating") || "Updating..."}</span>
+                  </>
+                ) : (
+                  <>
+                    <Save size={18} />
+                    <span>{t("updatePassword") || "Update Password"}</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
         </div>
-      </div>
     </main>
   );
 }

@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getInstituteOverview, getRecentEnrollments, InstituteOverview, Enrollment } from "@/services/institute.service";
+import { getInstituteOverview, InstituteOverview } from "@/services/institute.service";
+import { getRecentInstitutionRequests } from "@/services/institution.service";
+import { subscribeToBookingChanges, type BookingRequest } from "@/services/booking.service";
 import { extractApiError } from "@/services/api-utils";
 import { Card } from "@/app/components/ui/Card";
 import { Button } from "@/app/components/ui/Button";
@@ -10,7 +12,7 @@ import { useI18n } from "@/i18n/useI18n";
 export default function InstituteDashboard() {
   const { t } = useI18n();
   const [overview, setOverview] = useState<InstituteOverview | null>(null);
-  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [requests, setRequests] = useState<BookingRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,16 +21,28 @@ export default function InstituteDashboard() {
       setLoading(true);
       setError(null);
       try {
-        const [overviewRes, enrollmentsRes] = await Promise.all([getInstituteOverview(), getRecentEnrollments()]);
+        const overviewRes = await getInstituteOverview();
         if (overviewRes.success) setOverview(overviewRes.data);
-        if (enrollmentsRes.success) setEnrollments(enrollmentsRes.data);
       } catch (err) {
-        setError(extractApiError(err, "Failed to load institute data"));
+        setError(extractApiError(err, "Failed to load institute overview"));
+      }
+
+      try {
+        const requestsRes = await getRecentInstitutionRequests(5);
+        setRequests(requestsRes);
+      } catch (err) {
+        setError((prev) => prev ?? extractApiError(err, "Failed to load recent requests"));
       } finally {
         setLoading(false);
       }
     };
     loadData();
+
+    const unsubscribe = subscribeToBookingChanges(() => {
+      void loadData();
+    });
+
+    return unsubscribe;
   }, []);
 
   return (
@@ -75,7 +89,7 @@ export default function InstituteDashboard() {
             <thead className="bg-slate-50 text-slate-500 border-b border-slate-100">
               <tr>
                 <th className="px-6 py-4 font-medium">Candidate Name</th>
-                <th className="px-6 py-4 font-medium">Enrollment Date</th>
+                <th className="px-6 py-4 font-medium">Booking Date</th>
                 <th className="px-6 py-4 font-medium">License Category</th>
                 <th className="px-6 py-4 font-medium">Status</th>
               </tr>
@@ -90,24 +104,24 @@ export default function InstituteDashboard() {
                     <td className="px-6 py-4"><div className="h-5 w-16 bg-slate-100 animate-pulse rounded"></div></td>
                   </tr>
                 ))
-              ) : enrollments.length === 0 ? (
+              ) : requests.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-slate-400">No recent enrollments.</td>
+                  <td colSpan={4} className="px-6 py-12 text-center text-slate-400">No recent requests.</td>
                 </tr>
               ) : (
-                enrollments.map((enr) => (
-                  <tr key={enr.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-slate-900">{enr.candidateName}</td>
+                requests.map((request) => (
+                  <tr key={request.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-slate-900">{request.candidateDetails?.name || 'Unknown Candidate'}</td>
                     <td className="px-6 py-4">
-                      {new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(enr.enrollmentDate))}
+                      {new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(request.createdAt))}
                     </td>
-                    <td className="px-6 py-4">{enr.licenseCategory}</td>
+                    <td className="px-6 py-4">{request.licenseCategory}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        enr.status === 'Ready for Exam' ? 'bg-emerald-100 text-emerald-800' : 
-                        enr.status === 'In Training' ? 'bg-blue-100 text-blue-800' : 'bg-slate-100 text-slate-800'
+                        request.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 
+                        request.status === 'Pending' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
                       }`}>
-                        {enr.status}
+                        {request.status}
                       </span>
                     </td>
                   </tr>

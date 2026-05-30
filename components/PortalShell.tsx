@@ -4,7 +4,8 @@ import React from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { LogOut, Menu, X } from "lucide-react";
-import { useAuthStore } from "@/store/authStore";
+import { useAuthSession } from "@/hooks/useAuthSession";
+import { logout as logoutService } from "@/services/auth.service";
 import { useI18n } from "@/i18n/useI18n";
 import {
   ADMIN_NAV,
@@ -26,13 +27,14 @@ type PortalShellProps = {
 export default function PortalShell({ children, navItems, dashboardHref }: PortalShellProps) {
   const router = useRouter();
   const pathname = usePathname() || "/";
-  const { user, logout } = useAuthStore();
+  const { user } = useAuthSession();
   const { t, lang, setLang } = useI18n();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+  const hideTopDashboardLink = dashboardHref === PORTAL_DASHBOARD_HREF.candidate;
 
-  const handleLogout = () => {
-    logout();
-    router.push("/login");
+  const handleLogout = async () => {
+    await logoutService();
+    router.push("/");
   };
 
   const displayName =
@@ -66,13 +68,19 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
             </div>
             <div className="p-6 flex-1 flex flex-col justify-between overflow-y-auto">
               <div className="space-y-6">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-50 rounded-md flex items-center justify-center">🏛️</div>
-                  <div>
-                    <div className="font-bold text-slate-800 text-sm truncate max-w-[140px]">{displayName}</div>
-                    <div className="text-[11px] text-slate-400">{user?.role || "Role"}</div>
+                <Link 
+                  href={user?.role ? `/${user.role.replace('_', '-')}/profile` : "#"}
+                  className="flex items-center gap-3 hover:bg-slate-50 p-2 rounded-xl transition -ml-2"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <div className="w-10 h-10 bg-blue-900 text-white rounded-full flex items-center justify-center font-black">
+                    {(user?.name || user?.first_name || user?.email || "U").charAt(0).toUpperCase()}
                   </div>
-                </div>
+                  <div>
+                    <div className="font-bold text-slate-800 text-sm truncate max-w-35">{displayName}</div>
+                    <div className="text-[11px] text-slate-400 capitalize">{user?.role?.replace('_', ' ') || "Role"}</div>
+                  </div>
+                </Link>
                 <nav className="space-y-1 text-sm">
                   {navItems.map((item) => {
                     const isActive = !item.disabled && item.href !== "#" && pathname.startsWith(item.href);
@@ -128,11 +136,13 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
             </Link>
           </div>
 
-          <div className="hidden md:flex items-center gap-6 text-sm text-slate-600">
-            <Link href={dashboardHref} className="hover:text-blue-700 font-semibold">
-              {t("dashboard")}
-            </Link>
-          </div>
+          {!hideTopDashboardLink && (
+            <div className="hidden md:flex items-center gap-6 text-sm text-slate-600">
+              <Link href={dashboardHref} className="hover:text-blue-700 font-semibold">
+                {t("dashboard")}
+              </Link>
+            </div>
+          )}
 
           <div className="flex items-center gap-4">
             <button
@@ -143,15 +153,18 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
               {lang === "en" ? "አማ" : "EN"}
             </button>
             <div className="flex items-center gap-3">
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200">
+              <Link 
+                href={user?.role ? `/${user.role.replace('_', '-')}/profile` : "#"}
+                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 transition cursor-pointer"
+              >
                 <span className="w-7 h-7 rounded-full bg-blue-900 text-white flex items-center justify-center text-xs font-black">
                   {(user?.name || user?.first_name || user?.email || "U").charAt(0).toUpperCase()}
                 </span>
                 <div className="leading-tight">
                   <div className="text-xs font-bold text-slate-800">{displayName}</div>
-                  <div className="text-[10px] text-slate-500">{user?.role || "user"}</div>
+                  <div className="text-[10px] text-slate-500 capitalize">{user?.role?.replace('_', ' ') || "user"}</div>
                 </div>
-              </div>
+              </Link>
               <button
                 onClick={handleLogout}
                 className="flex items-center gap-2 bg-blue-900 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition"
@@ -166,13 +179,18 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
       <div className="flex flex-1 bg-[#F8FAFC]">
         <aside className="w-64 bg-white border-r border-slate-100 hidden lg:block sticky top-16 h-[calc(100vh-4rem)]">
           <div className="p-6">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-blue-50 rounded-md flex items-center justify-center">🏛️</div>
+            <Link 
+              href={user?.role ? `/${user.role.replace('_', '-')}/profile` : "#"}
+              className="flex items-center gap-3 mb-6 hover:bg-slate-50 p-2 rounded-xl transition -ml-2"
+            >
+              <div className="w-10 h-10 bg-blue-900 text-white rounded-full flex items-center justify-center font-black">
+                {(user?.name || user?.first_name || user?.email || "U").charAt(0).toUpperCase()}
+              </div>
               <div>
                 <div className="font-bold text-slate-800">{displayName}</div>
-                <div className="text-[11px] text-slate-400">{user?.role || "Role"}</div>
+                <div className="text-[11px] text-slate-400 capitalize">{user?.role?.replace('_', ' ') || "Role"}</div>
               </div>
-            </div>
+            </Link>
             <nav className="space-y-1 text-sm">
               {navItems.map((item) => {
                 const isActive = !item.disabled && item.href !== "#" && pathname.startsWith(item.href);

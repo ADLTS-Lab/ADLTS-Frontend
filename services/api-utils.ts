@@ -106,9 +106,23 @@ function classifyApiError(
       };
     }
 
+    if (context === 'auth-session' && /password|current password|current_password|wrong|incorrect/i.test(normalizedText)) {
+      return {
+        kind: 'invalid_credentials',
+        message: 'Current password is incorrect.',
+      };
+    }
+
     return {
       kind: 'expired_session',
       message: 'Your session has expired. Please sign in again.',
+    };
+  }
+
+  if (context === 'auth-session' && status === 403 && /password|current password|current_password|wrong|incorrect/i.test(normalizedText)) {
+    return {
+      kind: 'invalid_credentials',
+      message: 'Current password is incorrect.',
     };
   }
 

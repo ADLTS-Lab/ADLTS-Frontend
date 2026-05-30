@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   Activity,
+  Calendar,
   History,
   LayoutDashboard,
   Laptop,
@@ -23,9 +24,10 @@ export type NavItem = {
 /** Candidate portal sidebar — single source of truth */
 export const CANDIDATE_NAV: NavItem[] = [
   { href: '/candidate/dashboard', labelKey: 'dashboard', icon: LayoutDashboard },
+  { href: '/candidate/booking', labelKey: 'booking', icon: Calendar },
   { href: '/candidate/exams', labelKey: 'examHistory', icon: History },
   { href: '/candidate/profile', labelKey: 'profile', icon: UserIcon },
-  { href: '#', labelKey: 'settings', icon: Settings, disabled: true },
+  { href: '/candidate/settings', labelKey: 'settings', icon: Settings },
 ];
 
 /** Admin portal sidebar — single source of truth */
@@ -53,7 +55,12 @@ export const SUPER_ADMIN_NAV: NavItem[] = [
   { href: '#', labelKey: 'settings', icon: Settings, disabled: true },
 ];
 export const EXPERT_NAV = minimalPortalNav('/expert/dashboard', '/expert/profile');
-export const INSTITUTE_NAV = minimalPortalNav('/institute/dashboard', '/institute/profile');
+export const INSTITUTE_NAV = [
+  { href: '/institute/dashboard', labelKey: 'dashboard', icon: LayoutDashboard },
+  { href: '/institute/requests', labelKey: 'requests', icon: FileText },
+  { href: '/institute/profile', labelKey: 'profile', icon: UserIcon },
+  { href: '/institute/settings', labelKey: 'settings', icon: Settings },
+];
 export const TRANSPORT_AUTHORITY_NAV = minimalPortalNav(
   '/transport-authority/dashboard',
   '/transport-authority/profile'

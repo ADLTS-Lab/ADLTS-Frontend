@@ -1,6 +1,8 @@
 import axios from 'axios';
+import { clearAuthStorage } from '@/lib/auth-session';
+import { useAuthStore } from '@/store/authStore';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080/api/v1';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api/v1';
 const MOCK_API_KEY = process.env.NEXT_PUBLIC_MOCK_API_KEY;
 
 const api = axios.create({
@@ -120,15 +122,10 @@ api.interceptors.response.use(
 );
 
 function handleAuthFailure() {
-  try {
-    if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-      localStorage.removeItem('auth-token');
-      localStorage.removeItem('refresh-token');
-      localStorage.removeItem('user-role');
-      window.location.href = '/login';
-    }
-  } catch (e) {
-    // ignore
+  clearAuthStorage();
+  useAuthStore.getState().logout();
+  if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+    window.location.href = '/login';
   }
 }
 

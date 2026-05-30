@@ -1,4 +1,5 @@
 import api from '@/lib/api';
+import { useAuthStore } from '@/store/authStore';
 import { extractApiError, shouldUseLocalFallback } from './api-utils';
 
 const LOCAL_REGISTERED_USERS_KEY = 'adlts-registered-users';
@@ -14,6 +15,8 @@ export interface User {
   id: string;
   email: string;
   role: string; // 'candidate', 'admin', 'super_admin', etc.
+  institutionId?: string;
+  institutionName?: string;
   first_name?: string;
   middle_name?: string;
   last_name?: string;
@@ -23,6 +26,9 @@ export interface User {
   // candidate-specific
   licenseCategory?: string;
   testCenter?: string;
+  birth_date?: string;
+  gender?: string;
+  address?: string;
 }
 
 export interface RefreshTokenResponse {
@@ -289,11 +295,8 @@ export async function logout(): Promise<void> {
   } catch (error) {
     console.error('Logout API error', error);
   }
-  if (typeof window !== 'undefined') {
-    localStorage.removeItem('auth-token');
-    localStorage.removeItem('refresh-token');
-    localStorage.removeItem('user-role');
-  }
+
+  useAuthStore.getState().logout();
 }
 
 // ---------- Get Current User (by role) ----------
@@ -423,5 +426,25 @@ export async function verifyOtp(data: OtpVerificationData): Promise<RefreshToken
     }
 
     throw new Error(extractApiError(error, 'Unable to verify OTP. Please try again.', 'auth-session'));
+  }
+}
+
+// ---------- Change Password ----------
+export async function changePassword(currentPassword: string, newPassword: string): Promise<boolean> {
+  try {
+    await api.patch('/auth/password/change', {
+      current_password: currentPassword,
+      new_password: newPassword,
+    });
+    return true;
+  } catch (error) {
+    if (ALLOW_LOCAL_FALLBACK && shouldUseLocalFallback(error)) {
+      if (!currentPassword || !newPassword) {
+        throw new Error('Please provide valid passwords.');
+      }
+      return true;
+    }
+
+    throw new Error(extractApiError(error, 'Unable to change password. Please ensure your current password is correct.', 'auth-session'));
   }
 }

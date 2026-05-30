@@ -10,11 +10,13 @@ type MockRole =
   | 'institute'
   | 'transport_authority';
 
-type MockUser = {
+export type MockUser = {
   id: string;
   email: string;
   password: string;
   role: MockRole;
+  institutionId?: string;
+  institutionName?: string;
   first_name?: string;
   middle_name?: string;
   last_name?: string;
@@ -24,6 +26,9 @@ type MockUser = {
   licenseCategory?: string;
   testCenter?: string;
   status?: string;
+  birth_date?: string;
+  gender?: string;
+  address?: string;
 };
 
 type MockState = {
@@ -123,7 +128,9 @@ const state: MockState = globalThis.__adltsMockAuthState ?? {
         email: 'institute.jane@example.com',
         password: 'InstituteSecure123!',
         role: 'institute',
-        name: 'Institute Jane',
+        name: 'Bole Driving Institute',
+        institutionId: 'bole-driving-institute',
+        institutionName: 'Bole Driving Institute',
         phone: '+251922222222',
       },
     ],
@@ -323,6 +330,35 @@ export function passwordResetResponse() {
   };
 }
 
+export async function changePassword(request: NextRequest) {
+  const user = getAuthenticatedUser(request);
+  if (!user) return null;
+
+  try {
+    const body = await request.json();
+    const currentPassword = String(body.current_password ?? body.currentPassword ?? '').trim();
+    const newPassword = String(body.new_password ?? body.newPassword ?? '').trim();
+
+    if (!currentPassword || !newPassword) {
+      return { error: 'Current password and new password are required.', status: 400 };
+    }
+
+    if (user.password !== currentPassword) {
+      return { error: 'Current password is incorrect.', status: 403 };
+    }
+
+    user.password = newPassword;
+    state.users.set(user.email, user);
+
+    return {
+      success: true,
+      message: 'Password changed successfully.',
+    };
+  } catch (err) {
+    return { error: 'Unable to change password.', status: 400 };
+  }
+}
+
 export function refreshUserTokens(refreshToken: string) {
   const email = state.refreshTokens.get(refreshToken);
   if (!email) return null;
@@ -382,3 +418,29 @@ export function updateCandidateStatus(id: string, status: 'active' | 'suspended'
     testCenter: user.testCenter ?? 'Bole Test Center',
   };
 }
+
+export async function updateCandidateProfile(request: NextRequest) {
+  const user = getUserForRole(request, 'candidate');
+  if (!user) return null;
+
+  try {
+    const body = await request.json();
+    if (body.first_name !== undefined) user.first_name = body.first_name;
+    if (body.last_name !== undefined) user.last_name = body.last_name;
+    if (body.phone !== undefined) user.phone = body.phone;
+    if (body.phone_number !== undefined) user.phone_number = body.phone_number;
+    if (body.birth_date !== undefined) user.birth_date = body.birth_date;
+    if (body.gender !== undefined) user.gender = body.gender;
+    if (body.address !== undefined) user.address = body.address;
+
+    state.users.set(user.email, user);
+
+    return {
+      success: true,
+      data: sanitizeUser(user),
+    };
+  } catch (err) {
+    return null;
+  }
+}
+

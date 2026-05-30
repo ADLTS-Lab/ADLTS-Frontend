@@ -4,7 +4,8 @@ import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { LogOut } from "lucide-react";
-import { useAuthStore } from "@/store/authStore";
+import { useAuthSession } from "@/hooks/useAuthSession";
+import { logout as logoutService } from "@/services/auth.service";
 import { useI18n } from "@/i18n/useI18n";
 import { getHomeRouteForRole } from "@/config/routes";
 
@@ -14,13 +15,21 @@ type PublicLayoutProps = {
 
 export default function PublicLayout({ children }: PublicLayoutProps) {
   const router = useRouter();
-  const { user, isAuthenticated, logout } = useAuthStore();
+  const { user, isAuthenticated, hasHydrated } = useAuthSession();
   const { t, lang, setLang } = useI18n();
 
-  const handleLogout = () => {
-    logout();
-    router.push("/login");
+  const handleLogout = async () => {
+    await logoutService();
+    router.push("/");
   };
+
+  const showAuthed = hasHydrated && isAuthenticated && !!user;
+
+  // #region agent log
+  React.useEffect(() => {
+    fetch('http://127.0.0.1:7485/ingest/750002e8-fc34-4f4c-aec9-03b23cf457b3',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'30f368'},body:JSON.stringify({sessionId:'30f368',location:'components/PublicLayout.tsx',message:'header auth state',data:{showAuthed,hasHydrated,isAuthenticated,hasUser:!!user},timestamp:Date.now(),hypothesisId:'E',runId:'post-fix'})}).catch(()=>{});
+  }, [showAuthed, hasHydrated, isAuthenticated, user]);
+  // #endregion
 
   const dashboardHref = getHomeRouteForRole(user?.role);
 
@@ -38,16 +47,16 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
             </Link>
           </div>
 
-          {!isAuthenticated ? (
+          {!showAuthed ? (
             <nav className="hidden md:flex items-center gap-6 text-sm text-slate-600">
               <Link href="/" className="hover:text-blue-700">
                 {t("home")}
               </Link>
-              <Link href="/about" className="hover:text-blue-700">
-                {t("about")}
+              <Link href="/guidelines" className="hover:text-blue-700">
+                {t("guidelines")}
               </Link>
-              <Link href="/contact" className="hover:text-blue-700">
-                {t("contact")}
+              <Link href="/about" className="hover:text-blue-700">
+                {t("aboutUs")}
               </Link>
               <Link href="/login" className="hover:text-blue-700 font-semibold">
                 {t("login")}
@@ -69,7 +78,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
             >
               {lang === "en" ? "አማ" : "EN"}
             </button>
-            {isAuthenticated ? (
+            {showAuthed ? (
               <div className="flex items-center gap-3">
                 <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200">
                   <span className="w-7 h-7 rounded-full bg-blue-900 text-white flex items-center justify-center text-xs font-black">

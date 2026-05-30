@@ -57,3 +57,63 @@ export async function getRecentEnrollments(): Promise<ApiSuccess<Enrollment[]>> 
     ],
   };
 }
+
+export type InstituteProfile = {
+  institutionName: string;
+  contactPerson: string;
+  phone: string;
+  address: string;
+  description: string;
+  email: string;
+  institutionId: string;
+};
+
+const DEFAULT_PROFILE: InstituteProfile = {
+  institutionName: "Bole Driving Institute",
+  contactPerson: "Abebe Kebede",
+  phone: "0911234567",
+  address: "Bole, Addis Ababa",
+  description: "Premier driving school providing quality training.",
+  email: "contact@boledriving.com",
+  institutionId: "INST-10293",
+};
+
+const INSTITUTE_PROFILE_STORAGE_KEY = "adlts-institute-profile";
+
+export async function getInstituteProfile(): Promise<ApiSuccess<InstituteProfile>> {
+  await new Promise(resolve => setTimeout(resolve, 400));
+  
+  if (typeof window === "undefined") {
+    return { success: true, data: DEFAULT_PROFILE };
+  }
+
+  try {
+    const raw = localStorage.getItem(INSTITUTE_PROFILE_STORAGE_KEY);
+    if (!raw) return { success: true, data: DEFAULT_PROFILE };
+    
+    return { success: true, data: { ...DEFAULT_PROFILE, ...JSON.parse(raw) } };
+  } catch {
+    return { success: true, data: DEFAULT_PROFILE };
+  }
+}
+
+export async function updateInstituteProfile(updates: Partial<InstituteProfile>): Promise<ApiSuccess<InstituteProfile>> {
+  await new Promise(resolve => setTimeout(resolve, 600));
+
+  const currentRes = await getInstituteProfile();
+  const current = currentRes.data;
+  
+  // Exclude read-only fields from updates
+  const { email, institutionId, ...allowedUpdates } = updates as InstituteProfile;
+  
+  const updated = {
+    ...current,
+    ...allowedUpdates,
+  };
+
+  if (typeof window !== "undefined") {
+    localStorage.setItem(INSTITUTE_PROFILE_STORAGE_KEY, JSON.stringify(updated));
+  }
+
+  return { success: true, data: updated };
+}

@@ -1,12 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { Eye, Camera, Brain } from "lucide-react";
-import React, { useState } from "react";
+import { Brain } from "lucide-react";
+import React from "react";
 import { useI18n } from '@/i18n/useI18n';
 
 export default function LandingPage() {
-  const [showVideo, setShowVideo] = useState(false);
   const { t } = useI18n();
 
   return (
@@ -14,10 +13,6 @@ export default function LandingPage() {
       {/* Hero Section */}
       <section className="pt-10 pb-20 grid lg:grid-cols-2 gap-12 items-center">
         <div className="space-y-8">
-          <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-1.5 rounded-full text-[10px] font-bold">
-            <span className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" />
-            {t('landing_hero_badge')}
-          </div>
           <h1 className="text-5xl lg:text-6xl font-black text-blue-950 leading-tight">
             {t('landing_hero_title_prefix')} <br />
             <span className="text-blue-700">{t('landing_hero_title_accent')}</span>
@@ -33,14 +28,12 @@ export default function LandingPage() {
             >
               {t('landing_cta_register')}
             </Link>
-            <button
-              type="button"
-              onClick={() => setShowVideo(true)}
-              className="border-2 border-blue-100 text-blue-900 px-8 py-4 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-50 transition-all"
+            <Link
+              href="/guidelines"
+              className="border-2 border-blue-100 text-blue-900 px-8 py-4 rounded-xl font-bold inline-flex items-center gap-2 hover:bg-blue-50 transition-all"
             >
-              <span className="w-6 h-6 border-2 border-blue-900 rounded-full flex items-center justify-center text-[10px]">▶</span>
-              {t('landing_cta_watchVideo')}
-            </button>
+              {t('landing_cta_readGuidelines')}
+            </Link>
           </div>
         </div>
 
@@ -66,62 +59,29 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Video modal */}
-      {showVideo && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
-          onClick={() => setShowVideo(false)}
-        >
-          <div className="w-full max-w-3xl p-4" onClick={(e) => e.stopPropagation()}>
-            <div className="relative bg-black rounded-xl overflow-hidden">
-              <button
-                onClick={() => setShowVideo(false)}
-                className="absolute top-3 right-3 z-50 bg-white/20 hover:bg-white/40 rounded-full p-2 text-white"
-                aria-label="Close video"
-              >
-                ✕
-              </button>
-              <div className="aspect-video w-full">
-                <iframe
-                  className="w-full h-full"
-                  src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&rel=0"
-                  title="Intro Video"
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Capabilities Section */}
       <section className="py-20 bg-slate-50/50">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-black text-blue-950 mb-2">{t('landing_feature1_title')}</h2>
-            <p className="text-slate-400 font-bold text-sm tracking-widest">CORE SYSTEM CAPABILITIES</p>
+            <h2 className="text-3xl font-black text-blue-950 mb-2">{t('landing_candidate_benefits_title')}</h2>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid grid-cols-4 gap-4">
             <FeatureCard
-              icon={<Eye />}
               title={t('landing_feature1_title')}
-              sub={t('landing_feature1_sub')}
               desc={t('landing_feature1_desc')}
             />
             <FeatureCard
-              icon={<Camera />}
               title={t('landing_feature2_title')}
-              sub={t('landing_feature2_sub')}
               desc={t('landing_feature2_desc')}
             />
             <FeatureCard
-              icon={<Brain />}
               title={t('landing_feature3_title')}
-              sub={t('landing_feature3_sub')}
               desc={t('landing_feature3_desc')}
+            />
+            <FeatureCard
+              title={t('landing_feature4_title')}
+              desc={t('landing_feature4_desc')}
             />
           </div>
         </div>
@@ -152,19 +112,13 @@ export default function LandingPage() {
 
 // FeatureCard component
 type FeatureCardProps = {
-  icon: React.ReactNode;
   title: string;
-  sub: string;
   desc: string;
 };
 
-const FeatureCard = ({ icon, title, sub, desc }: FeatureCardProps) => (
-  <div className="bg-white p-10 rounded-4xl shadow-sm hover:shadow-xl hover:-translate-y-2 transition-all duration-300 border border-slate-100 group">
-    <div className="w-14 h-14 bg-blue-50 rounded-2xl flex items-center justify-center mb-8 text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-      {icon}
-    </div>
-    <h3 className="text-xl font-black text-blue-950 mb-1">{title}</h3>
-    <p className="text-blue-600 font-bold text-[10px] uppercase tracking-widest mb-4">{sub}</p>
-    <p className="text-slate-500 text-sm leading-relaxed">{desc}</p>
+const FeatureCard = ({ title, desc }: FeatureCardProps) => (
+  <div className="bg-white p-8 rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 border border-slate-200">
+    <h3 className="text-lg font-bold text-blue-950 mb-3">{title}</h3>
+    <p className="text-slate-600 text-sm leading-relaxed">{desc}</p>
   </div>
 );
