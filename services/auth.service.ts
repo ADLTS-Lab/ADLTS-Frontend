@@ -42,7 +42,7 @@ export interface RefreshTokenResponse {
   message?: string;
 }
 
-export interface LoginResponse extends RefreshTokenResponse {}
+export type LoginResponse = RefreshTokenResponse;
 
 export interface CurrentUserResponse {
   success: boolean;
@@ -112,13 +112,26 @@ type RawSessionResponse =
       user?: User;
     };
 
+type NormalizedSessionPayload = {
+  access_token?: string;
+  token?: string;
+  refresh_token?: string;
+  entity_type?: string;
+  role?: string;
+  user?: User;
+};
+
 export type CandidateRegistrationData = CandidateRegistrationRequest;
 
-type LocalRegisteredUser = CandidateRegistrationRequest & {
-  role: 'candidate';
+type LocalRegisteredUser = Omit<CandidateRegistrationRequest, 'gender'> & {
+  role: 'candidate' | 'institute';
   id: string;
+  gender?: string;
   licenseCategory?: string;
   testCenter?: string;
+  institutionId?: string;
+  institutionName?: string;
+  name?: string;
 };
 
 function readLocalRegisteredUsers(): LocalRegisteredUser[] {
@@ -169,12 +182,14 @@ function findLocalRegisteredUserByEmail(email: string): LocalRegisteredUser | nu
 }
 
 function buildLocalSessionResponse(user: LocalRegisteredUser): RefreshTokenResponse {
+  const entityType = user.role;
+
   return {
     success: true,
     data: {
       access_token: `local-token-${user.id}`,
       refresh_token: `local-refresh-${user.id}`,
-      entity_type: 'candidate',
+      entity_type: entityType,
       user: {
         id: user.id,
         email: user.email,
@@ -186,6 +201,9 @@ function buildLocalSessionResponse(user: LocalRegisteredUser): RefreshTokenRespo
         phone_number: user.phone_number ?? user.phone,
         licenseCategory: user.licenseCategory,
         testCenter: user.testCenter,
+        institutionId: user.institutionId,
+        institutionName: user.institutionName,
+        name: user.name,
       },
     },
   };
@@ -232,7 +250,7 @@ function buildLocalOtpVerificationResponse(user: LocalRegisteredUser): RefreshTo
 }
 
 function normalizeSessionResponse(raw: RawSessionResponse): RefreshTokenResponse {
-  const payload: any = 'data' in raw && raw.data ? raw.data : raw;
+  const payload = ('data' in raw && raw.data ? raw.data : raw) as NormalizedSessionPayload;
   const user = payload.user;
   const accessToken = payload.access_token || payload.token;
   const entityType = payload.entity_type || payload.role || user?.role || 'candidate';
@@ -257,7 +275,7 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
   try {
     const response = await api.post('/auth/login', credentials);
     return normalizeSessionResponse(response.data as RawSessionResponse);
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (ALLOW_LOCAL_FALLBACK && shouldUseLocalFallback(error)) {
       const localUser = findLocalRegisteredUser(credentials.email, credentials.password);
       if (localUser) {
@@ -352,11 +370,18 @@ export async function updateCandidateProfile(data: Partial<User>): Promise<User 
       if (typeof window !== 'undefined') {
         const storedUsers = localStorage.getItem(LOCAL_REGISTERED_USERS_KEY);
         if (storedUsers) {
-          const parsed = JSON.parse(storedUsers) as any[];
+          const parsed = JSON.parse(storedUsers) as LocalRegisteredUser[];
           const currentToken = localStorage.getItem('auth-token');
-          const userIdx = parsed.findIndex(u => `local-token-${u.id}` === currentToken || u.email?.toLowerCase() === data.email?.toLowerCase());
+          const userIdx = parsed.findIndex((user) => `local-token-${user.id}` === currentToken || user.email?.toLowerCase() === data.email?.toLowerCase());
           if (userIdx > -1) {
-            parsed[userIdx] = { ...parsed[userIdx], ...data };
+            const existingUser = parsed[userIdx];
+            parsed[userIdx] = {
+              ...existingUser,
+              ...data,
+              id: existingUser.id,
+              email: data.email ?? existingUser.email,
+              role: existingUser.role,
+            };
             localStorage.setItem(LOCAL_REGISTERED_USERS_KEY, JSON.stringify(parsed));
             return {
               id: parsed[userIdx].id,

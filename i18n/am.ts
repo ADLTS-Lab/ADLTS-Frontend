@@ -12,6 +12,7 @@ const am = {
   dashboard: 'ዳሽቦርድ',
   activeExams: 'እየተካሄዱ ፈተናዎች',
   candidates: 'እጩዎች',
+  institutions: 'ተቋማት',
   invitations: 'ግብዣዎች',
   reports: 'ሪፖርቶች እና ትንተና',
   auditLogs: 'የኦዲት መዝገቦች',

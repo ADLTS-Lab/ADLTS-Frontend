@@ -12,6 +12,7 @@ const en = {
   dashboard: 'Dashboard',
   activeExams: 'Active Exams',
   candidates: 'Candidates',
+  institutions: 'Institutions',
   invitations: 'Invitations',
   reports: 'Reports & Analytics',
   auditLogs: 'Audit Logs',

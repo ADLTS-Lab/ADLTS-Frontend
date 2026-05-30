@@ -7,6 +7,7 @@ import {
   Laptop,
   FileText,
   Mail,
+  Building2,
   ScrollText,
   Settings,
   User as UserIcon,
@@ -50,6 +51,7 @@ function minimalPortalNav(dashboardHref: string, profileHref: string): NavItem[]
 
 export const SUPER_ADMIN_NAV: NavItem[] = [
   { href: '/super-admin/dashboard', labelKey: 'dashboard', icon: LayoutDashboard },
+  { href: '/super-admin/institutions', labelKey: 'institutions', icon: Building2 },
   { href: '/super-admin/profile', labelKey: 'profile', icon: UserIcon },
   { href: '/super-admin/audits', labelKey: 'auditLogs', icon: ScrollText },
   { href: '#', labelKey: 'settings', icon: Settings, disabled: true },
