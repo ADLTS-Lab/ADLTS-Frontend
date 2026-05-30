@@ -11,80 +11,56 @@ export default function LandingPage() {
 
   return (
     <>
-      {/* Hero Section with Video Background */}
-      <section className="relative w-full min-h-screen lg:min-h-150 overflow-hidden flex items-center">
-        {/* Video Background with Fallback */}
-        <div className="absolute inset-0 w-full h-full">
-          <video
-            autoPlay
-            muted
-            loop
-            playsInline
-            loading="lazy"
-            className="w-full h-full object-cover"
-            poster="/hero_driving_test.png"
-          >
-            <source src="/hero-driving-students.mp4" type="video/mp4" />
-            {/* Fallback for browsers that don't support video */}
+      {/* Hero Section */}
+      <section className="pt-10 pb-20 grid lg:grid-cols-2 gap-12 items-center">
+        <div className="space-y-8">
+          <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-1.5 rounded-full text-[10px] font-bold">
+            <span className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" />
+            {t('landing_hero_badge')}
+          </div>
+          <h1 className="text-5xl lg:text-6xl font-black text-blue-950 leading-tight">
+            {t('landing_hero_title_prefix')} <br />
+            <span className="text-blue-700">{t('landing_hero_title_accent')}</span>
+          </h1>
+          <div className="space-y-2">
+            <h2 className="text-xl font-bold text-blue-600">{t('landing_ai_powered')}</h2>
+            <p className="text-slate-500 max-w-md leading-relaxed">{t('landing_hero_subtitle')}</p>
+          </div>
+          <div className="flex gap-4">
+            <Link
+              href="/candidate/register"
+              className="bg-blue-900 text-white px-8 py-4 rounded-xl font-bold shadow-lg shadow-blue-900/20 hover:-translate-y-1 transition-all inline-flex items-center"
+            >
+              {t('landing_cta_register')}
+            </Link>
+            <button
+              type="button"
+              onClick={() => setShowVideo(true)}
+              className="border-2 border-blue-100 text-blue-900 px-8 py-4 rounded-xl font-bold flex items-center gap-2 hover:bg-blue-50 transition-all"
+            >
+              <span className="w-6 h-6 border-2 border-blue-900 rounded-full flex items-center justify-center text-[10px]">▶</span>
+              {t('landing_cta_watchVideo')}
+            </button>
+          </div>
+        </div>
+
+        {/* Hero Image */}
+        <div className="relative group">
+          <div className="rounded-[40px] overflow-hidden shadow-2xl bg-slate-100 h-112.5 relative flex items-center justify-center border border-slate-100">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/hero_driving_test.png"
               alt="Automated driving test course with holographic AI sensors"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover group-hover:scale-102 transition-transform duration-700 ease-out"
             />
-          </video>
-
-          {/* Dark Overlay for Text Readability */}
-          <div className="absolute inset-0 bg-linear-to-r from-blue-950/60 via-blue-950/40 to-transparent" />
-        </div>
-
-        {/* Content Container */}
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 lg:py-32">
-          <div className="max-w-2xl">
-            {/* Badge */}
-            <div className="inline-flex items-center gap-2 bg-blue-50/90 backdrop-blur-sm text-blue-700 px-4 py-2 rounded-full text-xs font-bold mb-6 sm:mb-8">
-              <span className="w-2 h-2 bg-blue-600 rounded-full animate-pulse" />
-              {t('landing_hero_badge')}
+          </div>
+          <div className="absolute bottom-8 left-8 right-8 bg-white/90 backdrop-blur-xl border border-white/70 p-5 rounded-3xl flex items-center gap-4 shadow-xl">
+            <div className="w-12 h-12 bg-blue-900 rounded-2xl flex items-center justify-center text-white shrink-0 shadow-md">
+              <Brain size={24} className="animate-pulse" />
             </div>
-
-            {/* Main Heading */}
-            <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black text-white leading-tight mb-6 sm:mb-8 tracking-tight">
-              {t('landing_hero_title_prefix')} <br className="hidden sm:block" />
-              <span className="text-blue-300">{t('landing_hero_title_accent')}</span>
-            </h1>
-
-            {/* Subheading Section */}
-            <div className="space-y-3 sm:space-y-4 mb-8 sm:mb-10">
-              <h2 className="text-xl sm:text-2xl font-bold text-blue-200">{t('landing_ai_powered')}</h2>
-              <p className="text-base sm:text-lg text-blue-100/90 max-w-xl leading-relaxed">{t('landing_hero_subtitle')}</p>
-            </div>
-
-            {/* CTA Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 pt-4 sm:pt-6">
-              <Link
-                href="/candidate/register"
-                className="bg-blue-600 text-white px-8 py-4 rounded-xl font-bold shadow-lg shadow-blue-600/30 hover:bg-blue-700 hover:-translate-y-1 transition-all inline-flex items-center justify-center sm:justify-start text-base sm:text-lg"
-              >
-                {t('landing_cta_register')}
-              </Link>
-              <button
-                type="button"
-                onClick={() => setShowVideo(true)}
-                className="border-2 border-blue-200 text-white px-8 py-4 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-white/10 hover:border-white transition-all backdrop-blur-sm text-base sm:text-lg"
-              >
-                <span className="w-6 h-6 border-2 border-white rounded-full flex items-center justify-center text-xs">▶</span>
-                {t('landing_cta_watchVideo')}
-              </button>
-            </div>
-
-            {/* Telemetry Card */}
-            <div className="mt-12 sm:mt-16 bg-white/10 backdrop-blur-xl border border-white/20 p-6 sm:p-8 rounded-3xl inline-flex items-start gap-4 hover:bg-white/15 transition-colors">
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-blue-400/20 rounded-2xl flex items-center justify-center text-blue-300 shrink-0">
-                <Brain size={28} className="animate-pulse" />
-              </div>
-              <div>
-                <p className="text-white font-extrabold text-sm sm:text-base leading-snug">{t('landing_telemetry_title')}</p>
-                <p className="text-blue-100/80 text-xs sm:text-sm mt-2 leading-relaxed font-medium">{t('landing_telemetry_sub')}</p>
-              </div>
+            <div>
+              <p className="text-slate-900 font-extrabold text-sm leading-none">{t('landing_telemetry_title')}</p>
+              <p className="text-slate-500 text-xs mt-1.5 leading-relaxed font-medium">{t('landing_telemetry_sub')}</p>
             </div>
           </div>
         </div>
