@@ -75,3 +75,17 @@ The app is fully responsive, works with a real backend API, and includes a mock 
 git clone https://github.com/ADLTS-Lab/ADLTS-Frontend.git
 cd ADLTS-Frontend
 npm install
+```
+
+## Booking Lifecycle Smoke Tests
+
+The booking lifecycle is enforced in the shared service layer, the mock API, and the UI entry points. Use the checklist below to verify the current rules locally.
+
+1. Candidate creates a booking, then tries to create another while the current booking is `Pending`, `Approved`, `Payment Pending`, or `Scheduled`. Expected result: the second booking is rejected.
+2. Candidate creates a new booking only after the latest booking is `Rejected`, `Cancelled`, or `Completed`. Expected result: booking creation succeeds.
+3. Institution attempts to approve or reject a booking that is not `Pending`. Expected result: the request fails with a validation error.
+4. Attempt to move `Rejected`, `Cancelled`, `Completed`, or `Expired` back to `Approved`, `Payment Pending`, `Paid`, or `Scheduled`. Expected result: the request fails.
+5. Confirm institute-scoped views only show bookings for the logged-in institution.
+6. Confirm the candidate dashboard, booking page, payment page, and institution requests page all reflect the same booking state.
+
+Postman examples for the lifecycle live in [postman/ADLTS_API.postman_collection.json](postman/ADLTS_API.postman_collection.json). Use the Bookings section for create/verify and the Payments section for checkout and retry flows.
