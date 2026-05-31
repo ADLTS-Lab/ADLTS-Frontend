@@ -1,12 +1,90 @@
 @import "tailwindcss";
 
 :root {
-  --background: #F5F7FA;   /* force light background */
-  --foreground: #1F2937;   /* dark text */
+  --background: #F5F7FA;
+  --foreground: #1F2937;
+  --surface: #FFFFFF;
+  --surface-muted: #F8FAFC;
+  --surface-overlay: #F9FAFB;
+  --border-color: #E5E7EB;
+  --muted-text: #64748B;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Inter, Noto Sans Ethiopic, sans-serif;
+}
+
+html[data-theme='dark'] {
+  --background: #0B1220;
+  --foreground: #E2E8F0;
+  --surface: #0F172A;
+  --surface-muted: #111827;
+  --surface-overlay: #111827;
+  --border-color: #334155;
+  --muted-text: #94A3B8;
+}
+
+html,
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+.dark {
+  background: var(--background);
+}
+
+html[data-theme='dark'] .bg-white,
+html[data-theme='dark'] [class~="bg-white/90"],
+html[data-theme='dark'] [class~="bg-[#F8FAFC]"],
+html[data-theme='dark'] [class~="bg-[#F5F7FA]"],
+html[data-theme='dark'] [class~="bg-[#F9FAFB]"],
+html[data-theme='dark'] [class~="bg-[#E5E7EB]"],
+html[data-theme='dark'] .bg-slate-50,
+html[data-theme='dark'] .bg-slate-100,
+html[data-theme='dark'] .bg-slate-200,
+html[data-theme='dark'] [class~="bg-slate-50/50"] {
+  background-color: var(--surface) !important;
+  color: var(--foreground);
+}
+
+html[data-theme='dark'] .bg-slate-900,
+html[data-theme='dark'] .bg-slate-950,
+html[data-theme='dark'] .bg-blue-950,
+html[data-theme='dark'] .bg-blue-900 {
+  background-color: #0b1220 !important;
+}
+
+html[data-theme='dark'] .border-slate-100,
+html[data-theme='dark'] .border-slate-200,
+html[data-theme='dark'] .border-slate-50,
+html[data-theme='dark'] .border {
+  border-color: var(--border-color) !important;
+}
+
+html[data-theme='dark'] .text-slate-900,
+html[data-theme='dark'] .text-slate-800,
+html[data-theme='dark'] .text-slate-700,
+html[data-theme='dark'] .text-slate-600,
+html[data-theme='dark'] .text-slate-500,
+html[data-theme='dark'] .text-slate-400,
+html[data-theme='dark'] [class~="text-[#1F2937]"],
+html[data-theme='dark'] [class~="text-[#4B5563]"] {
+  color: var(--foreground) !important;
+}
+
+html[data-theme='dark'] .text-slate-500,
+html[data-theme='dark'] .text-slate-400,
+html[data-theme='dark'] [class~="text-[#4B5563]"],
+html[data-theme='dark'] [class~="text-[#6B7280]"] {
+  color: var(--muted-text) !important;
+}
+
+html[data-theme='dark'] .text-blue-950,
+html[data-theme='dark'] .text-blue-900,
+html[data-theme='dark'] .text-blue-700,
+html[data-theme='dark'] [class~="text-[#1E3A8A]"] {
+  color: #93C5FD !important;
 }

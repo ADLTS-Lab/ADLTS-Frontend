@@ -231,6 +231,23 @@ const am = {
   examCategoryCargoDesc: 'ደረቅ ጭነት ለሚጭኑ ከባድ ተሽከርካሪዎች የሚሰጥ ፈተና።',
   examCategoryMotorcycle: 'ሞተር ብስክሌት',
   examCategoryMotorcycleDesc: 'ባለሁለት ጎማ ተሽከርካሪዎችን ለማሽከርከር የሚሰጥ የተግባር ፈተና።',
+  // settings
+  settingsDescription: 'የቅንብሮችዎን እና ማሳወቂያ ምርጫዎችን ያስተዳድሩ።',
+  languagePreference: 'የቋንቋ ምርጫ',
+  selectLanguage: 'ቋንቋ ይምረጡ',
+  themePreference: 'የቅንብር ምርጫ',
+  selectTheme: 'የቅንብር አይነት ይምረጡ',
+  notifications: 'የማሳወቂያ ምርጫዎች',
+  settingsSaved: 'ቅንብሮች በተሳካ ሁኔታ ተቀመጡ።',
+  saving: 'በማስቀመጥ ላይ...',
+  saveSettings: 'ቅንብር አስቀምጥ',
+  bookingUpdates: 'የማስያዣ ዝርዝሮች',
+  examUpdates: 'የፈተና ዝርዝሮች',
+  resultNotifications: 'የውጤት ማሳወቂያዎች',
+  licensePickupNotifications: 'የፈቃድ ማንጠበቂያ ማሳወቂያዎች',
+  themeLight: 'ብርሃን ቅንብር',
+  themeDark: 'ጨለማ ቅንብር',
+  themeSystem: 'የስርዓት ነባሪ',
 };
 
 export default am;

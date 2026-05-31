@@ -38,14 +38,14 @@ export const ADMIN_NAV: NavItem[] = [
   { href: '/admin/candidates', labelKey: 'candidates', icon: Users },
   { href: '/admin/invitations', labelKey: 'invitations', icon: Mail },
   { href: '/admin/reports', labelKey: 'reports', icon: FileText },
-  { href: '#', labelKey: 'settings', icon: Settings, disabled: true },
+  { href: '/admin/settings', labelKey: 'settings', icon: Settings },
 ];
 
-function minimalPortalNav(dashboardHref: string, profileHref: string): NavItem[] {
+function minimalPortalNav(dashboardHref: string, profileHref: string, settingsHref: string): NavItem[] {
   return [
     { href: dashboardHref, labelKey: 'dashboard', icon: LayoutDashboard },
     { href: profileHref, labelKey: 'profile', icon: UserIcon },
-    { href: '#', labelKey: 'settings', icon: Settings, disabled: true },
+    { href: settingsHref, labelKey: 'settings', icon: Settings },
   ];
 }
 
@@ -54,9 +54,8 @@ export const SUPER_ADMIN_NAV: NavItem[] = [
   { href: '/super-admin/institutions', labelKey: 'institutions', icon: Building2 },
   { href: '/super-admin/profile', labelKey: 'profile', icon: UserIcon },
   { href: '/super-admin/audits', labelKey: 'auditLogs', icon: ScrollText },
-  { href: '#', labelKey: 'settings', icon: Settings, disabled: true },
+  { href: '/super-admin/settings', labelKey: 'settings', icon: Settings },
 ];
-export const EXPERT_NAV = minimalPortalNav('/expert/dashboard', '/expert/profile');
 export const INSTITUTE_NAV = [
   { href: '/institute/dashboard', labelKey: 'dashboard', icon: LayoutDashboard },
   { href: '/institute/requests', labelKey: 'requests', icon: FileText },
@@ -65,7 +64,9 @@ export const INSTITUTE_NAV = [
 ];
 export const TRANSPORT_AUTHORITY_NAV = minimalPortalNav(
   '/transport-authority/dashboard',
-  '/transport-authority/profile'
+  '/transport-authority/profile',
+  '/transport-authority/settings'
 );
+export const EXPERT_NAV = minimalPortalNav('/expert/dashboard', '/expert/profile', '/expert/settings');
 
 export const PORTAL_DASHBOARD_HREF: Record<AppRole, string> = ROLE_HOME_ROUTE;

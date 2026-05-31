@@ -1,5 +1,5 @@
 import { SettingsBoard } from "@/components/SettingsBoard";
 
-export default function CandidateSettingsPage() {
+export default function TransportAuthoritySettingsPage() {
   return <SettingsBoard />;
 }

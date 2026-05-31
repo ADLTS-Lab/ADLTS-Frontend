@@ -17,6 +17,7 @@ import {
   TRANSPORT_AUTHORITY_NAV,
   type NavItem,
 } from "@/config/navigation";
+import UserMenu from "@/components/UserMenu";
 
 type PortalShellProps = {
   children: React.ReactNode;
@@ -31,6 +32,9 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
   const { t, lang, setLang } = useI18n();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const hideTopDashboardLink = dashboardHref === PORTAL_DASHBOARD_HREF.candidate;
+  const rolePrefix = user?.role ? `/${user.role.replace("_", "-")}` : "";
+  const profileHref = rolePrefix ? `${rolePrefix}/profile` : "#";
+  const settingsHref = rolePrefix ? `${rolePrefix}/settings` : "#";
 
   const handleLogout = async () => {
     await logoutService();
@@ -68,8 +72,8 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
             </div>
             <div className="p-6 flex-1 flex flex-col justify-between overflow-y-auto">
               <div className="space-y-6">
-                <Link 
-                  href={user?.role ? `/${user.role.replace('_', '-')}/profile` : "#"}
+                <Link
+                  href={profileHref}
                   className="flex items-center gap-3 hover:bg-slate-50 p-2 rounded-xl transition -ml-2"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
@@ -78,7 +82,6 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
                   </div>
                   <div>
                     <div className="font-bold text-slate-800 text-sm truncate max-w-35">{displayName}</div>
-                    <div className="text-[11px] text-slate-400 capitalize">{user?.role?.replace('_', ' ') || "Role"}</div>
                   </div>
                 </Link>
                 <nav className="space-y-1 text-sm">
@@ -152,26 +155,12 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
             >
               {lang === "en" ? "አማ" : "EN"}
             </button>
-            <div className="flex items-center gap-3">
-              <Link 
-                href={user?.role ? `/${user.role.replace('_', '-')}/profile` : "#"}
-                className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 transition cursor-pointer"
-              >
-                <span className="w-7 h-7 rounded-full bg-blue-900 text-white flex items-center justify-center text-xs font-black">
-                  {(user?.name || user?.first_name || user?.email || "U").charAt(0).toUpperCase()}
-                </span>
-                <div className="leading-tight">
-                  <div className="text-xs font-bold text-slate-800">{displayName}</div>
-                  <div className="text-[10px] text-slate-500 capitalize">{user?.role?.replace('_', ' ') || "user"}</div>
-                </div>
-              </Link>
-              <button
-                onClick={handleLogout}
-                className="flex items-center gap-2 bg-blue-900 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition"
-              >
-                <LogOut size={16} /> <span className="hidden sm:inline">{t("logout")}</span>
-              </button>
-            </div>
+            <UserMenu
+              displayName={displayName}
+              profileHref={profileHref}
+              settingsHref={settingsHref}
+              onSignOut={handleLogout}
+            />
           </div>
         </div>
       </header>
@@ -179,8 +168,8 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
       <div className="flex flex-1 bg-[#F8FAFC]">
         <aside className="w-64 bg-white border-r border-slate-100 hidden lg:block sticky top-16 h-[calc(100vh-4rem)]">
           <div className="p-6">
-            <Link 
-              href={user?.role ? `/${user.role.replace('_', '-')}/profile` : "#"}
+            <Link
+              href={profileHref}
               className="flex items-center gap-3 mb-6 hover:bg-slate-50 p-2 rounded-xl transition -ml-2"
             >
               <div className="w-10 h-10 bg-blue-900 text-white rounded-full flex items-center justify-center font-black">
@@ -188,7 +177,6 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
               </div>
               <div>
                 <div className="font-bold text-slate-800">{displayName}</div>
-                <div className="text-[11px] text-slate-400 capitalize">{user?.role?.replace('_', ' ') || "Role"}</div>
               </div>
             </Link>
             <nav className="space-y-1 text-sm">

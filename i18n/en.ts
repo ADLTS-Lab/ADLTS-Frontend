@@ -231,6 +231,23 @@ const en = {
   examCategoryCargoDesc: 'Heavy vehicle assessment for trucks transporting non-liquid freight.',
   examCategoryMotorcycle: 'Motorcycle',
   examCategoryMotorcycleDesc: 'Riding capability test for two-wheeled motorized vehicles.',
+  // settings
+  settingsDescription: "Manage your appearance, language, and notification preferences.",
+  languagePreference: "Language Preference",
+  selectLanguage: "Select Language",
+  themePreference: "Theme Preference",
+  selectTheme: "Select Interface Theme",
+  notifications: "Notification Preferences",
+  settingsSaved: "Settings saved successfully.",
+  saving: "Saving...",
+  saveSettings: "Save Settings",
+  bookingUpdates: "Booking updates",
+  examUpdates: "Exam updates",
+  resultNotifications: "Result notifications",
+  licensePickupNotifications: "License pickup notifications",
+  themeLight: "Light theme",
+  themeDark: "Dark theme",
+  themeSystem: "System default",
 };
 
 export default en;

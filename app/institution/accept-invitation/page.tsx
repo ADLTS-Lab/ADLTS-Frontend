@@ -165,7 +165,7 @@ function AcceptInvitationShell({
               </div>
             )}
 
-            <Button type="submit" disabled={!details || details.status === "Active" || isSubmitting} className="w-full">
+            <Button type="submit" disabled={!details || details.status === "Active" || isSubmitting} className="w-full text-black">
               {details?.status === "Active" ? "Account Activated" : isSubmitting ? "Activating..." : "Activate Account"}
             </Button>
 

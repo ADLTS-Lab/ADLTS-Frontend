@@ -1,13 +1,12 @@
 "use client";
 
-import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { logout as logoutService } from "@/services/auth.service";
 import { useI18n } from "@/i18n/useI18n";
 import { getHomeRouteForRole } from "@/config/routes";
+import UserMenu from "@/components/UserMenu";
 
 type PublicLayoutProps = {
   children: React.ReactNode;
@@ -25,13 +24,10 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
 
   const showAuthed = hasHydrated && isAuthenticated && !!user;
 
-  // #region agent log
-  React.useEffect(() => {
-    fetch('http://127.0.0.1:7485/ingest/750002e8-fc34-4f4c-aec9-03b23cf457b3',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'30f368'},body:JSON.stringify({sessionId:'30f368',location:'components/PublicLayout.tsx',message:'header auth state',data:{showAuthed,hasHydrated,isAuthenticated,hasUser:!!user},timestamp:Date.now(),hypothesisId:'E',runId:'post-fix'})}).catch(()=>{});
-  }, [showAuthed, hasHydrated, isAuthenticated, user]);
-  // #endregion
-
   const dashboardHref = getHomeRouteForRole(user?.role);
+  const rolePrefix = user?.role ? `/${user.role.replace("_", "-")}` : "";
+  const profileHref = `${rolePrefix}/profile`;
+  const settingsHref = `${rolePrefix}/settings`;
 
   const displayName =
     user?.name || `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || user?.email;
@@ -79,23 +75,12 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
               {lang === "en" ? "አማ" : "EN"}
             </button>
             {showAuthed ? (
-              <div className="flex items-center gap-3">
-                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200">
-                  <span className="w-7 h-7 rounded-full bg-blue-900 text-white flex items-center justify-center text-xs font-black">
-                    {(displayName || "U").charAt(0).toUpperCase()}
-                  </span>
-                  <div className="leading-tight">
-                    <div className="text-xs font-bold text-slate-800">{displayName}</div>
-                    <div className="text-[10px] text-slate-500">{user?.role || "user"}</div>
-                  </div>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-2 bg-blue-900 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition"
-                >
-                  <LogOut size={16} /> <span className="hidden sm:inline">{t("logout")}</span>
-                </button>
-              </div>
+              <UserMenu
+                displayName={displayName || "User"}
+                profileHref={profileHref}
+                settingsHref={settingsHref}
+                onSignOut={handleLogout}
+              />
             ) : (
               <Link href="/login" className="bg-blue-900 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition">
                 {t("login")}

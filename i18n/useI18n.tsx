@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback } from "react";
+import { useLanguage } from "@/providers/LanguageProvider";
 import en from "./en";
 import am from "./am";
 
@@ -12,31 +13,17 @@ const DICTS: Record<Lang, Record<string, string>> = {
 };
 
 export function useI18n() {
-  const [lang, setLang] = useState<Lang>("en");
+  const { lang, setLang } = useLanguage();
 
-  // On mount, hydrate language from localStorage to avoid SSR/client mismatch
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const stored = localStorage.getItem("lang") as Lang | null;
-        if (stored && (stored === "en" || stored === "am")) {
-          setLang(stored);
-        }
-      } catch {}
-    }
-  }, []);
+  const t = useCallback(
+    (key: string) => {
+      const current = DICTS[lang] ?? DICTS.en;
+      return current[key] ?? DICTS.en[key] ?? key;
+    },
+    [lang]
+  );
 
-  useEffect(() => {
-    try {
-      localStorage.setItem("lang", lang);
-    } catch {}
-  }, [lang]);
-
-  const t = (key: string) => {
-    return DICTS[lang][key] ?? DICTS["en"][key] ?? key;
-  };
-
-  return { lang, setLang, t } as const;
+  return { lang, setLang, t };
 }
 
 export default useI18n;
