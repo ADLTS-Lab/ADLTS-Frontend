@@ -17,6 +17,7 @@ const en = {
   auditLogs: 'Audit Logs',
   examHistory: 'Exam History',
   booking: 'Booking',
+  payments: 'Payments',
   profile: 'Profile',
   settings: 'Settings',
   notifications: 'Notifications',

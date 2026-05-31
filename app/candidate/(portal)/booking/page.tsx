@@ -1,7 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { getAllBookings, submitBookingRequest, MOCK_BOOKING_INSTITUTIONS, subscribeToBookingChanges, type BookingRequest, type LicenseCategory, type BookingStatus } from "@/services/booking.service";
+import { cancelBookingRequest, getAllBookings, submitBookingRequest, MOCK_BOOKING_INSTITUTIONS, subscribeToBookingChanges, type BookingRequest, type LicenseCategory, type BookingStatus } from "@/services/booking.service";
+import PaymentBadge from '@/components/PaymentBadge';
+import PaymentHistory from '@/components/PaymentHistory';
+import { getPaymentsForBooking, type Payment } from '@/services/payment.service';
 import { useI18n } from "@/i18n/useI18n";
 import { useAuthStore } from "@/store/authStore";
 
@@ -26,6 +30,9 @@ export default function CandidateBookingPage() {
   const [preferredSession, setPreferredSession] = useState("Morning");
   const [additionalNotes, setAdditionalNotes] = useState("");
   const [message, setMessage] = useState("");
+  const [actionMessage, setActionMessage] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [payments, setPayments] = useState<Payment[]>([]);
   const { user } = useAuthStore();
 
   useEffect(() => {
@@ -36,8 +43,8 @@ export default function CandidateBookingPage() {
         const mine = currentEmail ? all.filter((booking) => booking.candidateDetails?.email?.toLowerCase() === currentEmail) : all;
         setBookings(mine);
         if (mine.length > 0) {
-          setShowForm(false);
           const current = mine[0];
+          setShowForm(current.status === "Rejected");
           setInstitutionId(current.institutionId || MOCK_BOOKING_INSTITUTIONS[0].id);
           setLicenseCategory(current.licenseCategory);
           setBloodType(current.bloodType || "A+");
@@ -66,13 +73,112 @@ export default function CandidateBookingPage() {
   );
 
   const canSubmit = useMemo(() => institutionId && licenseCategory && preferredDate, [institutionId, licenseCategory, preferredDate]);
+  const currentBooking = bookings[0] || null;
+  const activeBooking = useMemo(
+    () => bookings.find((booking) => booking.status === "Pending" || booking.status === "Approved") || null,
+    [bookings]
+  );
+  const isPendingBooking = currentBooking?.status === "Pending";
+  const isApprovedBooking = currentBooking?.status === "Approved";
+  const bookingLockMessage = "You're already booked contact admin if you think there is a problem.";
+  const latestPayment = payments[0] || null;
+  const paymentStatusLabel = currentBooking?.status === 'Approved'
+    ? (latestPayment?.status || 'Required')
+    : currentBooking?.status === 'Pending'
+      ? 'Waiting for approval'
+      : currentBooking?.status === 'Rejected'
+        ? 'Unavailable'
+        : 'Not available';
+  const paymentStatusBadgeClass = latestPayment?.status === 'Succeeded'
+    ? 'bg-emerald-100 text-emerald-700'
+    : latestPayment?.status === 'Failed' || latestPayment?.status === 'Cancelled'
+      ? 'bg-rose-100 text-rose-700'
+      : currentBooking?.status === 'Approved'
+        ? 'bg-amber-100 text-amber-700'
+        : 'bg-slate-100 text-slate-700';
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadPayments = async () => {
+      if (!currentBooking || currentBooking.status !== 'Approved') {
+        setPayments([]);
+        return;
+      }
+
+      try {
+        const bookingPayments = await getPaymentsForBooking(currentBooking.id);
+        if (mounted) {
+          setPayments(bookingPayments);
+        }
+      } catch (error) {
+        console.error('Failed to load booking payment status', error);
+        if (mounted) {
+          setPayments([]);
+        }
+      }
+    };
+
+    void loadPayments();
+
+    return () => {
+      mounted = false;
+    };
+  }, [currentBooking?.id, currentBooking?.status]);
+
+  const openNewBookingForm = (resetDate = false) => {
+    setShowForm(true);
+    if (currentBooking) {
+      setInstitutionId(currentBooking.institutionId || MOCK_BOOKING_INSTITUTIONS[0].id);
+      setLicenseCategory(currentBooking.licenseCategory);
+      setBloodType(currentBooking.bloodType || "A+");
+      setPreferredSession(currentBooking.preferredSession || "Morning");
+      setAdditionalNotes(currentBooking.additionalNotes || "");
+      if (resetDate) {
+        setPreferredDate("");
+      } else {
+        setPreferredDate(currentBooking.preferredDate || "");
+      }
+      return;
+    }
+
+    setInstitutionId(MOCK_BOOKING_INSTITUTIONS[0].id);
+    setLicenseCategory("B");
+    setBloodType("A+");
+    setPreferredDate("");
+    setPreferredSession("Morning");
+    setAdditionalNotes("");
+  };
+
+  const handleCancelRequest = async () => {
+    if (!currentBooking) return;
+
+    try {
+      const updatedBooking = await cancelBookingRequest(currentBooking.id);
+      if (updatedBooking) {
+        setBookings((current) => current.map((booking) => (booking.id === updatedBooking.id ? updatedBooking : booking)));
+      }
+      setShowForm(true);
+      setActionMessage("Booking request canceled.");
+      setTimeout(() => setActionMessage(""), 5000);
+    } catch (err) {
+      console.error("Failed to cancel booking", err);
+    }
+  };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!canSubmit) return;
 
+    if (activeBooking) {
+      setErrorMessage(bookingLockMessage);
+      setTimeout(() => setErrorMessage(""), 6000);
+      return;
+    }
+
     try {
+      setErrorMessage("");
       const nextBooking = await submitBookingRequest({
         institutionId: selectedInstitution.id,
         institutionName: selectedInstitution.name,
@@ -96,6 +202,9 @@ export default function CandidateBookingPage() {
       setMessage(t("bookingSuccess"));
       setTimeout(() => setMessage(""), 5000);
     } catch (err) {
+      const nextMessage = err instanceof Error ? err.message : bookingLockMessage;
+      setErrorMessage(nextMessage);
+      setTimeout(() => setErrorMessage(""), 6000);
       console.error("Failed to submit booking", err);
     }
   };
@@ -110,9 +219,15 @@ export default function CandidateBookingPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2 space-y-6">
-          {message && (
+          {(message || actionMessage) && (
             <div className="rounded-xl bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700 font-medium shadow-sm">
-              {message}
+              {message || actionMessage}
+            </div>
+          )}
+
+          {errorMessage && (
+            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 shadow-sm">
+              {errorMessage}
             </div>
           )}
 
@@ -211,7 +326,7 @@ export default function CandidateBookingPage() {
                       onClick={() => setShowForm(false)}
                       className="w-1/3 bg-slate-100 text-slate-700 py-3.5 rounded-xl font-bold hover:bg-slate-200 transition"
                     >
-                      Cancel
+                      Back
                     </button>
                   )}
                   <button
@@ -222,6 +337,7 @@ export default function CandidateBookingPage() {
                     {t("bookingSubmit")}
                   </button>
                 </div>
+
               </form>
             </section>
           ) : bookings.length > 0 ? (
@@ -236,19 +352,53 @@ export default function CandidateBookingPage() {
                 <BookingSummaryRow label={t("preferredDateLabel")} value={bookings[0].preferredDate} />
                 <BookingSummaryRow label={t("preferredSessionLabel")} value={bookings[0].preferredSession} />
               </div>
-              
-              {["Pending", "Approved"].includes(bookings[0].status) ? (
-                <div className="text-center p-3 rounded-xl bg-blue-50 text-blue-700 text-sm font-medium border border-blue-100">
-                  You already have an active booking request.
+              <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Payment status</p>
+                  <p className="text-sm font-bold text-slate-800">{paymentStatusLabel}</p>
                 </div>
-              ) : (
-                <button
-                  onClick={() => setShowForm(true)}
-                  className="w-full bg-[#1E3A8A] text-white py-3.5 rounded-xl font-bold hover:bg-[#1E40AF] transition shadow-md"
-                >
-                  {t("bookAnotherTest") || "Book Another Test"}
-                </button>
+                <span className={["inline-flex items-center rounded-full px-3 py-1 text-xs font-bold", paymentStatusBadgeClass].join(' ')}>
+                  {paymentStatusLabel}
+                </span>
+              </div>
+              <div className="mt-4">
+                <h3 className="text-sm font-semibold text-slate-700 mb-3">Payment</h3>
+                <div className="mb-3"><PaymentBadge bookingId={bookings[0].id} required={bookings[0].status === 'Approved'} /></div>
+                <PaymentHistory bookingId={bookings[0].id} />
+              </div>
+              {isApprovedBooking && (
+                <div className="mt-4 flex items-center gap-3">
+                  <Link href="/candidate/payments" className="inline-flex items-center rounded-xl bg-blue-900 px-4 py-3 text-sm font-bold text-white shadow-md transition hover:bg-blue-800">
+                    Open Payment Page
+                  </Link>
+                  <p className="text-sm text-slate-500">Use the payment page for checkout, retries, and history.</p>
+                </div>
               )}
+              
+              <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                {isPendingBooking && (
+                  <button
+                    onClick={() => void handleCancelRequest()}
+                    className="flex-1 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 font-bold text-rose-700 transition hover:bg-rose-100"
+                  >
+                    Cancel Request
+                  </button>
+                )}
+                {isPendingBooking && (
+                  <button
+                    onClick={() => openNewBookingForm(false)}
+                    className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 font-bold text-slate-700 transition hover:bg-slate-50"
+                  >
+                    Change Institution
+                  </button>
+                )}
+                <button
+                  onClick={() => openNewBookingForm(true)}
+                  className="flex-1 bg-[#1E3A8A] text-white py-3.5 rounded-xl font-bold hover:bg-[#1E40AF] transition shadow-md"
+                >
+                  {isApprovedBooking ? "Book Again" : t("bookAnotherTest") || "Book Again"}
+                </button>
+              </div>
             </section>
           ) : null}
         </div>

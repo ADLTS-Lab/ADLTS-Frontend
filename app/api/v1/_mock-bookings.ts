@@ -166,6 +166,17 @@ function userCanVerifyBooking(user: MockUser, booking: MockBooking): boolean {
   return false;
 }
 
+function userCanCancelBooking(user: MockUser, booking: MockBooking): boolean {
+  if (user.role === 'super_admin' || user.role === 'admin') return true;
+
+  if (user.role === 'candidate') {
+    const email = user.email.toLowerCase();
+    return booking.candidateDetails?.email?.toLowerCase() === email;
+  }
+
+  return false;
+}
+
 function toApiBooking(booking: MockBooking) {
   return {
     id: booking.id,
@@ -266,6 +277,19 @@ export function createBooking(user: MockUser, body: Record<string, unknown>) {
     return { error: 'Only candidates can submit booking requests.', status: 403 as const };
   }
 
+  const existingActiveBooking = Array.from(state.bookings.values()).find((booking) => {
+    if (booking.status === 'Rejected') return false;
+    const email = booking.candidateDetails?.email?.toLowerCase();
+    return email === user.email.toLowerCase();
+  });
+
+  if (existingActiveBooking) {
+    return {
+      error: "You're already booked contact admin if you think there is a problem.",
+      status: 409 as const,
+    };
+  }
+
   const institutionId = String(body.institute_id ?? body.institution_id ?? body.institutionId ?? '').trim();
   const institutionName = String(body.institution_name ?? body.institutionName ?? institutionId).trim();
   const licenseCategory = String(body.license_category ?? body.licenseCategory ?? 'B').trim().toUpperCase();
@@ -312,6 +336,30 @@ export function verifyBooking(user: MockUser, bookingId: string, action: string)
   const updated: MockBooking = {
     ...booking,
     status: normalizedAction === 'approve' ? 'Approved' : 'Rejected',
+    updatedAt: new Date().toISOString(),
+  };
+
+  state.bookings.set(bookingId, updated);
+  return { data: toApiBooking(updated) };
+}
+
+export function cancelBooking(user: MockUser, bookingId: string) {
+  const booking = state.bookings.get(bookingId);
+  if (!booking) {
+    return { error: 'Booking not found.', status: 404 as const };
+  }
+
+  if (!userCanCancelBooking(user, booking)) {
+    return { error: 'Forbidden.', status: 403 as const };
+  }
+
+  if (booking.status !== 'Pending') {
+    return { error: 'Only pending booking requests can be canceled.', status: 409 as const };
+  }
+
+  const updated: MockBooking = {
+    ...booking,
+    status: 'Rejected',
     updatedAt: new Date().toISOString(),
   };
 

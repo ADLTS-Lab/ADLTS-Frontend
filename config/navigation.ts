@@ -3,6 +3,7 @@ import {
   Activity,
   Calendar,
   Bell,
+  CreditCard,
   History,
   LayoutDashboard,
   Laptop,
@@ -26,6 +27,7 @@ export type NavItem = {
 export const CANDIDATE_NAV: NavItem[] = [
   { href: '/candidate/dashboard', labelKey: 'dashboard', icon: LayoutDashboard },
   { href: '/candidate/booking', labelKey: 'booking', icon: Calendar },
+  { href: '/candidate/payments', labelKey: 'payments', icon: CreditCard },
   { href: '/candidate/exams', labelKey: 'examHistory', icon: History },
   { href: '/candidate/notifications', labelKey: 'notifications', icon: Bell },
   { href: '/candidate/profile', labelKey: 'profile', icon: UserIcon },

@@ -14,6 +14,7 @@ import {
 import { useI18n } from "@/i18n/useI18n";
 import { extractApiError } from "@/services/api-utils";
 import { getAllBookings, subscribeToBookingChanges, type BookingRequest, type BookingStatus } from "@/services/booking.service";
+import { DEFAULT_PAYMENT_AMOUNT_CENTS, DEFAULT_PAYMENT_CURRENCY, getPaymentsForBooking, type Payment } from "@/services/payment.service";
 
 export default function CandidateDashboard() {
   const { user: storedUser, isAuthenticated, setUser } = useAuthStore();
@@ -28,6 +29,8 @@ export default function CandidateDashboard() {
   });
   const [upcomingExam, setUpcomingExam] = useState<UpcomingExam | null>(null);
   const [booking, setBooking] = useState<BookingRequest | null>(null);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [isPaymentsLoading, setIsPaymentsLoading] = useState(false);
   const didInitRef = useRef(false);
 
   useEffect(() => {
@@ -119,11 +122,51 @@ export default function CandidateDashboard() {
   }, []);
 
   useEffect(() => {
+    let isMounted = true;
+
+    const loadPayments = async () => {
+      if (!booking || booking.status !== 'Approved') {
+        setPayments([]);
+        return;
+      }
+
+      setIsPaymentsLoading(true);
+      try {
+        const bookingPayments = await getPaymentsForBooking(booking.id);
+        if (!isMounted) return;
+        setPayments(bookingPayments);
+      } catch (error) {
+        if (isMounted) {
+          console.error('Failed to load payment history', error);
+          setPayments([]);
+        }
+      } finally {
+        if (isMounted) {
+          setIsPaymentsLoading(false);
+        }
+      }
+    };
+
+    void loadPayments();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [booking?.id, booking?.status]);
+
+  useEffect(() => {
     if (!profile && storedUser) setProfile(storedUser);
   }, [profile, storedUser]);
 
   const { t } = useI18n();
   const bookingState = getBookingStateMeta(booking?.status);
+  const latestPayment = payments[0] ?? null;
+  const paymentStatus = latestPayment?.status ?? (booking?.status === 'Approved' ? 'Required' : null);
+  const paymentIsSuccessful = paymentStatus === 'Succeeded';
+  const paymentCardTitle = paymentIsSuccessful ? 'Payment Successful' : 'Payment Required';
+  const paymentCardSubtitle = paymentIsSuccessful
+    ? 'Payment is complete. Continue to exam scheduling and the next steps in your journey.'
+    : 'Complete payment to unlock exam scheduling and keep the workflow moving.';
 
   if ((!isAuthenticated && typeof window === "undefined") || isProfileLoading) {
     return (
@@ -193,6 +236,52 @@ export default function CandidateDashboard() {
             </div>
           </div>
         </div>
+
+        {booking?.status === 'Approved' && (
+          <Link
+            href="/candidate/payments"
+            className="block rounded-3xl border border-blue-100 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+          >
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600 mb-2">Payment status</p>
+                <h3 className="text-2xl font-black text-blue-950">{paymentCardTitle}</h3>
+                <p className="mt-2 text-sm text-slate-500 max-w-2xl">{paymentCardSubtitle}</p>
+              </div>
+              <div className="flex flex-col items-start gap-2 sm:items-end">
+                <span className={[
+                  "inline-flex items-center rounded-full px-3 py-1 text-xs font-bold",
+                  paymentIsSuccessful ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700",
+                ].join(" ")}>{paymentStatus}</span>
+                <span className="inline-flex items-center justify-center rounded-full bg-blue-900 px-5 py-3 text-sm font-bold text-white shadow-md">
+                  {paymentIsSuccessful ? 'View Payment' : 'Go to Payment'}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-4 sm:grid-cols-3">
+              <div className="rounded-2xl bg-slate-50/70 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Booking information</p>
+                <p className="text-sm font-bold text-slate-800">{booking.institutionName || booking.institution}</p>
+                <p className="mt-1 text-xs text-slate-500">{booking.licenseCategory} • {booking.preferredDate}</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50/70 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Amount</p>
+                <p className="text-sm font-bold text-slate-800">{formatPaymentAmount(DEFAULT_PAYMENT_AMOUNT_CENTS, DEFAULT_PAYMENT_CURRENCY)}</p>
+                <p className="mt-1 text-xs text-slate-500">Registration + exam fee</p>
+              </div>
+              <div className="rounded-2xl bg-slate-50/70 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Next step</p>
+                <p className="text-sm font-bold text-slate-800">{paymentIsSuccessful ? 'Exam scheduling' : 'Payment completion'}</p>
+                <p className="mt-1 text-xs text-slate-500">{paymentIsSuccessful ? 'Move forward to exam scheduling.' : 'Finish payment to continue.'}</p>
+              </div>
+            </div>
+
+            {isPaymentsLoading && (
+              <p className="mt-4 text-sm text-slate-500">Refreshing payment status...</p>
+            )}
+          </Link>
+        )}
 
       </div>
 
@@ -312,4 +401,8 @@ function getBookingStateMeta(status?: BookingStatus | null) {
         badgeClass: "bg-amber-100 text-amber-700",
       };
   }
+}
+
+function formatPaymentAmount(amountCents: number, currency: string) {
+  return `${currency} ${(amountCents / 100).toFixed(2)}`;
 }

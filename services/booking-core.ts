@@ -531,7 +531,15 @@ export async function submitBookingRequest(submission: BookingSubmission): Promi
   } catch (error) {
     const responseStatus = (error as { response?: { status?: number } } | undefined)?.response?.status;
 
-    if (ALLOW_LOCAL_FALLBACK && (shouldUseLocalFallback(error) || responseStatus === 403)) {
+    // If the server explicitly rejected the request (authentication/authorization),
+    // surface the error to the user instead of creating local client state.
+    if (responseStatus === 401 || responseStatus === 403 || responseStatus === 409) {
+      throw new Error(extractApiError(error, 'Failed to submit booking request.'));
+    }
+
+    // Only allow local fallback for network/unavailable/endpoint-missing errors
+    // (404/405 or network errors) — `shouldUseLocalFallback` encodes this policy.
+    if (ALLOW_LOCAL_FALLBACK && shouldUseLocalFallback(error)) {
       const bookings = readStoredBookings();
       const booking = buildLocalBooking(submission);
       bookings.push(booking);
@@ -550,6 +558,16 @@ export async function updateBookingStatus(id: string, status: BookingStatus): Pr
     const booking = normalizeBooking(response.data?.data ?? response.data?.booking ?? response.data);
     if (booking) return booking;
 
+    // If server responded but did not return a booking object, do not silently
+    // mutate local client state when the response indicates an auth/permission
+    // problem. Only perform local fallback for network/unavailable-type errors
+    // (handled in catch below).
+    const respStatus = (response && typeof response.status === 'number') ? response.status : undefined;
+    if (respStatus === 401 || respStatus === 403) {
+      throw new Error('Failed to update booking status.');
+    }
+
+    // Otherwise, cautiously update local cached booking if present.
     const stored = readStoredBookings();
     const index = stored.findIndex((bookingItem) => bookingItem.id === id);
     if (index === -1) return null;
@@ -563,15 +581,51 @@ export async function updateBookingStatus(id: string, status: BookingStatus): Pr
     writeStoredBookings(stored);
     return stored[index];
   } catch (error) {
+    const responseStatus = (error as { response?: { status?: number } } | undefined)?.response?.status;
+
+    // If the error is an explicit auth/permission rejection, do not update local state.
+    if (responseStatus === 401 || responseStatus === 403) {
+      throw new Error(extractApiError(error, 'Failed to update booking status.'));
+    }
+
     if (ALLOW_LOCAL_FALLBACK && shouldUseLocalFallback(error)) {
       return updateLocalBookingStatus(id, status);
     }
 
-    if (shouldUseLocalFallback(error)) {
-      return updateLocalBookingStatus(id, status);
+    throw new Error(extractApiError(error, 'Failed to update booking status.'));
+  }
+}
+
+export async function cancelBookingRequest(id: string): Promise<BookingRequest | null> {
+  try {
+    const response = await api.patch(`/bookings/${id}/cancel`);
+    const booking = normalizeBooking(response.data?.data ?? response.data?.booking ?? response.data);
+    if (booking) return booking;
+
+    const stored = readStoredBookings();
+    const index = stored.findIndex((bookingItem) => bookingItem.id === id);
+    if (index === -1) return null;
+
+    stored[index] = {
+      ...stored[index],
+      status: 'Rejected',
+      updatedAt: new Date().toISOString(),
+    };
+
+    writeStoredBookings(stored);
+    return stored[index];
+  } catch (error) {
+    const responseStatus = (error as { response?: { status?: number } } | undefined)?.response?.status;
+
+    if (responseStatus === 401 || responseStatus === 403) {
+      throw new Error(extractApiError(error, 'Failed to cancel booking request.'));
     }
 
-    throw new Error(extractApiError(error, 'Failed to update booking status.'));
+    if (ALLOW_LOCAL_FALLBACK && shouldUseLocalFallback(error)) {
+      return updateLocalBookingStatus(id, 'Rejected');
+    }
+
+    throw new Error(extractApiError(error, 'Failed to cancel booking request.'));
   }
 }
 

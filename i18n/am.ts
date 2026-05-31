@@ -17,6 +17,7 @@ const am = {
   auditLogs: 'የኦዲት መዝገቦች',
   examHistory: 'የፈተና ታሪክ',
   booking: 'ማስያዣ',
+  payments: 'ክፍያዎች',
   profile: 'ፕሮፋይል',
   settings: 'ማስተካከያ',
   notifications: 'ማሳወቂያዎች',

@@ -158,7 +158,7 @@ function classifyApiError(
   if (message) {
     return {
       kind: 'unknown',
-      message: 'Something went wrong. Please try again.',
+      message,
     };
   }
 
