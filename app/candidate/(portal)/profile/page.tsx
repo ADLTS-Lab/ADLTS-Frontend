@@ -36,7 +36,7 @@ export default function CandidateProfile() {
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
 
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
 
   useEffect(() => {
     if (didInitRef.current) return;
@@ -160,14 +160,14 @@ export default function CandidateProfile() {
     setPasswordError("");
 
     if (newPassword !== confirmPassword) {
-      setPasswordError(t("yourStatus") === "Your status" ? "New passwords do not match." : "አዲስ የይለፍ ቃላት አይطابقም።");
+      setPasswordError(t("passwordMismatch"));
       return;
     }
 
     setIsChangingPassword(true);
     try {
       await changePassword(currentPassword, newPassword);
-      setPasswordSuccess(t("yourStatus") === "Your status" ? "Password changed successfully." : "የይለፍ ቃል በተሳካ ሁኔታ ተቀይሯል።");
+      setPasswordSuccess(t("passwordChangedSuccessfully"));
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -238,7 +238,7 @@ export default function CandidateProfile() {
                 {firstName} {lastName}
               </h1>
               <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 text-xs font-bold rounded-full border border-emerald-500/30 w-fit mx-auto sm:mx-0">
-                {t("status_active") === "active" ? "Active" : "ንቁ"}
+                {lang === "en" ? "Active" : "ንቁ"}
               </span>
             </div>
             <p className="text-sm md:text-base text-blue-200/90 flex items-center justify-center sm:justify-start gap-2">
@@ -297,7 +297,7 @@ export default function CandidateProfile() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">{t("emailLabel")} ({t("yourStatus") === "Your status" ? "Read-Only" : "ለእይታ ብቻ"})</label>
+              <label className="block text-sm font-bold text-slate-700 mb-2">{t("emailLabel")} ({t("readOnly")})</label>
               <div className="relative">
                 <input
                   type="email"
@@ -343,10 +343,10 @@ export default function CandidateProfile() {
                   onChange={(e) => setGender(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-slate-50/50 text-slate-800 font-medium appearance-none"
                 >
-                  <option value="">{t("yourStatus") === "Your status" ? "Select Gender" : "ፆታ ምረጥ"}</option>
-                  <option value="male">{t("yourStatus") === "Your status" ? "Male" : "ወንድ"}</option>
-                  <option value="female">{t("yourStatus") === "Your status" ? "Female" : "ሴት"}</option>
-                  <option value="other">{t("yourStatus") === "Your status" ? "Other" : "ሌላ"}</option>
+                  <option value="">{t("selectGender")}</option>
+                  <option value="male">{t("male")}</option>
+                  <option value="female">{t("female")}</option>
+                  <option value="other">{t("other")}</option>
                 </select>
               </div>
 
@@ -388,7 +388,7 @@ export default function CandidateProfile() {
                 disabled={isSaving}
                 className="border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-3 px-6 rounded-xl transition disabled:opacity-50"
               >
-                {t("yourStatus") === "Your status" ? "Reset" : "ዳግም አስጀምር"}
+                {t("reset")}
               </button>
             </div>
           </form>
@@ -398,7 +398,7 @@ export default function CandidateProfile() {
         <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
           <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
             <Lock className="text-blue-900" size={22} />
-            <h2 className="text-lg font-bold text-slate-800">{t("changePassword") || "Change Password"}</h2>
+            <h2 className="text-lg font-bold text-slate-800">{t("changePassword")}</h2>
           </div>
 
           {passwordSuccess && (
@@ -418,7 +418,7 @@ export default function CandidateProfile() {
           <form onSubmit={handlePasswordChange} className="space-y-6">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">{t("currentPassword") || "Current Password"}</label>
+                <label className="block text-sm font-bold text-slate-700 mb-2">{t("currentPassword")}</label>
                 <input
                   type="password"
                   required
@@ -429,7 +429,7 @@ export default function CandidateProfile() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">{t("newPassword") || "New Password"}</label>
+                <label className="block text-sm font-bold text-slate-700 mb-2">{t("newPassword")}</label>
                 <input
                   type="password"
                   required
@@ -440,7 +440,7 @@ export default function CandidateProfile() {
               </div>
 
               <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">{t("confirmPassword") || "Confirm Password"}</label>
+                <label className="block text-sm font-bold text-slate-700 mb-2">{t("confirmPassword")}</label>
                 <input
                   type="password"
                   required
@@ -460,12 +460,12 @@ export default function CandidateProfile() {
                 {isChangingPassword ? (
                   <>
                     <RefreshCw className="animate-spin" size={18} />
-                    <span>{t("updating") || "Updating..."}</span>
+                    <span>{t("updating")}</span>
                   </>
                 ) : (
                   <>
                     <Save size={18} />
-                    <span>{t("updatePassword") || "Update Password"}</span>
+                    <span>{t("updatePassword")}</span>
                   </>
                 )}
               </button>

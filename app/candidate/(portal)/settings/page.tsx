@@ -90,10 +90,10 @@ export default function CandidateSettingsPage() {
         <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
           <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
             <Globe className="text-blue-900" size={22} />
-            <h2 className="text-lg font-bold text-slate-800">{t("languagePreference") || "Language Preference"}</h2>
+            <h2 className="text-lg font-bold text-slate-800">{t("languagePreference")}</h2>
           </div>
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">{t("selectLanguage") || "Select Language"}</label>
+            <label className="block text-sm font-bold text-slate-700 mb-2">{t("selectLanguage")}</label>
             <select
               value={settings.language}
               onChange={(e) => setSettings({ ...settings, language: e.target.value as "en" | "am" })}
@@ -110,10 +110,10 @@ export default function CandidateSettingsPage() {
         <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
           <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
             <Palette className="text-blue-900" size={22} />
-            <h2 className="text-lg font-bold text-slate-800">{t("themePreference") || "Theme Preference"}</h2>
+            <h2 className="text-lg font-bold text-slate-800">{t("themePreference")}</h2>
           </div>
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-4">{t("selectTheme") || "Select Interface Theme"}</label>
+            <label className="block text-sm font-bold text-slate-700 mb-4">{t("selectTheme")}</label>
             <div className="flex flex-wrap gap-4">
               {["light", "dark", "system"].map((theme) => (
                 <label key={theme} className="flex items-center gap-3 cursor-pointer p-4 border border-slate-200 rounded-xl hover:bg-slate-50 transition w-full sm:w-auto">
@@ -179,12 +179,12 @@ export default function CandidateSettingsPage() {
             {isSaving ? (
               <>
                 <RefreshCw className="animate-spin" size={18} />
-                <span>{t("saving") || "Saving..."}</span>
+                <span>{t("saving")}</span>
               </>
             ) : (
               <>
                 <Save size={18} />
-                <span>{t("saveSettings") || "Save Settings"}</span>
+                <span>{t("saveSettings")}</span>
               </>
             )}
           </button>

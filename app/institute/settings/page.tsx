@@ -2,9 +2,11 @@
 
 import React, { useEffect, useState } from "react";
 import { Save, RefreshCw, CheckCircle, Globe, Palette, Bell } from "lucide-react";
+import { useI18n } from "@/i18n/useI18n";
 import { InstituteSettings, getInstituteSettings, updateInstituteSettings } from "@/services/settings.service";
 
 export default function InstituteSettingsPage() {
+  const { t } = useI18n();
   const [settings, setSettings] = useState<InstituteSettings | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
@@ -72,7 +74,7 @@ export default function InstituteSettingsPage() {
   return (
     <main className="max-w-4xl mx-auto space-y-6">
       <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold text-slate-800">Settings</h1>
+        <h1 className="text-2xl font-bold text-slate-800">{t("settings")}</h1>
         <p className="text-slate-500 text-sm">Manage your institution portal preferences and notifications.</p>
       </div>
 
@@ -88,10 +90,10 @@ export default function InstituteSettingsPage() {
         <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
           <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
             <Globe className="text-blue-900" size={22} />
-            <h2 className="text-lg font-bold text-slate-800">Language Preference</h2>
+            <h2 className="text-lg font-bold text-slate-800">{t("languagePreference")}</h2>
           </div>
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-2">Select Language</label>
+            <label className="block text-sm font-bold text-slate-700 mb-2">{t("selectLanguage")}</label>
             <select
               value={settings.language}
               onChange={(e) => setSettings({ ...settings, language: e.target.value as "en" | "am" })}
@@ -107,10 +109,10 @@ export default function InstituteSettingsPage() {
         <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
           <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
             <Palette className="text-blue-900" size={22} />
-            <h2 className="text-lg font-bold text-slate-800">Theme Preference</h2>
+            <h2 className="text-lg font-bold text-slate-800">{t("themePreference")}</h2>
           </div>
           <div>
-            <label className="block text-sm font-bold text-slate-700 mb-4">Select Interface Theme</label>
+            <label className="block text-sm font-bold text-slate-700 mb-4">{t("selectTheme")}</label>
             <div className="flex flex-wrap gap-4">
               {["light", "dark", "system"].map((theme) => (
                 <label key={theme} className="flex items-center gap-3 cursor-pointer p-4 border border-slate-200 rounded-xl hover:bg-slate-50 transition w-full sm:w-auto">
@@ -133,7 +135,7 @@ export default function InstituteSettingsPage() {
         <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
           <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
             <Bell className="text-blue-900" size={22} />
-            <h2 className="text-lg font-bold text-slate-800">Notification Preferences</h2>
+            <h2 className="text-lg font-bold text-slate-800">{t("notifications")}</h2>
           </div>
           <div className="space-y-4">
             <label className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg cursor-pointer transition">
@@ -176,12 +178,12 @@ export default function InstituteSettingsPage() {
             {isSaving ? (
               <>
                 <RefreshCw className="animate-spin" size={18} />
-                <span>Saving...</span>
+                <span>{t("saving")}</span>
               </>
             ) : (
               <>
                 <Save size={18} />
-                <span>Save Settings</span>
+                <span>{t("saveSettings")}</span>
               </>
             )}
           </button>

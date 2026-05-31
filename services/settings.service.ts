@@ -20,6 +20,11 @@ const DEFAULT_SETTINGS: CandidateSettings = {
 
 const SETTINGS_STORAGE_KEY = "adlts-candidate-settings";
 
+function emitLanguagePreferenceChange() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event("adlts-lang-change"));
+}
+
 export async function getCandidateSettings(): Promise<CandidateSettings> {
   // Mock API delay
   await new Promise(resolve => setTimeout(resolve, 300));
@@ -53,6 +58,9 @@ export async function updateCandidateSettings(settings: Partial<CandidateSetting
 
   if (typeof window !== "undefined") {
     localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(updated));
+    if (settings.language && settings.language !== current.language) {
+      emitLanguagePreferenceChange();
+    }
   }
 
   return updated;
@@ -111,6 +119,9 @@ export async function updateInstituteSettings(settings: Partial<InstituteSetting
 
   if (typeof window !== "undefined") {
     localStorage.setItem(INSTITUTE_SETTINGS_STORAGE_KEY, JSON.stringify(updated));
+    if (settings.language && settings.language !== current.language) {
+      emitLanguagePreferenceChange();
+    }
   }
 
   return updated;

@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { getInstituteOverview, InstituteOverview } from "@/services/institute.service";
 import { approveInstitutionRequest, getRecentInstitutionRequests, rejectInstitutionRequest } from "@/services/institution.service";
 import { subscribeToBookingChanges, type BookingRequest } from "@/services/booking.service";
 import { extractApiError } from "@/services/api-utils";
 import { Card } from "@/app/components/ui/Card";
-import { Button } from "@/app/components/ui/Button";
 import { useI18n } from "@/i18n/useI18n";
 import BookingRequestDetailsModal from "@/components/BookingRequestDetailsModal";
 import { CheckCircle, ChevronDown, Eye, MoreVertical, XCircle } from "lucide-react";
@@ -17,9 +17,22 @@ export default function InstituteDashboard() {
   const [requests, setRequests] = useState<BookingRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [actionBanner, setActionBanner] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<BookingRequest | null>(null);
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const actionsMenuRef = useRef<HTMLDivElement | null>(null);
+  const actionBannerTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showActionBanner = (banner: { type: 'success' | 'error'; message: string }) => {
+    setActionBanner(banner);
+    if (actionBannerTimeoutRef.current) {
+      clearTimeout(actionBannerTimeoutRef.current);
+    }
+    actionBannerTimeoutRef.current = setTimeout(() => {
+      setActionBanner(null);
+      actionBannerTimeoutRef.current = null;
+    }, 4000);
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -50,13 +63,6 @@ export default function InstituteDashboard() {
     return unsubscribe;
   }, []);
 
-  // Fallback mock overview values for offline/demo mode so dashboard never displays a dash.
-  const FALLBACK_OVERVIEW: InstituteOverview = {
-    activeStudents: 24,
-    upcomingExams: 8,
-    passRate: 78,
-  };
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (actionsMenuRef.current && !actionsMenuRef.current.contains(event.target as Node)) {
@@ -69,6 +75,14 @@ export default function InstituteDashboard() {
   }, []);
 
   const handleRequestAction = async (request: BookingRequest, action: 'approve' | 'reject') => {
+    if (request.status !== 'Pending') {
+      showActionBanner({
+        type: 'error',
+        message: 'Only pending bookings can be approved or rejected.',
+      });
+      return;
+    }
+
     try {
       if (action === 'approve') {
         await approveInstitutionRequest(request.id);
@@ -78,8 +92,15 @@ export default function InstituteDashboard() {
 
       setSelectedRequest(null);
       await loadAndRefresh();
+      showActionBanner({
+        type: 'success',
+        message: `${action === 'approve' ? 'Approved' : 'Rejected'} request for ${request.candidateDetails?.name || 'candidate'}.`,
+      });
     } catch (err) {
-      setError(extractApiError(err, 'Failed to update booking status.'));
+      showActionBanner({
+        type: 'error',
+        message: extractApiError(err, 'Failed to update booking status.'),
+      });
     }
   };
 
@@ -101,6 +122,18 @@ export default function InstituteDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
+      {actionBanner && (
+        <div
+          className={[
+            'rounded-xl border p-4 text-sm shadow-sm',
+            actionBanner.type === 'success'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+              : 'border-rose-200 bg-rose-50 text-rose-700',
+          ].join(' ')}
+        >
+          {actionBanner.message}
+        </div>
+      )}
       {error && (
         <div className="border border-rose-200 bg-rose-50 rounded-lg p-4">
           <p className="text-sm text-rose-700">{error}</p>
@@ -111,15 +144,20 @@ export default function InstituteDashboard() {
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Institute Portal</h1>
           <p className="text-slate-500 mt-1">Manage your driving school candidates and schedules.</p>
         </div>
-        <Button variant="primary">Register Candidate</Button>
+        <Link
+          href="/candidate/register"
+          className="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2 font-semibold text-white transition hover:bg-primary-light"
+        >
+          Register Candidate
+        </Link>
       </div>
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
         {[
-          { label: "Active Students", value: overview?.activeStudents ?? FALLBACK_OVERVIEW.activeStudents, color: "text-blue-600" },
-          { label: "Upcoming Exams", value: overview?.upcomingExams ?? FALLBACK_OVERVIEW.upcomingExams, color: "text-indigo-600" },
-          { label: "Average Pass Rate", value: `${(overview?.passRate ?? FALLBACK_OVERVIEW.passRate)}%`, color: "text-emerald-600" },
+          { label: "Active Students", value: overview?.activeStudents ?? "—", color: "text-blue-600" },
+          { label: "Upcoming Exams", value: overview?.upcomingExams ?? "—", color: "text-indigo-600" },
+          { label: "Average Pass Rate", value: overview ? `${overview.passRate}%` : "—", color: "text-emerald-600" },
         ].map((stat, i) => (
           <Card key={i} className="p-6">
             <h3 className="text-sm font-medium text-slate-500">{stat.label}</h3>
@@ -136,7 +174,12 @@ export default function InstituteDashboard() {
       <Card className="overflow-hidden">
         <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
           <h2 className="text-lg font-semibold text-slate-900">Recent Enrollments</h2>
-          <Button variant="secondary" className="text-sm">View All</Button>
+          <Link
+            href="/institute/requests"
+            className="inline-flex items-center justify-center rounded-xl border border-primary bg-white px-4 py-2 text-sm font-semibold text-primary transition hover:bg-slate-50"
+          >
+            View All
+          </Link>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-slate-600">
@@ -165,7 +208,7 @@ export default function InstituteDashboard() {
                 ))
               ) : requests.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-slate-400">No recent requests.</td>
+                  <td colSpan={9} className="px-6 py-12 text-center text-slate-400">No recent requests.</td>
                 </tr>
               ) : (
                 requests.map((request) => (
@@ -190,7 +233,8 @@ export default function InstituteDashboard() {
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                         request.status === 'Approved' ? 'bg-emerald-100 text-emerald-800' : 
-                        request.status === 'Pending' ? 'bg-amber-100 text-amber-800' : 'bg-rose-100 text-rose-800'
+                        request.status === 'Pending' ? 'bg-amber-100 text-amber-800' : 
+                        request.status === 'Expired' ? 'bg-slate-100 text-slate-800' : 'bg-rose-100 text-rose-800'
                       }`}>
                         {request.status}
                       </span>
@@ -217,28 +261,32 @@ export default function InstituteDashboard() {
                               <Eye className="h-4 w-4 text-slate-400" />
                               {t('viewCandidate')}
                             </button>
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                setOpenDropdownId(null);
-                                await handleRequestAction(request, 'approve');
-                              }}
-                              className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-medium text-emerald-700 transition hover:bg-emerald-50"
-                            >
-                              <CheckCircle className="h-4 w-4" />
-                              Approve Request
-                            </button>
-                            <button
-                              type="button"
-                              onClick={async () => {
-                                setOpenDropdownId(null);
-                                await handleRequestAction(request, 'reject');
-                              }}
-                              className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-medium text-rose-700 transition hover:bg-rose-50"
-                            >
-                              <XCircle className="h-4 w-4" />
-                              Reject Request
-                            </button>
+                            {request.status === 'Pending' && (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    setOpenDropdownId(null);
+                                    await handleRequestAction(request, 'approve');
+                                  }}
+                                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-medium text-emerald-700 transition hover:bg-emerald-50"
+                                >
+                                  <CheckCircle className="h-4 w-4" />
+                                  Approve Request
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={async () => {
+                                    setOpenDropdownId(null);
+                                    await handleRequestAction(request, 'reject');
+                                  }}
+                                  className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm font-medium text-rose-700 transition hover:bg-rose-50"
+                                >
+                                  <XCircle className="h-4 w-4" />
+                                  Reject Request
+                                </button>
+                              </>
+                            )}
                           </div>
                         )}
                       </div>

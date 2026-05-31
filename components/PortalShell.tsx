@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { BadgeCheck, Bell, Building2, CheckCheck, GraduationCap, Landmark, LogOut, Menu, Shield, User, X } from "lucide-react";
+import { BadgeCheck, Bell, Building2, CheckCheck, ChevronDown, GraduationCap, Landmark, LogOut, Menu, Shield, User, X } from "lucide-react";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { logout as logoutService } from "@/services/auth.service";
 import { useI18n } from "@/i18n/useI18n";
@@ -99,10 +99,12 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
   const { t, lang, setLang } = useI18n();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = React.useState(false);
   const [notifications, setNotifications] = React.useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = React.useState(0);
   const [notificationLoading, setNotificationLoading] = React.useState(false);
   const notificationPanelRef = React.useRef<HTMLDivElement | null>(null);
+  const profileMenuRef = React.useRef<HTMLDivElement | null>(null);
   const hideTopDashboardLink = dashboardHref === PORTAL_DASHBOARD_HREF.candidate;
 
   const handleLogout = async () => {
@@ -146,6 +148,9 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
     const handlePointerDown = (event: MouseEvent) => {
       if (notificationPanelRef.current && !notificationPanelRef.current.contains(event.target as Node)) {
         setIsNotificationsOpen(false);
+      }
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setIsProfileMenuOpen(false);
       }
     };
 
@@ -357,20 +362,50 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
               {lang === "en" ? "አማ" : "EN"}
             </button>
             <div className="flex items-center gap-3">
-              <Link 
-                href={user?.role ? `/${user.role.replace('_', '-')}/profile` : "#"}
-                className="hidden sm:flex items-center gap-3 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200 hover:bg-slate-100 transition cursor-pointer"
-              >
-                <span className={`flex h-9 w-9 items-center justify-center rounded-full ${avatarConfig.wrapperClassName}`} aria-hidden="true">
-                  <AvatarIcon size={18} className={avatarConfig.iconClassName} />
-                </span>
-                <div className="leading-tight">
-                  <div className="text-xs font-bold text-slate-800">{displayName}</div>
-                </div>
-              </Link>
+              <div className="relative hidden sm:block" ref={profileMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setIsProfileMenuOpen((current) => !current)}
+                  className="flex items-center gap-3 px-3 py-1.5 rounded-full bg-slate-50 border border-slate-200 hover:bg-slate-100 transition cursor-pointer"
+                  aria-haspopup="menu"
+                  aria-expanded={isProfileMenuOpen}
+                >
+                  <span className={`flex h-9 w-9 items-center justify-center rounded-full ${avatarConfig.wrapperClassName}`} aria-hidden="true">
+                    <AvatarIcon size={18} className={avatarConfig.iconClassName} />
+                  </span>
+                  <div className="leading-tight text-left">
+                    <div className="text-xs font-bold text-slate-800">{displayName}</div>
+                  </div>
+                  <ChevronDown size={14} className="text-slate-400" />
+                </button>
+
+                {isProfileMenuOpen && (
+                  <div className="absolute right-0 top-full z-50 mt-2 w-52 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl">
+                    <Link
+                      href={user?.role ? `/${user.role.replace('_', '-')}/profile` : "#"}
+                      onClick={() => setIsProfileMenuOpen(false)}
+                      className="flex items-center gap-2 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-50"
+                    >
+                      <User size={16} className="text-slate-400" />
+                      {t("profile")}
+                    </Link>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setIsProfileMenuOpen(false);
+                        handleLogout();
+                      }}
+                      className="flex w-full items-center gap-2 px-4 py-3 text-sm font-semibold text-rose-700 transition hover:bg-rose-50"
+                    >
+                      <LogOut size={16} className="text-rose-500" />
+                      {t("logout")}
+                    </button>
+                  </div>
+                )}
+              </div>
               <button
                 onClick={handleLogout}
-                className="flex items-center gap-2 rounded-full bg-blue-900 px-4 py-2 text-white transition hover:bg-blue-800"
+                className="sm:hidden flex items-center gap-2 rounded-full bg-blue-900 px-4 py-2 text-white transition hover:bg-blue-800"
               >
                 <LogOut size={16} /> <span className="hidden sm:inline">{t("logout")}</span>
               </button>

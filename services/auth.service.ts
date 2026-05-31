@@ -258,6 +258,14 @@ export async function login(credentials: LoginCredentials): Promise<LoginRespons
     const response = await api.post('/auth/login', credentials);
     return normalizeSessionResponse(response.data as RawSessionResponse);
   } catch (error: any) {
+    const responseStatus = error?.response?.status;
+    if (responseStatus === 401 || responseStatus === 403) {
+      const localUser = findLocalRegisteredUser(credentials.email, credentials.password);
+      if (localUser) {
+        return buildLocalSessionResponse(localUser);
+      }
+    }
+
     if (ALLOW_LOCAL_FALLBACK && shouldUseLocalFallback(error)) {
       const localUser = findLocalRegisteredUser(credentials.email, credentials.password);
       if (localUser) {

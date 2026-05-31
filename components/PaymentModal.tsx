@@ -16,12 +16,16 @@ export default function PaymentModal({ bookingId, payment, onClose }: Props) {
   async function handleInitiate() {
     setSubmitting(true);
     try {
-      const initiated = await paymentService.initiatePayment(bookingId, { amountCents: Math.round(amount * 100) });
-      // simplistic success notification
+      const initiated = await paymentService.createPayment(bookingId, { amountCents: Math.round(amount * 100) });
+      if (initiated.checkout_url && typeof window !== 'undefined') {
+        window.location.href = initiated.checkout_url;
+        return;
+      }
+
       alert(`Payment initiated: ${initiated.id} (status: ${initiated.status})`);
       onClose();
-    } catch (err: any) {
-      alert(err?.message || 'Failed to initiate payment');
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Failed to initiate payment');
     } finally {
       setSubmitting(false);
     }

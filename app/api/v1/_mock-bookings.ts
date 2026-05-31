@@ -4,7 +4,37 @@ import type { NextRequest } from 'next/server';
 
 import type { MockUser } from './_mock-auth';
 
-export type MockBookingStatus = 'Pending' | 'Approved' | 'Rejected';
+export type MockBookingStatus = 'Pending' | 'Approved' | 'Payment Pending' | 'Scheduled' | 'Rejected' | 'Cancelled' | 'Completed' | 'Expired';
+
+const ACTIVE_BOOKING_STATUSES = new Set<MockBookingStatus>(['Pending', 'Approved', 'Payment Pending', 'Scheduled']);
+const TERMINAL_BOOKING_STATUSES = new Set<MockBookingStatus>(['Rejected', 'Cancelled', 'Completed', 'Expired']);
+
+function isActiveBookingStatus(status: MockBookingStatus): boolean {
+  return ACTIVE_BOOKING_STATUSES.has(status);
+}
+
+function canTransitionBookingStatus(currentStatus: MockBookingStatus, nextStatus: MockBookingStatus): boolean {
+  return currentStatus === 'Pending' && (nextStatus === 'Approved' || nextStatus === 'Rejected');
+}
+
+function canCancelBookingStatus(currentStatus: MockBookingStatus): boolean {
+  return currentStatus === 'Pending' || currentStatus === 'Approved';
+}
+
+function getBookingBlockMessage(status?: MockBookingStatus): string {
+  switch (status) {
+    case 'Pending':
+      return 'You already have a pending booking. Cancel it first before creating a new one.';
+    case 'Approved':
+      return 'You already have an approved booking. Finish the current workflow before booking again.';
+    case 'Payment Pending':
+      return 'You already have a booking that is waiting for payment. Complete that payment before booking again.';
+    case 'Scheduled':
+      return 'You already have a scheduled booking. You can book again once it is completed.';
+    default:
+      return 'You already have an active booking. You can book again only after it is Rejected, Cancelled, Completed, or Expired.';
+  }
+}
 
 export type MockBooking = {
   id: string;
@@ -32,7 +62,6 @@ type MockBookingState = {
 };
 
 declare global {
-  // eslint-disable-next-line no-var
   var __adltsMockBookingState: MockBookingState | undefined;
 }
 
@@ -177,6 +206,16 @@ function userCanCancelBooking(user: MockUser, booking: MockBooking): boolean {
   return false;
 }
 
+function userCanDeleteBooking(user: MockUser, booking: MockBooking): boolean {
+  if (user.role === 'super_admin' || user.role === 'admin') return true;
+
+  if (user.role === 'institute') {
+    return userCanAccessBooking(user, booking);
+  }
+
+  return false;
+}
+
 function toApiBooking(booking: MockBooking) {
   return {
     id: booking.id,
@@ -278,14 +317,14 @@ export function createBooking(user: MockUser, body: Record<string, unknown>) {
   }
 
   const existingActiveBooking = Array.from(state.bookings.values()).find((booking) => {
-    if (booking.status === 'Rejected') return false;
+    if (!isActiveBookingStatus(booking.status)) return false;
     const email = booking.candidateDetails?.email?.toLowerCase();
     return email === user.email.toLowerCase();
   });
 
   if (existingActiveBooking) {
     return {
-      error: "You're already booked contact admin if you think there is a problem.",
+      error: getBookingBlockMessage(existingActiveBooking.status),
       status: 409 as const,
     };
   }
@@ -333,9 +372,18 @@ export function verifyBooking(user: MockUser, bookingId: string, action: string)
     return { error: "Action must be 'approve' or 'reject'.", status: 400 as const };
   }
 
+  const nextStatus: MockBookingStatus = normalizedAction === 'approve' ? 'Approved' : 'Rejected';
+  if (!canTransitionBookingStatus(booking.status, nextStatus)) {
+    if (TERMINAL_BOOKING_STATUSES.has(booking.status)) {
+      return { error: `A ${booking.status.toLowerCase()} booking cannot be changed.`, status: 409 as const };
+    }
+
+    return { error: 'Only pending bookings can be approved or rejected.', status: 409 as const };
+  }
+
   const updated: MockBooking = {
     ...booking,
-    status: normalizedAction === 'approve' ? 'Approved' : 'Rejected',
+    status: nextStatus,
     updatedAt: new Date().toISOString(),
   };
 
@@ -353,18 +401,32 @@ export function cancelBooking(user: MockUser, bookingId: string) {
     return { error: 'Forbidden.', status: 403 as const };
   }
 
-  if (booking.status !== 'Pending') {
-    return { error: 'Only pending booking requests can be canceled.', status: 409 as const };
+  if (!canCancelBookingStatus(booking.status)) {
+    return { error: 'Only pending or approved booking requests can be canceled.', status: 409 as const };
   }
 
   const updated: MockBooking = {
     ...booking,
-    status: 'Rejected',
+    status: 'Cancelled',
     updatedAt: new Date().toISOString(),
   };
 
   state.bookings.set(bookingId, updated);
   return { data: toApiBooking(updated) };
+}
+
+export function deleteBooking(user: MockUser, bookingId: string) {
+  const booking = state.bookings.get(bookingId);
+  if (!booking) {
+    return { error: 'Booking not found.', status: 404 as const };
+  }
+
+  if (!userCanDeleteBooking(user, booking)) {
+    return { error: 'Forbidden.', status: 403 as const };
+  }
+
+  state.bookings.delete(bookingId);
+  return { data: toApiBooking(booking) };
 }
 
 export function parseBookingListQuery(request: NextRequest): BookingListQuery {
@@ -384,7 +446,7 @@ export function parseBookingListQuery(request: NextRequest): BookingListQuery {
   return {
     institutionId: institutionId || undefined,
     search: searchParams.get('search') || undefined,
-    status: status && ['Pending', 'Approved', 'Rejected'].includes(status) ? status : undefined,
+    status: status && ['Pending', 'Approved', 'Payment Pending', 'Scheduled', 'Rejected', 'Cancelled', 'Completed', 'Expired'].includes(status) ? status : undefined,
     licenseCategory:
       licenseCategory && ['A', 'B', 'C', 'D'].includes(licenseCategory) ? licenseCategory : undefined,
     page: Number.isFinite(page) ? page : 1,

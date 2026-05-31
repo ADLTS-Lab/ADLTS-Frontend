@@ -37,6 +37,11 @@ function formatDateTime(value?: string) {
 
 function statusTone(status: BookingStatus) {
   if (status === 'Approved') return 'bg-emerald-100 text-emerald-800';
+  if (status === 'Payment Pending') return 'bg-sky-100 text-sky-800';
+  if (status === 'Scheduled') return 'bg-indigo-100 text-indigo-800';
+  if (status === 'Completed') return 'bg-emerald-100 text-emerald-800';
+  if (status === 'Expired') return 'bg-slate-100 text-slate-800';
+  if (status === 'Cancelled') return 'bg-slate-100 text-slate-800';
   if (status === 'Rejected') return 'bg-rose-100 text-rose-800';
   return 'bg-amber-100 text-amber-800';
 }
@@ -48,6 +53,10 @@ export default function BookingRequestDetailsModal({ request, onClose, onApprove
   const fullName = useMemo(() => request.candidateDetails?.name || 'N/A', [request.candidateDetails?.name]);
 
   const handleApplyAction = () => {
+    if (request.status !== 'Pending') {
+      return;
+    }
+
     if (selectedAction === 'approve') {
       onApprove();
       return;

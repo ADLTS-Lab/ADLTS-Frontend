@@ -230,9 +230,9 @@ export default function CandidateDashboard() {
                   {bookingState.title}
                 </button>
               )}
-              <button className="bg-white/10 hover:bg-white/20 border border-white/20 px-5 md:px-6 py-3 rounded-full font-bold text-sm md:text-base w-full sm:w-auto transition active:scale-95">
+              <Link href="/guidelines" className="bg-white/10 hover:bg-white/20 border border-white/20 px-5 md:px-6 py-3 rounded-full font-bold text-sm md:text-base w-full sm:w-auto transition active:scale-95 text-center">
                 {t('readGuides')}
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -386,6 +386,30 @@ function getBookingStateMeta(status?: BookingStatus | null) {
         title: "Approved",
         subtitle: "Ready to proceed to testing process",
         badgeClass: "bg-green-100 text-green-700",
+      };
+    case "Payment Pending":
+      return {
+        title: "Payment Pending",
+        subtitle: "Your booking is approved and waiting for payment",
+        badgeClass: "bg-sky-100 text-sky-700",
+      };
+    case "Scheduled":
+      return {
+        title: "Scheduled",
+        subtitle: "Your exam or training slot has been scheduled",
+        badgeClass: "bg-indigo-100 text-indigo-700",
+      };
+    case "Completed":
+      return {
+        title: "Completed",
+        subtitle: "Your booking workflow is finished",
+        badgeClass: "bg-emerald-100 text-emerald-700",
+      };
+    case "Cancelled":
+      return {
+        title: "Cancelled",
+        subtitle: "This booking was cancelled and you can book again",
+        badgeClass: "bg-slate-100 text-slate-700",
       };
     case "Rejected":
       return {

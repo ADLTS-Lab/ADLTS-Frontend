@@ -2,10 +2,12 @@
 
 import React, { useEffect, useState } from "react";
 import { User as UserIcon, Mail, Phone, MapPin, Save, RefreshCw, CheckCircle, AlertCircle, Building, Lock, FileText } from "lucide-react";
+import { useI18n } from "@/i18n/useI18n";
 import { changePassword } from "@/services/auth.service";
 import { getInstituteProfile, updateInstituteProfile, type InstituteProfile } from "@/services/institute.service";
 
 export default function InstituteProfilePage() {
+  const { t } = useI18n();
   const [profile, setProfile] = useState<InstituteProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -153,7 +155,7 @@ export default function InstituteProfilePage() {
                 {institutionName}
               </h1>
               <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 text-xs font-bold rounded-full border border-emerald-500/30 w-fit mx-auto sm:mx-0">
-                Active
+                {t("active")}
               </span>
             </div>
             <p className="text-sm md:text-base text-blue-200/90 flex items-center justify-center sm:justify-start gap-2 mb-1">
@@ -190,7 +192,7 @@ export default function InstituteProfilePage() {
           <section>
             <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
               <Building className="text-blue-900" size={22} />
-              <h2 className="text-lg font-bold text-slate-800">Personal Information</h2>
+              <h2 className="text-lg font-bold text-slate-800">{t("personalInfo")}</h2>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mb-5">
               <div>
@@ -299,12 +301,12 @@ export default function InstituteProfilePage() {
               {isSaving ? (
                 <>
                   <RefreshCw className="animate-spin" size={18} />
-                  <span>Saving Updates...</span>
+                  <span>{t("saving")}</span>
                 </>
               ) : (
                 <>
                   <Save size={18} />
-                  <span>Update Profile</span>
+                  <span>{t("updateProfileButton")}</span>
                 </>
               )}
             </button>
@@ -316,7 +318,7 @@ export default function InstituteProfilePage() {
       <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
         <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
           <Lock className="text-blue-900" size={22} />
-          <h2 className="text-lg font-bold text-slate-800">Security</h2>
+          <h2 className="text-lg font-bold text-slate-800">{t("changePassword")}</h2>
         </div>
 
         {passwordSuccess && (
@@ -336,7 +338,7 @@ export default function InstituteProfilePage() {
         <form onSubmit={handlePasswordChange} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">Current Password</label>
+              <label className="block text-sm font-bold text-slate-700 mb-2">{t("currentPassword")}</label>
               <input
                 type="password"
                 required
@@ -347,7 +349,7 @@ export default function InstituteProfilePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">New Password</label>
+              <label className="block text-sm font-bold text-slate-700 mb-2">{t("newPassword")}</label>
               <input
                 type="password"
                 required
@@ -358,7 +360,7 @@ export default function InstituteProfilePage() {
             </div>
 
             <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">Confirm Password</label>
+              <label className="block text-sm font-bold text-slate-700 mb-2">{t("confirmPassword")}</label>
               <input
                 type="password"
                 required
@@ -383,7 +385,7 @@ export default function InstituteProfilePage() {
               ) : (
                 <>
                   <Save size={18} />
-                  <span>Update Password</span>
+                  <span>{t("updatePassword")}</span>
                 </>
               )}
             </button>

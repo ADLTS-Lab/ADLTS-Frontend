@@ -1,7 +1,58 @@
 import api from '@/lib/api';
+import { useAuthStore } from '@/store/authStore';
 import { extractApiError, shouldUseLocalFallback } from './api-utils';
 
-export type BookingStatus = 'Pending' | 'Approved' | 'Rejected';
+export type BookingStatus = 'Pending' | 'Approved' | 'Payment Pending' | 'Scheduled' | 'Rejected' | 'Cancelled' | 'Completed' | 'Expired';
+
+export const ACTIVE_BOOKING_STATUSES = ['Pending', 'Approved', 'Payment Pending', 'Scheduled'] as const;
+export const TERMINAL_BOOKING_STATUSES = ['Rejected', 'Cancelled', 'Completed', 'Expired'] as const;
+
+export function isTerminalBookingStatus(status?: BookingStatus | null): boolean {
+  return !!status && TERMINAL_BOOKING_STATUSES.includes(status as (typeof TERMINAL_BOOKING_STATUSES)[number]);
+}
+
+export function canTransitionBookingStatus(currentStatus?: BookingStatus | null, nextStatus?: BookingStatus | null): boolean {
+  return currentStatus === 'Pending' && (nextStatus === 'Approved' || nextStatus === 'Rejected');
+}
+
+export function canCancelBookingStatus(currentStatus?: BookingStatus | null): boolean {
+  return currentStatus === 'Pending' || currentStatus === 'Approved';
+}
+
+export function getBookingTransitionBlockMessage(currentStatus?: BookingStatus | null, nextStatus?: BookingStatus | null): string {
+  if (!currentStatus) {
+    return 'Only pending bookings can be approved or rejected.';
+  }
+
+  if (canTransitionBookingStatus(currentStatus, nextStatus)) {
+    return '';
+  }
+
+  if (isTerminalBookingStatus(currentStatus)) {
+    return `A ${currentStatus.toLowerCase()} booking cannot be changed.`;
+  }
+
+  return 'Only pending bookings can be approved or rejected.';
+}
+
+export function isActiveBookingStatus(status?: BookingStatus | null): boolean {
+  return !!status && ACTIVE_BOOKING_STATUSES.includes(status as (typeof ACTIVE_BOOKING_STATUSES)[number]);
+}
+
+export function getBookingBlockMessage(status?: BookingStatus | null): string {
+  switch (status) {
+    case 'Pending':
+      return 'You already have a pending booking. Cancel it first before creating a new one.';
+    case 'Approved':
+      return 'You already have an approved booking. Finish the current workflow before booking again.';
+    case 'Payment Pending':
+      return 'You already have a booking that is waiting for payment. Complete that payment before booking again.';
+    case 'Scheduled':
+      return 'You already have a scheduled booking. You can book again once it is completed.';
+    default:
+      return 'You already have an active booking. You can book again only after it is Rejected, Cancelled, or Completed.';
+  }
+}
 
 export type LicenseCategory = 'A' | 'B' | 'C' | 'D';
 
@@ -168,7 +219,16 @@ function normalizeBooking(raw: unknown): BookingRequest | null {
           : institutionDetails.id;
 
   const statusValue = typeof data.status === 'string' ? data.status : 'Pending';
-  const status: BookingStatus = statusValue === 'Approved' || statusValue === 'Rejected' ? statusValue : 'Pending';
+  const status: BookingStatus =
+    statusValue === 'Approved' ||
+    statusValue === 'Payment Pending' ||
+    statusValue === 'Scheduled' ||
+    statusValue === 'Rejected' ||
+    statusValue === 'Cancelled' ||
+    statusValue === 'Completed' ||
+    statusValue === 'Expired'
+      ? statusValue
+      : 'Pending';
   const createdAt =
     typeof data.createdAt === 'string'
       ? data.createdAt
@@ -406,6 +466,13 @@ function buildLocalBooking(submission: BookingSubmission): BookingRequest {
   };
 }
 
+function getSubmissionCandidateEmail(submission: BookingSubmission): string {
+  const submissionEmail = String(submission.candidateDetails?.email || '').trim().toLowerCase();
+  if (submissionEmail) return submissionEmail;
+
+  return String(useAuthStore.getState().user?.email || '').trim().toLowerCase();
+}
+
 function getDefaultMockBookings(): BookingRequest[] {
   const now = Date.now();
   return [
@@ -474,6 +541,11 @@ function updateLocalBookingStatus(id: string, status: BookingStatus): BookingReq
   const index = bookings.findIndex((bookingItem) => bookingItem.id === id);
   if (index === -1) return null;
 
+  const currentStatus = bookings[index].status;
+  if (!canTransitionBookingStatus(currentStatus, status) && !(status === 'Cancelled' && canCancelBookingStatus(currentStatus))) {
+    return null;
+  }
+
   bookings[index] = {
     ...bookings[index],
     status,
@@ -522,6 +594,28 @@ export async function getAllBookings(institutionFilter?: string): Promise<Bookin
 }
 
 export async function submitBookingRequest(submission: BookingSubmission): Promise<BookingRequest> {
+  const candidateEmail = getSubmissionCandidateEmail(submission);
+  let blockedMessage: string | null = null;
+
+  if (candidateEmail) {
+    try {
+      const existingBookings = await getAllBookings();
+      const activeBooking = existingBookings.find(
+        (booking) => booking.candidateDetails?.email?.toLowerCase() === candidateEmail && isActiveBookingStatus(booking.status),
+      );
+
+      if (activeBooking) {
+        blockedMessage = getBookingBlockMessage(activeBooking.status);
+      }
+    } catch {
+      // Ignore validation lookup failures and fall through to the API request.
+    }
+  }
+
+  if (blockedMessage) {
+    throw new Error(blockedMessage);
+  }
+
   try {
     const response = await api.post('/bookings', buildBackendSubmissionPayload(submission));
     const booking = normalizeBooking(response.data?.data ?? response.data?.booking ?? response.data);
@@ -552,6 +646,11 @@ export async function submitBookingRequest(submission: BookingSubmission): Promi
 }
 
 export async function updateBookingStatus(id: string, status: BookingStatus): Promise<BookingRequest | null> {
+  const currentBooking = findBookingById(id);
+  if (currentBooking && !canTransitionBookingStatus(currentBooking.status, status)) {
+    throw new Error(getBookingTransitionBlockMessage(currentBooking.status, status));
+  }
+
   try {
     const payload = { action: status === 'Approved' ? 'approve' : 'reject' };
     const response = await api.patch(`/bookings/${id}/verify`, payload);
@@ -597,6 +696,11 @@ export async function updateBookingStatus(id: string, status: BookingStatus): Pr
 }
 
 export async function cancelBookingRequest(id: string): Promise<BookingRequest | null> {
+  const currentBooking = findBookingById(id);
+  if (currentBooking && !canCancelBookingStatus(currentBooking.status)) {
+    throw new Error(`A ${currentBooking.status.toLowerCase()} booking cannot be canceled.`);
+  }
+
   try {
     const response = await api.patch(`/bookings/${id}/cancel`);
     const booking = normalizeBooking(response.data?.data ?? response.data?.booking ?? response.data);
@@ -608,7 +712,7 @@ export async function cancelBookingRequest(id: string): Promise<BookingRequest |
 
     stored[index] = {
       ...stored[index],
-      status: 'Rejected',
+      status: 'Cancelled',
       updatedAt: new Date().toISOString(),
     };
 
@@ -622,10 +726,31 @@ export async function cancelBookingRequest(id: string): Promise<BookingRequest |
     }
 
     if (ALLOW_LOCAL_FALLBACK && shouldUseLocalFallback(error)) {
-      return updateLocalBookingStatus(id, 'Rejected');
+      return updateLocalBookingStatus(id, 'Cancelled');
     }
 
     throw new Error(extractApiError(error, 'Failed to cancel booking request.'));
+  }
+}
+
+export async function deleteBookingRequest(id: string): Promise<boolean> {
+  try {
+    await api.delete(`/bookings/${id}`);
+    return true;
+  } catch (error) {
+    const responseStatus = (error as { response?: { status?: number } } | undefined)?.response?.status;
+
+    if (responseStatus === 401 || responseStatus === 403) {
+      throw new Error(extractApiError(error, 'Failed to delete booking request.'));
+    }
+
+    if (ALLOW_LOCAL_FALLBACK && shouldUseLocalFallback(error)) {
+      const stored = readStoredBookings().filter((booking) => booking.id !== id);
+      writeStoredBookings(stored);
+      return true;
+    }
+
+    throw new Error(extractApiError(error, 'Failed to delete booking request.'));
   }
 }
 

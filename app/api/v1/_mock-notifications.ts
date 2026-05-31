@@ -20,7 +20,6 @@ type MockNotificationState = {
 };
 
 declare global {
-  // eslint-disable-next-line no-var
   var __adltsMockNotificationState: MockNotificationState | undefined;
 }
 
@@ -35,21 +34,34 @@ const state: MockNotificationState = globalThis.__adltsMockNotificationState ?? 
         title: 'Booking Approved',
         message: 'Your booking request has been approved.',
         read: false,
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-        updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
+        updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
       },
     ],
     [
-      'notif-candidate-rejected',
+      'notif-candidate-payment-required',
       {
-        id: 'notif-candidate-rejected',
+        id: 'notif-candidate-payment-required',
         recipientRole: 'candidate',
-        type: 'booking_rejected',
-        title: 'Booking Rejected',
-        message: 'Your booking request has been rejected.',
+        type: 'payment_required',
+        title: 'Payment Required',
+        message: 'Your booking is approved. Complete payment to continue.',
         read: false,
         createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
         updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
+      },
+    ],
+    [
+      'notif-candidate-payment-successful',
+      {
+        id: 'notif-candidate-payment-successful',
+        recipientRole: 'candidate',
+        type: 'payment_successful',
+        title: 'Payment Successful',
+        message: 'Your payment has been received successfully.',
+        read: true,
+        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(),
+        updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(),
       },
     ],
     [
@@ -61,8 +73,8 @@ const state: MockNotificationState = globalThis.__adltsMockNotificationState ?? 
         title: 'Exam Scheduled',
         message: 'Your exam is scheduled for June 15, 2026.',
         read: false,
-        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
-        updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
+        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+        updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
       },
     ],
     [
@@ -84,11 +96,24 @@ const state: MockNotificationState = globalThis.__adltsMockNotificationState ?? 
         id: 'notif-candidate-license',
         recipientRole: 'candidate',
         type: 'license_pickup',
-        title: 'License Pickup Notification',
+        title: 'License Ready For Pickup',
         message: 'Collect your license from Bole Transport Authority Office on June 20, 2026 at 10:00 AM.',
         read: false,
-        createdAt: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
-        updatedAt: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
+        createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+        updatedAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+      },
+    ],
+    [
+      'notif-candidate-rejected',
+      {
+        id: 'notif-candidate-rejected',
+        recipientRole: 'candidate',
+        type: 'booking_rejected',
+        title: 'Booking Rejected',
+        message: 'Your booking request has been rejected.',
+        read: false,
+        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
+        updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
       },
     ],
     [

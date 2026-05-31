@@ -8,6 +8,8 @@ export type NotificationRole = 'all' | 'candidate' | 'admin' | 'expert' | 'insti
 export type NotificationType =
   | 'booking_approved'
   | 'booking_rejected'
+  | 'payment_required'
+  | 'payment_successful'
   | 'exam_scheduled'
   | 'test_passed'
   | 'license_pickup'
@@ -71,19 +73,30 @@ const NOTIFICATION_SEEDS: AppNotification[] = [
     message: 'Your booking request has been approved.',
     metadata: { institutionName: 'Bole Driving Institute' },
     read: false,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
   },
   {
-    id: 'notif-candidate-rejected',
+    id: 'notif-candidate-payment-required',
     recipientRole: 'candidate',
-    type: 'booking_rejected',
-    title: 'Booking Rejected',
-    message: 'Your booking request has been rejected.',
+    type: 'payment_required',
+    title: 'Payment Required',
+    message: 'Your booking is approved. Complete payment to continue.',
     metadata: { institutionName: 'Bole Driving Institute' },
     read: false,
     createdAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
     updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 5).toISOString(),
+  },
+  {
+    id: 'notif-candidate-payment-successful',
+    recipientRole: 'candidate',
+    type: 'payment_successful',
+    title: 'Payment Successful',
+    message: 'Your payment has been received successfully.',
+    metadata: { institutionName: 'Bole Driving Institute' },
+    read: true,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 4).toISOString(),
   },
   {
     id: 'notif-candidate-exam',
@@ -93,8 +106,8 @@ const NOTIFICATION_SEEDS: AppNotification[] = [
     message: 'Your exam is scheduled for June 15, 2026.',
     metadata: { examDate: 'June 15, 2026', session: 'Morning' },
     read: false,
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 3).toISOString(),
   },
   {
     id: 'notif-candidate-pass',
@@ -110,7 +123,7 @@ const NOTIFICATION_SEEDS: AppNotification[] = [
     id: 'notif-candidate-license',
     recipientRole: 'candidate',
     type: 'license_pickup',
-    title: 'License Pickup Notification',
+    title: 'License Ready For Pickup',
     message: 'Collect your license from Bole Transport Authority Office on June 20, 2026 at 10:00 AM.',
     metadata: {
       pickupLocation: 'Bole Transport Authority Office',
@@ -118,8 +131,19 @@ const NOTIFICATION_SEEDS: AppNotification[] = [
       pickupTime: '10:00 AM',
     },
     read: false,
-    createdAt: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
-    updatedAt: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
+    createdAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+  },
+  {
+    id: 'notif-candidate-rejected',
+    recipientRole: 'candidate',
+    type: 'booking_rejected',
+    title: 'Booking Rejected',
+    message: 'Your booking request has been rejected.',
+    metadata: { institutionName: 'Bole Driving Institute' },
+    read: false,
+    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
+    updatedAt: new Date(Date.now() - 1000 * 60 * 60 * 8).toISOString(),
   },
   {
     id: 'notif-institute-booking',

@@ -108,6 +108,10 @@ export async function initiatePayment(bookingId: string, payload: PaymentInitiat
   }
 }
 
+export async function createPayment(bookingId: string, payload: PaymentInitiateRequest): Promise<Payment> {
+  return initiatePayment(bookingId, payload);
+}
+
 export async function retryPayment(bookingId: string): Promise<Payment> {
   try {
     const response = await api.post(`/bookings/${bookingId}/payments/retry`);
@@ -160,9 +164,12 @@ export function getStoredPaymentsSnapshot(): Payment[] {
   return readStoredPayments();
 }
 
-export default {
+const paymentService = {
   initiatePayment,
+  createPayment,
   retryPayment,
   getPaymentsForBooking,
   getStoredPaymentsSnapshot,
 };
+
+export default paymentService;

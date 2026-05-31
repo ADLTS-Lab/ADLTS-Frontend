@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { AlertCircle, Eye, FileText, RefreshCw, Search, ChevronLeft, ChevronRight, CheckCircle, XCircle, MoreVertical } from "lucide-react";
+import { AlertCircle, FileText, RefreshCw, Search, ChevronLeft, ChevronRight, CheckCircle, XCircle } from "lucide-react";
 
 import { useI18n } from "@/i18n/useI18n";
 import { BookingRequest, BookingStatus, getStoredBookingSnapshot, subscribeToBookingChanges } from "@/services/booking.service";
@@ -25,14 +25,6 @@ export default function InstituteRequestsPage() {
   const [pageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
   const [total, setTotal] = useState(0);
-  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
-
-  // Close dropdown on click outside
-  useEffect(() => {
-    const handleClickOutside = () => setOpenDropdownId(null);
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, []);
 
   const fetchRequests = async (nextPage = page) => {
     setLoading(true);
@@ -108,6 +100,13 @@ export default function InstituteRequestsPage() {
           <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-800">
             <XCircle className="h-3 w-3" />
             {t("rejected") || "Rejected"}
+          </span>
+        );
+      case "Expired":
+        return (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-800">
+            <AlertCircle className="h-3 w-3" />
+            Expired
           </span>
         );
       default:
@@ -201,83 +200,38 @@ export default function InstituteRequestsPage() {
             <p className="mt-1 text-sm text-slate-400">Requests assigned to your institution will appear here.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-slate-200">
+          <div className="overflow-x-auto lg:overflow-visible">
+            <table className="w-full table-fixed divide-y divide-slate-200">
               <thead className="bg-slate-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Candidate Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Phone Number</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">License Category</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Preferred Exam Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Preferred Session</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Booking Date</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
-                  <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Actions</th>
+                  <th className="w-[17%] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Candidate Name</th>
+                  <th className="w-[18%] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Email</th>
+                  <th className="w-[13%] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Phone Number</th>
+                  <th className="w-[10%] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">License Category</th>
+                  <th className="w-[14%] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Preferred Exam Date</th>
+                  <th className="w-[11%] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Preferred Session</th>
+                  <th className="w-[12%] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Booking Date</th>
+                  <th className="w-[8%] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200 bg-white">
                 {requests.map((request) => (
                   <tr key={request.id} className="transition hover:bg-slate-50">
-                    <td className="whitespace-nowrap px-6 py-4 font-medium text-slate-900">
+                    <td className="truncate px-4 py-3 font-medium text-slate-900">
                       <button
                         onClick={() => setSelectedRequest(request)}
-                        className="text-blue-700 hover:text-blue-900 hover:underline transition font-semibold"
+                        className="max-w-full truncate text-left text-blue-700 hover:text-blue-900 hover:underline transition font-semibold"
                       >
                         {request.candidateDetails?.name || 'Unknown Candidate'}
                       </button>
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600">{request.candidateDetails?.email || '—'}</td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600">{request.candidateDetails?.phone || '—'}</td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600">{request.licenseCategory}</td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600">{request.preferredDate}</td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600">{request.preferredSession}</td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-slate-600">{new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(request.createdAt))}</td>
-                    <td className="whitespace-nowrap px-6 py-4">{getStatusBadge(request.status)}</td>
-                    <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                      {request.status === 'Pending' ? (
-                        <div className="relative inline-block text-left">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setOpenDropdownId(openDropdownId === request.id ? null : request.id);
-                            }}
-                            className="inline-flex items-center rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-700 focus:outline-none"
-                          >
-                            <MoreVertical className="h-5 w-5" />
-                          </button>
-                          
-                          {openDropdownId === request.id && (
-                            <div className="absolute right-0 z-50 mt-2 w-40 origin-top-right rounded-xl bg-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                              <div className="py-1">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    void handleStatusChange(request.id, 'Approved');
-                                    setOpenDropdownId(null);
-                                  }}
-                                  className="flex w-full items-center px-4 py-2 text-sm text-emerald-700 hover:bg-emerald-50 font-medium transition"
-                                >
-                                  Approve Request
-                                </button>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    void handleStatusChange(request.id, 'Rejected');
-                                    setOpenDropdownId(null);
-                                  }}
-                                  className="flex w-full items-center px-4 py-2 text-sm text-rose-700 hover:bg-rose-50 font-medium transition"
-                                >
-                                  Reject Request
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      ) : (
-                        <span className="text-slate-400 text-xs italic">No actions</span>
-                      )}
-                    </td>
+                    <td className="truncate px-4 py-3 text-sm text-slate-600">{request.candidateDetails?.email || '—'}</td>
+                    <td className="truncate px-4 py-3 text-sm text-slate-600">{request.candidateDetails?.phone || '—'}</td>
+                    <td className="truncate px-4 py-3 text-sm text-slate-600">{request.licenseCategory}</td>
+                    <td className="truncate px-4 py-3 text-sm text-slate-600">{request.preferredDate}</td>
+                    <td className="truncate px-4 py-3 text-sm text-slate-600">{request.preferredSession}</td>
+                    <td className="truncate px-4 py-3 text-sm text-slate-600">{new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(request.createdAt))}</td>
+                    <td className="px-4 py-3">{getStatusBadge(request.status)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -315,7 +269,11 @@ export default function InstituteRequestsPage() {
           request={selectedRequest}
           onClose={() => setSelectedRequest(null)}
           onApprove={() => void handleStatusChange(selectedRequest.id, 'Approved')}
-          onReject={() => void handleStatusChange(selectedRequest.id, 'Rejected')}
+          onReject={() => {
+            const confirmed = window.confirm('Are you sure you want to reject this request?');
+            if (!confirmed) return;
+            void handleStatusChange(selectedRequest.id, 'Rejected');
+          }}
         />
       )}
     </div>
