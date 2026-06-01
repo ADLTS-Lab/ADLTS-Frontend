@@ -61,4 +61,5 @@ Thumbs.db
 *.postman_environment.json
 # (Optional) ignore collections if you don't want to track them at all:
 # *.postman_collection.json.cursor/
-.cursor/*.log
+
+*.log
