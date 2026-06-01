@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 
 export type UILanguage = "en" | "am";
-export type AppTheme = "light" | "dark" | "system";
+export type AppTheme = "light";
 
 export type NotificationPreferences = {
   bookingUpdates: boolean;
@@ -32,7 +32,7 @@ type PreferencesState = AppPreferences & {
 
 const DEFAULT_PREFERENCES: AppPreferences = {
   language: "en",
-  theme: "system",
+  theme: "light",
   notifications: {
     bookingUpdates: true,
     examUpdates: true,
@@ -48,9 +48,7 @@ const normalizeLanguage = (value: unknown): UILanguage => {
 };
 
 const normalizeTheme = (value: unknown): AppTheme => {
-  return value === "light" || value === "dark" || value === "system"
-    ? value
-    : "system";
+  return value === "light" ? value : "light";
 };
 
 const normalizeNotification = (value: unknown) => {

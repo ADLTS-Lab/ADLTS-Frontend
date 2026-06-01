@@ -1,11 +1,10 @@
 "use client";
 
 import { FormEvent, useEffect, useState } from "react";
-import { RefreshCw, CheckCircle, Globe, Palette, Bell, Save } from "lucide-react";
+import { RefreshCw, CheckCircle, Globe, Bell, Save } from "lucide-react";
 import { useI18n } from "@/i18n/useI18n";
 import { getAppSettings, updateAppSettings, type CandidateSettings } from "@/services/settings.service";
 
-type ThemeOption = CandidateSettings["theme"];
 type NotificationKey = keyof CandidateSettings["notifications"];
 
 export function SettingsBoard() {
@@ -110,47 +109,6 @@ export function SettingsBoard() {
             <option value="en">English</option>
             <option value="am">አማርኛ (Amharic)</option>
           </select>
-        </section>
-
-        <section className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
-          <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-            <Palette className="text-blue-900" size={22} />
-            <h2 className="text-lg font-bold text-slate-800">{t("themePreference") || "Theme Preference"}</h2>
-          </div>
-          <label className="block text-sm font-bold text-slate-700 mb-4">{t("selectTheme") || "Select Interface Theme"}</label>
-          <div className="flex flex-wrap gap-4">
-            {(["light", "dark", "system"] as ThemeOption[]).map((themeOption) => (
-              <label
-                key={themeOption}
-                className="flex items-center gap-3 cursor-pointer p-4 border border-slate-200 rounded-xl hover:bg-slate-50 transition w-full sm:w-auto"
-              >
-                <input
-                  type="radio"
-                  name="theme"
-                  value={themeOption}
-                  checked={settings.theme === themeOption}
-                  onChange={(event) =>
-                    setSettings((current) =>
-                      current
-                        ? {
-                            ...current,
-                            theme: event.target.value as CandidateSettings["theme"],
-                          }
-                        : current
-                    )
-                  }
-                  className="w-4 h-4 text-blue-600 focus:ring-blue-500 border-slate-300"
-                />
-                <span className="text-sm font-medium text-slate-700 capitalize">
-                  {themeOption === "light"
-                    ? t("themeLight")
-                    : themeOption === "dark"
-                    ? t("themeDark")
-                    : t("themeSystem")}
-                </span>
-              </label>
-            ))}
-          </div>
         </section>
 
         <section className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
