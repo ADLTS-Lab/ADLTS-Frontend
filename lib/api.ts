@@ -1,8 +1,10 @@
 import axios from 'axios';
 import { clearAuthStorage } from '@/lib/auth-session';
+import { isLocalFallbackEnabled } from '@/lib/runtime-flags';
 import { useAuthStore } from '@/store/authStore';
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || '/api/v1';
+const CONFIGURED_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() ?? '';
+const API_BASE_URL = CONFIGURED_API_BASE_URL || (isLocalFallbackEnabled() ? '/api/v1' : '');
 const MOCK_API_KEY = process.env.NEXT_PUBLIC_MOCK_API_KEY;
 
 const api = axios.create({
@@ -15,6 +17,12 @@ const api = axios.create({
 
 // Request interceptor to add token
 api.interceptors.request.use((config: any) => {
+  if (!API_BASE_URL) {
+    throw new Error(
+      'NEXT_PUBLIC_API_BASE_URL is not set. Configure a backend /api/v1 URL or enable NEXT_PUBLIC_ALLOW_LOCAL_FALLBACK=true for local mocks.'
+    );
+  }
+
   try {
     const token = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
     if (token) {
