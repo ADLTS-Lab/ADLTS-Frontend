@@ -1,13 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { getAuthenticatedUser } from '../../../_mock-auth';
-import { deleteBooking } from '../../../_mock-bookings';
+import { getAuthenticatedUser } from '../../_mock-auth';
+import { deleteBooking, getBooking } from '../../_mock-bookings';
+
+async function resolveParams(props: { params: Promise<{ id: string }> | { id: string } }) {
+  return props.params && 'then' in props.params ? await props.params : props.params;
+}
+
+export async function GET(
+  request: NextRequest,
+  props: { params: Promise<{ id: string }> | { id: string } },
+) {
+  const resolvedParams = await resolveParams(props);
+  const id = resolvedParams?.id;
+
+  if (!id) {
+    return NextResponse.json({ success: false, message: 'Booking ID is required.' }, { status: 400 });
+  }
+
+  const user = getAuthenticatedUser(request);
+  if (!user) {
+    return NextResponse.json({ success: false, message: 'Unauthorized.' }, { status: 401 });
+  }
+
+  const result = getBooking(user, id);
+  if ('error' in result) {
+    return NextResponse.json({ success: false, message: result.error }, { status: result.status });
+  }
+
+  return NextResponse.json({
+    success: true,
+    data: result.data,
+    booking: result.data,
+  });
+}
 
 export async function DELETE(
   request: NextRequest,
   props: { params: Promise<{ id: string }> | { id: string } },
 ) {
-  const resolvedParams = props.params && 'then' in props.params ? await props.params : props.params;
+  const resolvedParams = await resolveParams(props);
   const id = resolvedParams?.id;
 
   if (!id) {

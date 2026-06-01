@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { cancelBookingRequest, getAllBookings, getBookingBlockMessage, isActiveBookingStatus, submitBookingRequest, MOCK_BOOKING_INSTITUTIONS, subscribeToBookingChanges, type BookingRequest, type LicenseCategory, type BookingStatus } from "@/services/booking.service";
 import PaymentBadge from '@/components/PaymentBadge';
@@ -8,6 +9,7 @@ import PaymentHistory from '@/components/PaymentHistory';
 import { getPaymentsForBooking, type Payment } from '@/services/payment.service';
 import { useI18n } from "@/i18n/useI18n";
 import { useAuthStore } from "@/store/authStore";
+import { Alert, Button, ButtonLink, Card, CardHeader, EmptyState, Input, PageContainer, PageHeader, Select, Textarea, ui } from "@/app/components/ui";
 
 const getStatusBadge = (status: BookingStatus) => {
   switch (status) {
@@ -26,6 +28,8 @@ const LICENSE_CATEGORIES: LicenseCategory[] = ["A", "B", "C", "D"];
 
 export default function CandidateBookingPage() {
   const { t } = useI18n();
+  const searchParams = useSearchParams();
+  const paymentSuccess = searchParams.get("payment") === "success";
   const [bookings, setBookings] = useState<BookingRequest[]>([]);
   const [showForm, setShowForm] = useState(true);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
@@ -105,10 +109,16 @@ export default function CandidateBookingPage() {
         : 'bg-slate-100 text-slate-700';
 
   useEffect(() => {
+    if (paymentSuccess) {
+      setActionMessage("Payment completed. Your exam is scheduled.");
+    }
+  }, [paymentSuccess]);
+
+  useEffect(() => {
     let mounted = true;
 
     const loadPayments = async () => {
-      if (!currentBookingId || currentBookingStatus !== 'Approved') {
+      if (!currentBookingId || (currentBookingStatus !== 'Approved' && currentBookingStatus !== 'Payment Pending' && currentBookingStatus !== 'Scheduled')) {
         setPayments([]);
         return;
       }
@@ -176,7 +186,7 @@ export default function CandidateBookingPage() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!canSubmit) return;
+    if (!canSubmit || !selectedInstitution) return;
 
     if (activeBooking) {
       setErrorMessage(bookingLockMessage);
@@ -216,262 +226,210 @@ export default function CandidateBookingPage() {
     }
   };
 
+  const paymentPageUrl = currentBooking
+    ? `/candidate/payments?bookingId=${encodeURIComponent(currentBooking.id)}`
+    : "/candidate/payments";
+
   return (
-    <main className="space-y-6 md:space-y-8">
-      <div className="max-w-3xl">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600 mb-3">{t("bookingPageTitle")}</p>
-        <h1 className="text-2xl sm:text-3xl font-bold text-[#1F2937]">{t("bookingPageTitle")}</h1>
-        <p className="mt-3 text-[#4B5563] leading-relaxed">{t("bookingPageSubtitle")}</p>
-      </div>
+    <PageContainer width="wide">
+      <PageHeader
+        eyebrow={t("bookingPageTitle")}
+        title={t("bookingPageTitle")}
+        description={t("bookingPageSubtitle")}
+      />
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <div className="lg:col-span-2 space-y-6">
-          {(message || actionMessage) && (
-            <div className="rounded-xl bg-green-50 border border-green-200 px-4 py-3 text-sm text-green-700 font-medium shadow-sm">
-              {message || actionMessage}
-            </div>
-          )}
-
-          {errorMessage && (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 shadow-sm">
-              {errorMessage}
-            </div>
-          )}
+        <div className="space-y-4 lg:col-span-2">
+          {(message || actionMessage) ? <Alert variant="success">{message || actionMessage}</Alert> : null}
+          {errorMessage ? <Alert variant="error">{errorMessage}</Alert> : null}
 
           {showForm ? (
-            <section className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
-              <h2 className="font-bold text-slate-800 text-lg mb-6">{t("bookingPageTitle")}</h2>
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div>
-                  <label className="block text-sm font-semibold text-[#1F2937] mb-2">{t("bookingInstitutionField")}</label>
-                  <select
-                    value={institutionId}
-                    onChange={(event) => setInstitutionId(event.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent outline-none transition bg-[#F9FAFB] text-black"
-                  >
-                    <option value="" disabled>
-                      Select institution
+            <Card padding="lg">
+              <CardHeader title={t("bookingPageTitle")} />
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <Select
+                  label={t("bookingInstitutionField")}
+                  value={institutionId}
+                  onChange={(event) => setInstitutionId(event.target.value)}
+                  hint="Choose from the available sample institutions."
+                  required
+                >
+                  <option value="" disabled>
+                    Select institution
+                  </option>
+                  {MOCK_BOOKING_INSTITUTIONS.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
                     </option>
-                    {MOCK_BOOKING_INSTITUTIONS.map((item) => (
-                      <option key={item.id} value={item.id}>
-                        {item.name}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="mt-2 text-xs text-slate-500">Choose from the available sample institutions.</p>
-                </div>
+                  ))}
+                </Select>
 
-                <div>
-                  <label className="block text-sm font-semibold text-[#1F2937] mb-2">{t("bookingCategoryField")}</label>
-                  <select
-                    value={licenseCategory}
-                    onChange={(event) => setLicenseCategory(event.target.value as LicenseCategory)}
-                    className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent outline-none transition bg-[#F9FAFB] text-black"
-                  >
-                    {LICENSE_CATEGORIES.map((item) => (
-                      <option key={item} value={item}>
-                        {item}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <Select
+                  label={t("bookingCategoryField")}
+                  value={licenseCategory}
+                  onChange={(event) => setLicenseCategory(event.target.value as LicenseCategory)}
+                >
+                  {LICENSE_CATEGORIES.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
+                    </option>
+                  ))}
+                </Select>
 
-                <div>
-                  <label className="block text-sm font-semibold text-[#1F2937] mb-2">{t("bloodTypeLabel")}</label>
-                  <select
-                    value={bloodType}
-                    onChange={(event) => setBloodType(event.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent outline-none transition bg-[#F9FAFB] text-black"
-                  >
-                    <option value="A+">A+</option>
-                    <option value="A-">A-</option>
-                    <option value="B+">B+</option>
-                    <option value="B-">B-</option>
-                    <option value="O+">O+</option>
-                    <option value="O-">O-</option>
-                    <option value="AB+">AB+</option>
-                    <option value="AB-">AB-</option>
-                  </select>
-                </div>
+                <Select label={t("bloodTypeLabel")} value={bloodType} onChange={(event) => setBloodType(event.target.value)}>
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                </Select>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div>
-                    <label className="block text-sm font-semibold text-[#1F2937] mb-2">{t("preferredDateLabel")}</label>
-                    <input
-                      type="date"
-                      required
-                      value={preferredDate}
-                      onChange={(event) => setPreferredDate(event.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent outline-none transition bg-[#F9FAFB] text-black"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold text-[#1F2937] mb-2">{t("preferredSessionLabel")}</label>
-                    <select
-                      value={preferredSession}
-                      onChange={(event) => setPreferredSession(event.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent outline-none transition bg-[#F9FAFB] text-black"
-                    >
-                      <option value="Morning">{t("morningSession")}</option>
-                      <option value="Afternoon">{t("afternoonSession")}</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-[#1F2937] mb-2">{t("additionalNotesLabel")}</label>
-                  <textarea
-                    value={additionalNotes}
-                    onChange={(event) => setAdditionalNotes(event.target.value)}
-                    placeholder={t("additionalNotesPlaceholder")}
-                    rows={3}
-                    className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent outline-none transition bg-[#F9FAFB] text-black resize-none"
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <Input
+                    label={t("preferredDateLabel")}
+                    type="date"
+                    required
+                    value={preferredDate}
+                    onChange={(event) => setPreferredDate(event.target.value)}
                   />
-                </div>
-
-                <div className="pt-4 flex gap-4">
-                  {bookings.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={() => setShowForm(false)}
-                      className="w-1/3 bg-slate-100 text-slate-700 py-3.5 rounded-xl font-bold hover:bg-slate-200 transition"
-                    >
-                      Back
-                    </button>
-                  )}
-                  <button
-                    type="submit"
-                    disabled={!canSubmit}
-                    className="flex-1 bg-[#1E3A8A] text-white py-3.5 rounded-xl font-bold text-lg hover:bg-[#1E40AF] transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
+                  <Select
+                    label={t("preferredSessionLabel")}
+                    value={preferredSession}
+                    onChange={(event) => setPreferredSession(event.target.value)}
                   >
-                    {t("bookingSubmit")}
-                  </button>
+                    <option value="Morning">{t("morningSession")}</option>
+                    <option value="Afternoon">{t("afternoonSession")}</option>
+                  </Select>
                 </div>
 
+                <Textarea
+                  label={t("additionalNotesLabel")}
+                  value={additionalNotes}
+                  onChange={(event) => setAdditionalNotes(event.target.value)}
+                  placeholder={t("additionalNotesPlaceholder")}
+                  rows={3}
+                />
+
+                <div className="flex gap-3 border-t border-slate-100 pt-4">
+                  {bookings.length > 0 ? (
+                    <Button type="button" variant="secondary" onClick={() => setShowForm(false)} className="w-1/3">
+                      Back
+                    </Button>
+                  ) : null}
+                  <Button type="submit" disabled={!canSubmit} fullWidth className={bookings.length > 0 ? "flex-1" : ""}>
+                    {t("bookingSubmit")}
+                  </Button>
+                </div>
               </form>
-            </section>
+            </Card>
           ) : bookings.length > 0 ? (
-            <section className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
-              <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
-                <h2 className="font-bold text-slate-800 text-lg">{t("currentBooking") || "Current Booking"}</h2>
-                {getStatusBadge(bookings[0].status)}
-              </div>
+            <Card padding="lg">
+              <CardHeader
+                title={t("currentBooking") || "Current Booking"}
+                action={getStatusBadge(bookings[0].status)}
+              />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <BookingSummaryRow label={t("bookingInstitutionLabel")} value={bookings[0].institutionName || bookings[0].institution} />
                 <BookingSummaryRow label={t("bookingCategoryLabel")} value={bookings[0].licenseCategory} />
                 <BookingSummaryRow label={t("preferredDateLabel")} value={bookings[0].preferredDate} />
                 <BookingSummaryRow label={t("preferredSessionLabel")} value={bookings[0].preferredSession} />
               </div>
-              <div className="mt-4 flex items-center justify-between gap-3 rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Payment status</p>
-                  <p className="text-sm font-bold text-slate-800">{paymentStatusLabel}</p>
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                <p className={ui.statLabel}>Payment status</p>
+                <div className="mt-2 flex items-center justify-between gap-3">
+                  <p className="text-sm font-medium text-slate-800">{paymentStatusLabel}</p>
+                  <span className={["inline-flex rounded-full px-2.5 py-1 text-xs font-medium", paymentStatusBadgeClass].join(" ")}>
+                    {paymentStatusLabel}
+                  </span>
                 </div>
-                <span className={["inline-flex items-center rounded-full px-3 py-1 text-xs font-bold", paymentStatusBadgeClass].join(' ')}>
-                  {paymentStatusLabel}
-                </span>
               </div>
               <div className="mt-4">
-                <h3 className="text-sm font-semibold text-slate-700 mb-3">Payment</h3>
-                <div className="mb-3"><PaymentBadge bookingId={bookings[0].id} required={bookings[0].status === 'Approved'} /></div>
+                <h3 className="mb-3 text-sm font-semibold text-slate-800">Payment</h3>
+                <div className="mb-3">
+                  <PaymentBadge bookingId={bookings[0].id} required={bookings[0].status === "Approved"} />
+                </div>
                 <PaymentHistory bookingId={bookings[0].id} />
               </div>
-              {isApprovedBooking && (
-                <div className="mt-4 flex items-center gap-3">
-                  <Link href="/candidate/payments" className="inline-flex items-center rounded-xl bg-blue-900 px-4 py-3 text-sm font-bold text-white shadow-md transition hover:bg-blue-800">
-                    Open Payment Page
-                  </Link>
-                  <p className="text-sm text-slate-500">Use the payment page for checkout, retries, and history.</p>
+              {isApprovedBooking || currentBooking?.status === "Payment Pending" ? (
+                <div className="mt-4">
+                  <ButtonLink href={paymentPageUrl} variant="primary">
+                    Pay now
+                  </ButtonLink>
                 </div>
-              )}
-              
+              ) : null}
+
               <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-                {(isPendingBooking || isApprovedBooking) && (
-                  <button
-                    onClick={() => setShowCancelConfirm(true)}
-                    className="flex-1 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 font-bold text-rose-700 transition hover:bg-rose-100"
-                  >
+                {(isPendingBooking || isApprovedBooking) ? (
+                  <Button type="button" variant="danger" onClick={() => setShowCancelConfirm(true)} className="flex-1">
                     Cancel Booking
-                  </button>
-                )}
-                {isPendingBooking && (
-                  <button
-                    onClick={() => openNewBookingForm(false)}
-                    className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 font-bold text-slate-700 transition hover:bg-slate-50"
-                  >
+                  </Button>
+                ) : null}
+                {isPendingBooking ? (
+                  <Button type="button" variant="secondary" onClick={() => openNewBookingForm(false)} className="flex-1">
                     Change Institution
-                  </button>
-                )}
-                {!activeBooking && (
-                  <button
-                    onClick={() => openNewBookingForm(true)}
-                    className="flex-1 bg-[#1E3A8A] text-white py-3.5 rounded-xl font-bold hover:bg-[#1E40AF] transition shadow-md"
-                  >
+                  </Button>
+                ) : null}
+                {!activeBooking ? (
+                  <Button type="button" onClick={() => openNewBookingForm(true)} className="flex-1">
                     {isApprovedBooking ? "Book Again" : t("bookAnotherTest") || "Book Again"}
-                  </button>
-                )}
+                  </Button>
+                ) : null}
               </div>
-            </section>
+            </Card>
           ) : null}
         </div>
 
-        <div className="lg:col-span-1">
-          <section className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-            <h2 className="font-bold text-slate-800 text-lg mb-6">{t("bookingHistory") || "Booking History"}</h2>
-            {bookings.length > 0 ? (
-              <div className="space-y-4">
-                {bookings.map((b) => (
-                  <div key={b.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 flex justify-between items-center group hover:bg-slate-100 transition">
-                    <div>
-                      <p className="text-sm font-bold text-slate-800">{b.institutionName || b.institution}</p>
-                      <p className="text-xs text-slate-500 mt-0.5">{new Date(b.createdAt).toLocaleDateString()}</p>
-                    </div>
-                    {getStatusBadge(b.status)}
+        <Card padding="md" className="h-fit lg:col-span-1">
+          <CardHeader title={t("bookingHistory") || "Booking History"} />
+          {bookings.length > 0 ? (
+            <div className="space-y-3">
+              {bookings.map((b) => (
+                <div
+                  key={b.id}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 transition-colors hover:border-slate-300"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-slate-900">{b.institutionName || b.institution}</p>
+                    <p className="mt-0.5 text-xs text-slate-500">{new Date(b.createdAt).toLocaleDateString()}</p>
                   </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-slate-500">No previous bookings found.</p>
-            )}
-          </section>
-        </div>
+                  {getStatusBadge(b.status)}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyState title="No bookings yet" description="Submitted requests will appear here." className="!py-8" />
+          )}
+        </Card>
       </div>
 
-      {showCancelConfirm && currentBooking && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-slate-800">Cancel booking?</h3>
+      {showCancelConfirm && currentBooking ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
+          <Card padding="md" className="w-full max-w-md shadow-lg">
+            <h3 className="text-lg font-semibold text-blue-950">Cancel booking?</h3>
             <p className="mt-2 text-sm text-slate-600">
               Your current booking will be marked as Cancelled. You can create a new booking after this.
             </p>
-
             <div className="mt-6 flex gap-3">
-              <button
-                type="button"
-                onClick={() => setShowCancelConfirm(false)}
-                className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-50"
-              >
+              <Button type="button" variant="secondary" fullWidth onClick={() => setShowCancelConfirm(false)}>
                 Keep Booking
-              </button>
-              <button
-                type="button"
-                onClick={() => void handleCancelRequest()}
-                className="flex-1 rounded-xl bg-rose-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-rose-700"
-              >
+              </Button>
+              <Button type="button" variant="danger" fullWidth onClick={() => void handleCancelRequest()}>
                 Cancel Booking
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
-      )}
-    </main>
+      ) : null}
+    </PageContainer>
   );
 }
 
 const BookingSummaryRow = ({ label, value }: { label: string; value: string }) => (
-  <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
-    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">{label}</p>
-    <p className="text-sm font-bold text-slate-800">{value}</p>
+  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+    <p className={ui.statLabel}>{label}</p>
+    <p className="mt-1 text-sm font-medium text-slate-900">{value}</p>
   </div>
 );

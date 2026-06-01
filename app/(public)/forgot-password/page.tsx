@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Mail } from "lucide-react";
 import { useI18n } from "@/i18n/useI18n";
 import { requestPasswordReset } from "@/services/password.service";
 import { extractApiError } from "@/services/api-utils";
+import { Alert, AuthCard, AuthForm, Button, Input } from "@/app/components/ui";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -52,66 +53,49 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F7FA] flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-[#E5E7EB] p-6 sm:p-8">
-        <div className="text-center mb-6">
-          <div className="mx-auto w-12 h-12 bg-[#F5F7FA] rounded-full flex items-center justify-center mb-3">
-            <Mail className="text-[#1E3A8A]" size={22} />
+    <AuthCard icon={<Mail size={20} />} title={t("forgotPassword")} subtitle={t("forgotSubtitle")}>
+      {successMessage ? (
+        <div className="space-y-5 text-center">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-emerald-200 bg-emerald-50">
+            <CheckCircle2 className="text-emerald-600" size={24} />
           </div>
-          <h1 className="text-xl font-bold text-[#1F2937]">{t('forgotPassword')}</h1>
-          <p className="mt-2 text-sm text-[#6B7280]">{t('forgotSubtitle')}</p>
+          <Alert variant="success">{successMessage}</Alert>
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-2 text-sm font-medium text-blue-900 hover:text-blue-800"
+          >
+            <ArrowLeft size={16} />
+            {t("backToLogin")}
+          </Link>
         </div>
+      ) : (
+        <form onSubmit={handleSubmit}>
+          <AuthForm>
+            <Input
+              label={t("emailLabel")}
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="candidate@adlts.et"
+              autoComplete="email"
+            />
 
-        {successMessage ? (
-          <div className="rounded-2xl border border-emerald-200 bg-emerald-50 p-5 text-center">
-            <CheckCircle2 className="mx-auto mb-3 text-emerald-600" size={32} />
-            <p className="text-sm font-semibold text-emerald-900">{successMessage}</p>
-            <Link
-              href="/login"
-              className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-[#1E3A8A] hover:underline"
-            >
-              <ArrowLeft size={16} />
-                {t('backToLogin')}
-            </Link>
-          </div>
-        ) : (
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <div>
-              <label className="block text-sm font-semibold text-[#1F2937] mb-1">{t('emailLabel')}</label>
-              <input
-                type="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="candidate@adlts.et"
-                className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent outline-none transition bg-[#F9FAFB] text-black"
-              />
-            </div>
+            {error ? <Alert variant="error">{error}</Alert> : null}
 
-            {error && (
-              <div className="p-3 bg-red-50 text-[#DC2626] rounded-xl text-sm">
-                {error}
-              </div>
-            )}
+            <Button type="submit" fullWidth disabled={isLoading}>
+              {isLoading ? t("sendResetSending") : t("sendResetLink")}
+            </Button>
 
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-[#1E3A8A] text-white py-3.5 rounded-xl font-bold text-lg hover:bg-[#1E40AF] transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
-            >
-              {isLoading ? t('sendResetSending') : t('sendResetLink')}
-            </button>
-
-            <p className="text-center text-sm text-[#6B7280]">
-              {t('rememberPasswordPrompt')} {" "}
-              <Link href="/login" className="text-[#1E3A8A] font-semibold hover:underline">
-                {t('backToLogin')}
+            <p className="text-center text-sm text-slate-600">
+              {t("rememberPasswordPrompt")}{" "}
+              <Link href="/login" className="font-medium text-blue-900 hover:text-blue-800">
+                {t("backToLogin")}
               </Link>
             </p>
-          </form>
-        )}
-        </div>
-      </div>
-    
+          </AuthForm>
+        </form>
+      )}
+    </AuthCard>
   );
 }

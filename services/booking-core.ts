@@ -549,6 +549,24 @@ export function findBookingById(id: string): BookingRequest | null {
   return getDefaultMockBookings().find((booking) => booking.id === id) ?? null;
 }
 
+export async function getBookingById(id: string): Promise<BookingRequest | null> {
+  try {
+    const response = await api.get(`/bookings/${id}`);
+    const raw = response.data?.data ?? response.data?.booking ?? response.data;
+    const booking = normalizeBooking(raw);
+    if (booking) return booking;
+  } catch (error) {
+    if (!ALLOW_LOCAL_FALLBACK || !shouldUseLocalFallback(error)) {
+      const status = (error as { response?: { status?: number } } | undefined)?.response?.status;
+      if (status && status !== 404) {
+        throw new Error(extractApiError(error, 'Failed to load booking.'));
+      }
+    }
+  }
+
+  return findBookingById(id);
+}
+
 export function bookingBelongsToInstitution(booking: BookingRequest, institutionId?: string): boolean {
   return matchesInstitution(booking, institutionId);
 }

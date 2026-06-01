@@ -429,6 +429,55 @@ export function deleteBooking(user: MockUser, bookingId: string) {
   return { data: toApiBooking(booking) };
 }
 
+export function getBooking(user: MockUser, bookingId: string) {
+  const booking = state.bookings.get(bookingId);
+  if (!booking) {
+    return { error: 'Booking not found.', status: 404 as const };
+  }
+
+  if (!userCanAccessBooking(user, booking)) {
+    return { error: 'Forbidden.', status: 403 as const };
+  }
+
+  return { data: toApiBooking(booking) };
+}
+
+export function markBookingAwaitingPayment(bookingId: string) {
+  const booking = state.bookings.get(bookingId);
+  if (!booking || booking.status !== 'Approved') {
+    return null;
+  }
+
+  const updated: MockBooking = {
+    ...booking,
+    status: 'Payment Pending',
+    updatedAt: new Date().toISOString(),
+  };
+
+  state.bookings.set(bookingId, updated);
+  return updated;
+}
+
+export function markBookingPaid(bookingId: string) {
+  const booking = state.bookings.get(bookingId);
+  if (!booking) {
+    return null;
+  }
+
+  if (booking.status !== 'Approved' && booking.status !== 'Payment Pending') {
+    return booking;
+  }
+
+  const updated: MockBooking = {
+    ...booking,
+    status: 'Scheduled',
+    updatedAt: new Date().toISOString(),
+  };
+
+  state.bookings.set(bookingId, updated);
+  return updated;
+}
+
 export function parseBookingListQuery(request: NextRequest): BookingListQuery {
   const { searchParams } = new URL(request.url);
   const page = Number(searchParams.get('page') || 1);

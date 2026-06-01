@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { login } from "@/services/auth.service";
@@ -8,6 +9,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useI18n } from "@/i18n/useI18n";
 import { getHomeRouteForRole } from "@/config/routes";
 import { extractApiError } from "@/services/api-utils";
+import { Alert, AuthCard, AuthForm, AuthLink, Button, Input, LabelRow } from "@/app/components/ui";
 
 export default function UnifiedLoginPage() {
   const router = useRouter();
@@ -60,77 +62,63 @@ export default function UnifiedLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F7FA] flex items-center justify-center px-4">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-[#E5E7EB] p-6 sm:p-8">
-        <div className="text-center mb-6">
-          <div className="mx-auto w-12 h-12 bg-[#F5F7FA] rounded-full flex items-center justify-center mb-3">
-            <span className="text-2xl">🚗</span>
-          </div>
-          <h1 className="text-xl font-bold text-[#1F2937]">{t("loginTitle")}</h1>
-        </div>
+    <AuthCard
+      icon={<span className="text-xl leading-none">🚗</span>}
+      title={t("loginTitle")}
+      footer={
+        <>
+          <AuthLink href="/candidate/register">{t("registerPrompt")}</AuthLink>
+        </>
+      }
+    >
+      <form onSubmit={handleLogin}>
+        <AuthForm>
+          <Input
+            label={t("emailLabel")}
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            autoComplete="email"
+          />
 
-        <form onSubmit={handleLogin} className="space-y-5">
           <div>
-            <label className="block text-sm font-semibold text-[#1F2937] mb-1">{t("emailLabel")}</label>
-            <input
-              type="email"
+            <LabelRow
+              label={t("passwordLabel")}
+              action={
+                <Link href="/forgot-password" className="text-xs font-medium text-blue-900 hover:text-blue-800">
+                  {t("forgotPassword")}
+                </Link>
+              }
+            />
+            <Input
+              type={showPassword ? "text" : "password"}
               required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent outline-none transition bg-[#F9FAFB] text-black"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+              autoComplete="current-password"
+              suffix={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              }
             />
           </div>
 
-          <div>
-            <div className="flex justify-between items-center mb-1">
-              <label className="text-sm font-semibold text-[#1F2937]">{t("passwordLabel")}</label>
-              <button
-                type="button"
-                onClick={() => router.push("/forgot-password")}
-                className="text-xs text-[#3B82F6] hover:underline"
-              >
-                {t("forgotPassword")}
-              </button>
-            </div>
-            <div className="relative">
-              <input
-                type={showPassword ? "text" : "password"}
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent outline-none transition bg-[#F9FAFB] text-black"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B7280] hover:text-[#1F2937]"
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-          </div>
+          {error ? <Alert variant="error">{error}</Alert> : null}
 
-          {error && (
-            <div className="p-3 bg-red-50 text-[#DC2626] rounded-xl text-sm">{error}</div>
-          )}
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="w-full bg-[#1E3A8A] text-white py-3.5 rounded-xl font-bold text-lg hover:bg-[#1E40AF] transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
-          >
+          <Button type="submit" fullWidth disabled={isLoading}>
             {isLoading ? t("loginLoading") : t("loginButton")}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-[#6B7280]">
-          <a href="/candidate/register" className="text-[#1E3A8A] font-semibold hover:underline">
-            {t("registerPrompt")}
-          </a>
-        </p>
-      </div>
-    </div>
+          </Button>
+        </AuthForm>
+      </form>
+    </AuthCard>
   );
 }

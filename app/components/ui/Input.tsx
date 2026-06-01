@@ -1,30 +1,42 @@
-import { InputHTMLAttributes, useId } from "react";
+import { type InputHTMLAttributes, type ReactNode, useId } from "react";
 
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+import { ui } from "./design-tokens";
+
+type InputProps = InputHTMLAttributes<HTMLInputElement> & {
   label?: string;
   error?: string;
-}
-export const Input = ({ label, error, className = "", id, ...props }: InputProps) => {
+  hint?: string;
+  suffix?: ReactNode;
+};
+
+export function Input({ label, error, hint, suffix, className = "", id, ...props }: InputProps) {
   const generatedId = useId();
   const inputId = id ?? generatedId;
 
   return (
-    <div className="space-y-1">
-      {label && (
-        <label htmlFor={inputId} className="block text-sm font-semibold text-text-dark">
+    <div className="space-y-1.5">
+      {label ? (
+        <label htmlFor={inputId} className={ui.label}>
           {label}
         </label>
-      )}
-      <input
-        id={inputId}
-        className={`w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-primary-light focus:border-transparent outline-none bg-slate-50 ${className}`}
-        {...props}
-      />
-      {error && (
-        <p role="alert" className="text-xs text-error">
+      ) : null}
+      <div className="relative">
+        <input
+          id={inputId}
+          className={`${ui.input} ${suffix ? "pr-10" : ""} ${error ? "border-rose-300 focus:border-rose-500 focus:ring-rose-500/20" : ""} ${className}`}
+          {...props}
+        />
+        {suffix ? (
+          <div className="absolute inset-y-0 right-0 flex items-center pr-2">{suffix}</div>
+        ) : null}
+      </div>
+      {error ? (
+        <p role="alert" className="text-xs text-rose-600">
           {error}
         </p>
-      )}
+      ) : hint ? (
+        <p className={ui.hint}>{hint}</p>
+      ) : null}
     </div>
   );
-};
+}

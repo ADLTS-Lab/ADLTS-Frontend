@@ -2,6 +2,8 @@ import api from '@/lib/api';
 import { extractApiError, shouldUseLocalFallback } from './api-utils';
 import type { Payment, PaymentInitiateRequest } from '@/types/payment';
 
+export type { Payment, PaymentInitiateRequest } from '@/types/payment';
+
 const PAYMENTS_STORAGE_KEY = 'adlts-payments';
 export const DEFAULT_PAYMENT_AMOUNT_CENTS = 50000;
 export const DEFAULT_PAYMENT_CURRENCY = 'ETB';
@@ -23,7 +25,12 @@ function normalizePayment(raw: unknown): Payment | null {
     id,
     bookingId,
     provider: typeof data.provider === 'string' ? data.provider : undefined,
-    providerRef: typeof data.provider_ref === 'string' ? data.provider_ref : undefined,
+    providerRef:
+      typeof data.provider_ref === 'string'
+        ? data.provider_ref
+        : typeof data.providerRef === 'string'
+          ? data.providerRef
+          : undefined,
     checkout_url: typeof data.checkout_url === 'string' ? data.checkout_url : undefined,
     amountCents,
     currency,
@@ -139,6 +146,50 @@ export async function retryPayment(bookingId: string): Promise<Payment> {
   }
 }
 
+export function isMockCheckoutUrl(url?: string): boolean {
+  if (!url) return false;
+  return url.includes('checkout.chapa.co/mock') || url.includes('/mock/');
+}
+
+export function resolvePaymentAmountCents(payments: Payment[]): number {
+  const payable = payments.find((payment) =>
+    payment.status === 'Initiated' || payment.status === 'Pending' || payment.status === 'Failed',
+  );
+  if (payable?.amountCents) return payable.amountCents;
+
+  const latest = payments[0];
+  if (latest?.amountCents) return latest.amountCents;
+
+  return DEFAULT_PAYMENT_AMOUNT_CENTS;
+}
+
+export async function confirmPayment(bookingId: string, providerRef: string): Promise<Payment> {
+  try {
+    const response = await api.post(`/bookings/${bookingId}/payments/callback`, {
+      tx_ref: providerRef,
+      status: 'success',
+    });
+    const payment = normalizePayment(response.data?.data ?? response.data?.payment);
+    if (payment) return payment;
+    throw new Error('Payment confirmation failed.');
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to confirm payment.'));
+  }
+}
+
+export async function completePaymentCheckout(bookingId: string, payment: Payment): Promise<Payment> {
+  if (isMockCheckoutUrl(payment.checkout_url) && payment.providerRef) {
+    return confirmPayment(bookingId, payment.providerRef);
+  }
+
+  if (payment.checkout_url && typeof window !== 'undefined') {
+    window.location.href = payment.checkout_url;
+    return payment;
+  }
+
+  return payment;
+}
+
 export async function getPaymentsForBooking(bookingId: string): Promise<Payment[]> {
   try {
     const response = await api.get(`/bookings/${bookingId}/payments`);
@@ -168,7 +219,11 @@ const paymentService = {
   initiatePayment,
   createPayment,
   retryPayment,
+  confirmPayment,
+  completePaymentCheckout,
   getPaymentsForBooking,
+  resolvePaymentAmountCents,
+  isMockCheckoutUrl,
   getStoredPaymentsSnapshot,
 };
 

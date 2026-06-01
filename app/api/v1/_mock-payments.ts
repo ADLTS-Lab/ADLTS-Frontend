@@ -1,6 +1,8 @@
 import { randomUUID } from 'crypto';
 import type { NextRequest } from 'next/server';
 
+import { markBookingAwaitingPayment, markBookingPaid } from './_mock-bookings';
+
 export type MockPaymentStatus = 'Initiated' | 'Pending' | 'Succeeded' | 'Failed' | 'Cancelled';
 
 export type MockPayment = {
@@ -78,6 +80,7 @@ export function createPaymentForBooking(bookingId: string, body: Record<string, 
   };
 
   state.payments.set(payment.id, payment);
+  markBookingAwaitingPayment(bookingId);
   return payment;
 }
 
@@ -96,10 +99,11 @@ export function retryPaymentForBooking(bookingId: string) {
     id: `payment-${randomUUID()}`,
     bookingId,
     provider: existing.provider,
-    providerRef: existing.providerRef,
+    providerRef: `tx-${randomUUID()}`,
     amountCents: existing.amountCents,
     currency: existing.currency,
     status: 'Pending',
+    checkout_url: `https://checkout.chapa.co/mock/${randomUUID()}`,
     createdAt: now,
   };
 
@@ -129,6 +133,7 @@ export function handleProviderCallback(body: Record<string, unknown>, headers: H
 
   state.payments.set(found.id, updated);
   if (updated.status === 'Succeeded') {
+    markBookingPaid(updated.bookingId);
     state.retryCounts.set(updated.bookingId, state.retryCounts.get(updated.bookingId) ?? 0);
   }
   return updated;

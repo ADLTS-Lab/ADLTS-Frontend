@@ -1,246 +1,288 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState, type FormEvent } from "react";
-import { Card } from "@/app/components/ui/Card";
-import { Button } from "@/app/components/ui/Button";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Alert, Button, ButtonLink, Card, CardHeader, Input, PageContainer, PageHeader } from "@/app/components/ui";
+import { getAllBookings, getBookingById, type BookingRequest } from "@/services/booking.service";
 import {
+  completePaymentCheckout,
+  createPayment,
   DEFAULT_PAYMENT_AMOUNT_CENTS,
   DEFAULT_PAYMENT_CURRENCY,
-  createPayment,
   getPaymentsForBooking,
+  resolvePaymentAmountCents,
   retryPayment,
   type Payment,
 } from "@/services/payment.service";
-import { getAllBookings, type BookingRequest } from "@/services/booking.service";
 import { useAuthStore } from "@/store/authStore";
 
+const PAYABLE_BOOKING_STATUSES = new Set(["Approved", "Payment Pending"]);
+
+function formatAmount(amountCents: number, currency: string) {
+  return `${currency} ${(amountCents / 100).toLocaleString()}`;
+}
+
+function pickPayableBooking(bookings: BookingRequest[], email: string | undefined, bookingId?: string | null) {
+  const mine = email
+    ? bookings.filter((item) => item.candidateDetails?.email?.toLowerCase() === email.toLowerCase())
+    : bookings;
+
+  if (bookingId) {
+    const match = mine.find((item) => item.id === bookingId);
+    if (match) return match;
+  }
+
+  return (
+    mine.find((item) => PAYABLE_BOOKING_STATUSES.has(item.status)) ??
+    mine.find((item) => item.status === "Scheduled") ??
+    mine[0] ??
+    null
+  );
+}
+
 export default function CandidatePaymentsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const bookingIdParam = searchParams.get("bookingId");
   const { user } = useAuthStore();
+
   const [booking, setBooking] = useState<BookingRequest | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
-  const [message, setMessage] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [amountEtb, setAmountEtb] = useState(String(DEFAULT_PAYMENT_AMOUNT_CENTS / 100));
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  useEffect(() => {
-    let mounted = true;
-
-    const loadBookingAndPayments = async () => {
-      setLoading(true);
-      try {
-        const allBookings = await getAllBookings();
-        if (!mounted) return;
-
-        const currentEmail = user?.email?.toLowerCase();
-        const currentBooking = allBookings.find((item) => item.candidateDetails?.email?.toLowerCase() === currentEmail) ?? null;
-        setBooking(currentBooking);
-        if (currentBooking) {
-          setAmountEtb(String(DEFAULT_PAYMENT_AMOUNT_CENTS / 100));
-        }
-
-        if (currentBooking) {
-          const bookingPayments = await getPaymentsForBooking(currentBooking.id);
-          if (!mounted) return;
-          setPayments(bookingPayments);
-        } else {
-          setPayments([]);
-        }
-      } catch (error) {
-        if (!mounted) return;
-        setMessage(error instanceof Error ? error.message : 'Unable to load payment information right now.');
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void loadBookingAndPayments();
-
-    return () => {
-      mounted = false;
-    };
-  }, [user?.email]);
-
-  const latestPayment = payments[0] ?? null;
-  const paymentSuccessful = latestPayment?.status === 'Succeeded';
-  const isRetryFlow = latestPayment?.status === 'Failed' || latestPayment?.status === 'Cancelled';
-  const paymentStatusLabel = !booking
-    ? 'No booking yet'
-    : paymentSuccessful
-      ? 'Payment Successful'
-      : latestPayment?.status === 'Failed' || latestPayment?.status === 'Cancelled'
-        ? 'Payment Required'
-        : booking.status === 'Approved'
-          ? 'Payment Required'
-          : booking.status === 'Pending'
-            ? 'Waiting for institution approval'
-            : booking.status === 'Scheduled'
-              ? 'Exam Scheduled'
-              : 'Not available';
-  const paymentStatusBadgeClass = !booking
-    ? 'bg-slate-100 text-slate-700'
-    : paymentSuccessful
-      ? 'bg-emerald-100 text-emerald-700'
-      : booking.status === 'Approved' || isRetryFlow
-        ? 'bg-amber-100 text-amber-700'
-        : booking.status === 'Pending'
-          ? 'bg-slate-100 text-slate-700'
-          : 'bg-indigo-100 text-indigo-700';
-  const amountCents = Math.max(0, Math.round(Number(amountEtb || 0) * 100));
-  const amountLabel = formatPaymentAmount(amountCents || DEFAULT_PAYMENT_AMOUNT_CENTS, DEFAULT_PAYMENT_CURRENCY);
-
-  const handlePayNow = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!booking || booking.status !== 'Approved') return;
-
-    setIsSubmitting(true);
-    setMessage('');
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError("");
+    setSuccess("");
 
     try {
-      const response = isRetryFlow
-        ? await retryPayment(booking.id)
-        : await createPayment(booking.id, {
-            amountCents,
-            currency: DEFAULT_PAYMENT_CURRENCY,
-            provider: 'chapa',
-            metadata: {
-              bookingId: booking.id,
-              institutionId: booking.institutionId,
-            },
-          });
+      let resolvedBooking: BookingRequest | null = null;
 
-      const refreshed = await getPaymentsForBooking(booking.id);
-      setPayments(refreshed);
+      if (bookingIdParam) {
+        resolvedBooking = await getBookingById(bookingIdParam);
+      }
 
-      if (response.checkout_url && typeof window !== 'undefined') {
-        window.location.href = response.checkout_url;
+      if (!resolvedBooking) {
+        const allBookings = await getAllBookings();
+        resolvedBooking = pickPayableBooking(allBookings, user?.email, bookingIdParam);
+      }
+
+      setBooking(resolvedBooking);
+
+      if (!resolvedBooking) {
+        setPayments([]);
         return;
       }
 
-      setMessage('Chapa checkout is being prepared. If the redirect does not open automatically, refresh the page and try again.');
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to start payment right now.');
+      const bookingPayments = await getPaymentsForBooking(resolvedBooking.id);
+      setPayments(bookingPayments);
+
+      // #region agent log
+      fetch("http://127.0.0.1:7485/ingest/750002e8-fc34-4f4c-aec9-03b23cf457b3", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "30f368" },
+        body: JSON.stringify({
+          sessionId: "30f368",
+          runId: "payment-flow",
+          hypothesisId: "H1",
+          location: "payments/page.tsx:loadData",
+          message: "payment page loaded",
+          data: {
+            bookingId: resolvedBooking.id,
+            status: resolvedBooking.status,
+            paymentCount: bookingPayments.length,
+            amountCents: resolvePaymentAmountCents(bookingPayments),
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
+    } catch (loadError) {
+      setBooking(null);
+      setPayments([]);
+      setError(loadError instanceof Error ? loadError.message : "Unable to load payment details.");
     } finally {
-      setIsSubmitting(false);
+      setLoading(false);
+    }
+  }, [bookingIdParam, user?.email]);
+
+  useEffect(() => {
+    void loadData();
+  }, [loadData]);
+
+  const latestPayment = payments[0] ?? null;
+  const paymentSucceeded = latestPayment?.status === "Succeeded" || booking?.status === "Scheduled";
+  const amountCents = useMemo(() => resolvePaymentAmountCents(payments), [payments]);
+  const amountLabel = formatAmount(amountCents || DEFAULT_PAYMENT_AMOUNT_CENTS, DEFAULT_PAYMENT_CURRENCY);
+  const canPay =
+    Boolean(booking) &&
+    PAYABLE_BOOKING_STATUSES.has(booking?.status ?? "") &&
+    !paymentSucceeded &&
+    !submitting;
+  const isRetry = latestPayment?.status === "Failed" || latestPayment?.status === "Cancelled";
+
+  const handlePay = async () => {
+    if (!booking || !canPay) return;
+
+    setSubmitting(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      const initiated = isRetry
+        ? await retryPayment(booking.id)
+        : await createPayment(booking.id, {
+            amountCents: amountCents || DEFAULT_PAYMENT_AMOUNT_CENTS,
+            currency: DEFAULT_PAYMENT_CURRENCY,
+            provider: "chapa",
+            metadata: { bookingId: booking.id, institutionId: booking.institutionId },
+          });
+
+      // #region agent log
+      fetch("http://127.0.0.1:7485/ingest/750002e8-fc34-4f4c-aec9-03b23cf457b3", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "30f368" },
+        body: JSON.stringify({
+          sessionId: "30f368",
+          runId: "payment-flow",
+          hypothesisId: "H2",
+          location: "payments/page.tsx:handlePay",
+          message: "payment initiated",
+          data: {
+            paymentId: initiated.id,
+            providerRef: initiated.providerRef,
+            checkoutUrl: initiated.checkout_url,
+          },
+          timestamp: Date.now(),
+        }),
+      }).catch(() => {});
+      // #endregion
+
+      const completed = await completePaymentCheckout(booking.id, initiated);
+      const refreshed = await getPaymentsForBooking(booking.id);
+      setPayments(refreshed);
+
+      if (completed.status === "Succeeded" || refreshed[0]?.status === "Succeeded") {
+        // #region agent log
+        fetch("http://127.0.0.1:7485/ingest/750002e8-fc34-4f4c-aec9-03b23cf457b3", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "30f368" },
+          body: JSON.stringify({
+            sessionId: "30f368",
+            runId: "payment-flow",
+            hypothesisId: "H3",
+            location: "payments/page.tsx:handlePay",
+            message: "payment succeeded redirecting",
+            data: { bookingId: booking.id },
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+        // #endregion
+
+        router.push(`/candidate/booking?payment=success&bookingId=${encodeURIComponent(booking.id)}`);
+        return;
+      }
+
+      setSuccess("Checkout opened. Return here after you finish payment.");
+    } catch (payError) {
+      setError(payError instanceof Error ? payError.message : "Payment could not be completed.");
+    } finally {
+      setSubmitting(false);
     }
   };
 
   if (loading) {
     return (
-      <main className="space-y-6 md:space-y-8">
-        <div className="rounded-3xl bg-white p-6 md:p-8 border border-slate-100 animate-pulse">
-          <div className="h-5 w-44 rounded bg-slate-100 mb-4" />
-          <div className="h-4 w-72 rounded bg-slate-100 mb-2" />
-          <div className="h-4 w-56 rounded bg-slate-100" />
-        </div>
-      </main>
+      <PageContainer>
+        <Card padding="lg" className="animate-pulse space-y-4">
+          <div className="h-4 w-32 rounded bg-slate-100" />
+          <div className="h-8 w-64 rounded bg-slate-100" />
+          <div className="h-24 rounded-lg bg-slate-100" />
+        </Card>
+      </PageContainer>
     );
   }
 
   return (
-    <main className="space-y-6 md:space-y-8">
-      <div className="max-w-3xl">
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600 mb-3">Payment</p>
-        <h1 className="text-2xl sm:text-3xl font-bold text-[#1F2937]">Payment</h1>
-      </div>
+    <PageContainer>
+      <PageHeader eyebrow="Checkout" title="Payment" />
 
-      {message && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 shadow-sm">
-          {message}
-        </div>
+      {error ? <Alert variant="error">{error}</Alert> : null}
+      {success ? <Alert variant="info">{success}</Alert> : null}
+
+      {!booking ? (
+        <Card padding="lg">
+          <CardHeader title="No booking found" />
+          <p className="text-sm text-slate-600">Submit and get a booking approved before paying.</p>
+          <ButtonLink href="/candidate/booking" variant="primary" className="mt-4">
+            Go to booking
+          </ButtonLink>
+        </Card>
+      ) : paymentSucceeded ? (
+        <Card padding="lg">
+          <CardHeader title="Payment complete" />
+          <p className="text-sm text-slate-600">
+            {booking.institutionName || booking.institution} · {amountLabel}
+          </p>
+          <ButtonLink href={`/candidate/booking?bookingId=${encodeURIComponent(booking.id)}`} variant="primary" className="mt-4">
+            View booking status
+          </ButtonLink>
+        </Card>
+      ) : booking.status === "Pending" ? (
+        <Card padding="lg">
+          <CardHeader title="Awaiting approval" />
+          <p className="text-sm text-slate-600">
+            {booking.institutionName || booking.institution} must approve your request before payment opens.
+          </p>
+          <ButtonLink href="/candidate/booking" variant="secondary" className="mt-4">
+            Back to booking
+          </ButtonLink>
+        </Card>
+      ) : (
+        <Card padding="lg">
+          <CardHeader
+            title={booking.institutionName || booking.institution}
+            description={`Ref ${booking.id}`}
+          />
+
+          <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+            <SummaryItem label="Category" value={booking.licenseCategory} />
+            <SummaryItem label="Exam date" value={booking.preferredDate || "—"} />
+            <SummaryItem label="Session" value={booking.preferredSession || "—"} />
+            <SummaryItem label="Amount due" value={amountLabel} />
+          </dl>
+
+          {canPay ? (
+            <div className="mt-6 space-y-4 border-t border-slate-100 pt-6">
+              <Input label="Amount" value={amountLabel} readOnly disabled />
+              <Button type="button" onClick={() => void handlePay()} disabled={submitting} fullWidth>
+                {submitting ? "Processing…" : isRetry ? "Retry payment" : "Pay now"}
+              </Button>
+            </div>
+          ) : (
+            <Alert variant="info" className="mt-6">
+              Payment is not available for this booking status ({booking.status}).
+            </Alert>
+          )}
+
+          <Link href="/candidate/booking" className="mt-4 inline-block text-sm font-medium text-blue-800 hover:text-blue-900">
+            ← Back to booking
+          </Link>
+        </Card>
       )}
-
-      <Card>
-        {!booking ? (
-          <div className="space-y-4">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600 mb-2">Payment Summary</p>
-              <h2 className="text-2xl font-black text-blue-950">No approved booking yet</h2>
-              <p className="mt-2 text-sm text-slate-500 max-w-2xl">
-                Your payment area appears once your institution approves a booking request.
-              </p>
-            </div>
-            <Link href="/candidate/booking" className="inline-flex w-fit rounded-full bg-blue-900 px-5 py-3 text-sm font-bold text-white shadow-md transition hover:bg-blue-800">
-              Back to Booking
-            </Link>
-          </div>
-        ) : (
-          <div className="space-y-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600 mb-2">Payment Summary</p>
-                <h2 className="text-2xl font-black text-blue-950">{booking.institutionName || booking.institution}</h2>
-              </div>
-              <span className={[
-                'inline-flex items-center rounded-full px-3 py-1 text-xs font-bold',
-                paymentStatusBadgeClass,
-              ].join(' ')}>
-                {paymentStatusLabel}
-              </span>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-              <InfoRow label="Booking Reference" value={booking.id} />
-              <InfoRow label="Institution" value={booking.institutionName || booking.institution} />
-              <InfoRow label="Amount" value={amountLabel} />
-              <InfoRow label="Payment Status" value={paymentStatusLabel} />
-            </div>
-
-            <div className="flex flex-col gap-3 sm:flex-row">
-              {paymentSuccessful ? (
-                <div className="inline-flex items-center gap-2 rounded-xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
-                  <span aria-hidden="true">✓</span>
-                  Payment Successful
-                </div>
-                ) : booking.status === 'Approved' ? (
-                  <form onSubmit={(event) => void handlePayNow(event)} className="w-full space-y-4">
-                    <div className="grid gap-4 sm:grid-cols-[1fr_auto] sm:items-end">
-                      <label className="block">
-                        <span className="mb-2 block text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Amount (ETB)</span>
-                        <input
-                          type="number"
-                          min="1"
-                          step="1"
-                          value={amountEtb}
-                          onChange={(event) => setAmountEtb(event.target.value)}
-                          className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-100"
-                        />
-                      </label>
-
-                      <Button type="submit" disabled={isSubmitting || amountCents <= 0} className="w-full justify-center sm:w-auto">
-                        {isSubmitting ? 'Opening checkout…' : isRetryFlow ? 'Retry with Chapa' : 'Pay with Chapa'}
-                      </Button>
-                    </div>
-
-                    <p className="text-xs text-slate-500">
-                      This will open the Chapa checkout endpoint and return you with the payment result.
-                    </p>
-                  </form>
-              ) : (
-                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-                  Payment becomes available after the institution approves your booking.
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </Card>
-    </main>
+    </PageContainer>
   );
 }
 
-function InfoRow({ label, value }: { label: string; value: string }) {
+function SummaryItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-start justify-between gap-4 rounded-2xl bg-slate-50/70 p-4">
-      <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{label}</span>
-      <span className="text-sm font-bold text-slate-800 text-right">{value}</span>
+    <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+      <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</dt>
+      <dd className="mt-1 text-sm font-semibold text-slate-900">{value}</dd>
     </div>
   );
-}
-
-function formatPaymentAmount(amountCents: number, currency: string) {
-  return `${currency} ${(amountCents / 100).toFixed(0)}`;
 }

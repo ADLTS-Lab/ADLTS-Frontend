@@ -6,10 +6,10 @@ import { Eye, EyeOff } from "lucide-react";
 import { registerCandidate } from "@/services/auth.service";
 import { useAuthStore } from "@/store/authStore";
 import { extractApiError } from "@/services/api-utils";
+import { Alert, AuthCard, AuthForm, AuthLink, Button, Input, Select } from "@/app/components/ui";
 
 export default function CandidateRegisterPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
   const [formData, setFormData] = useState({
     first_name: "",
     last_name: "",
@@ -50,7 +50,6 @@ export default function CandidateRegisterPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setError("");
-    if (e.target.name === "email") setEmail(e.target.value);
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -66,7 +65,6 @@ export default function CandidateRegisterPage() {
     setIsLoading(true);
 
     try {
-      // Call register API (mock or real)
       const res = await registerCandidate({
         first_name: formData.first_name,
         last_name: formData.last_name,
@@ -75,10 +73,9 @@ export default function CandidateRegisterPage() {
         phone: formData.phone,
         fayida_id: formData.fayida_id || undefined,
         birth_date: formData.birth_date || undefined,
-        gender: formData.gender as any || undefined,
+        gender: (formData.gender as "male" | "female" | "other") || undefined,
       });
 
-      // If backend returned a token, auto-login and redirect to dashboard
       const token = res?.data?.access_token || res?.access_token || res?.data?.token || res?.token;
       const refreshToken = res?.data?.refresh_token || res?.refresh_token;
       const user = res?.data?.user || res?.user;
@@ -89,101 +86,125 @@ export default function CandidateRegisterPage() {
       }
 
       router.push("/login?registered=true");
-    } catch (err: any) {
+    } catch (err: unknown) {
       setError(extractApiError(err, "Registration failed. Please try again.", "auth-register"));
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Step 1: Registration form
   return (
-    <div className="min-h-screen bg-[#F5F7FA] flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-[#E5E7EB] p-6 sm:p-8">
-        <div className="text-center mb-6">
-          <div className="mx-auto w-12 h-12 bg-[#F5F7FA] rounded-full flex items-center justify-center mb-3">
-            <span className="text-2xl">📝</span>
-          </div>
-          <h1 className="text-xl font-bold text-[#1F2937]">
-            አዲስ መጠየቂያ ይፍጠሩ / Create an Account
-          </h1>
-        </div>
-
-        <form onSubmit={handleRegister} className="space-y-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-semibold text-[#1F2937] mb-1">ስም / First name</label>
-              <input type="text" name="first_name" value={formData.first_name} onChange={handleChange} required className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-black" />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-[#1F2937] mb-1">አያት / Last name</label>
-              <input type="text" name="last_name" value={formData.last_name} onChange={handleChange} required className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-black" />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-[#1F2937] mb-1">ኢሜይል / Email</label>
-            <input type="email" name="email" value={formData.email} onChange={handleChange} required className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-black" />
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-[#1F2937] mb-1">ስልክ ቁጥር / Phone</label>
-            <input type="tel" name="phone" value={formData.phone} onChange={handleChange} required className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-black" />
+    <AuthCard
+      icon={<span className="text-xl leading-none">📝</span>}
+      title="አዲስ መጠየቂያ ይፍጠሩ / Create an Account"
+      footer={
+        <>
+          አካውንት አለህ? <AuthLink href="/login">ግባ / Login</AuthLink>
+        </>
+      }
+    >
+      <form onSubmit={handleRegister}>
+        <AuthForm>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
+              label="ስም / First name"
+              type="text"
+              name="first_name"
+              value={formData.first_name}
+              onChange={handleChange}
+              required
+            />
+            <Input
+              label="አያት / Last name"
+              type="text"
+              name="last_name"
+              value={formData.last_name}
+              onChange={handleChange}
+              required
+            />
           </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-[#1F2937] mb-1">የይለፍ ቃል / Password</label>
-            <div className="relative">
-              <input type={showPassword ? "text" : "password"} name="password" value={formData.password} onChange={handleChange} required className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-black" />
-              <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B7280]">
+          <Input
+            label="ኢሜይል / Email"
+            type="email"
+            name="email"
+            value={formData.email}
+            onChange={handleChange}
+            required
+          />
+
+          <Input
+            label="ስልክ ቁጥር / Phone"
+            type="tel"
+            name="phone"
+            value={formData.phone}
+            onChange={handleChange}
+            required
+          />
+
+          <Input
+            label="የይለፍ ቃል / Password"
+            type={showPassword ? "text" : "password"}
+            name="password"
+            value={formData.password}
+            onChange={handleChange}
+            required
+            suffix={
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
-            </div>
-          </div>
+            }
+          />
 
-          <div>
-            <label className="block text-sm font-semibold text-[#1F2937] mb-1">የይለፍ ቃል አረጋግጥ / Confirm password</label>
-            <input type="password" name="confirmPassword" value={formData.confirmPassword} onChange={handleChange} required className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-black" />
-          </div>
+          <Input
+            label="የይለፍ ቃል አረጋግጥ / Confirm password"
+            type="password"
+            name="confirmPassword"
+            value={formData.confirmPassword}
+            onChange={handleChange}
+            required
+          />
 
-          <details className="text-xs text-[#6B7280]">
-            <summary>ተጨማሪ መረጃ (አማራጭ) / Additional info (optional)</summary>
-            <div className="mt-2 space-y-3">
-              <div>
-                <label className="block text-xs font-semibold">ፋይዳ መታወቂያ / Fayda ID</label>
-                <input type="text" name="fayida_id" value={formData.fayida_id} onChange={handleChange} className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-black" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold">የትውልድ ቀን / Birth date</label>
-                <input type="date" name="birth_date" value={formData.birth_date} onChange={handleChange} className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-black" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold">ጾታ / Gender</label>
-                <select name="gender" value={formData.gender} onChange={handleChange} className="w-full px-3 py-2 rounded-xl border border-[#E5E7EB] bg-[#F9FAFB] text-black">
-                  <option value="">ምረጥ / Select</option>
-                  <option value="male">ወንድ / Male</option>
-                  <option value="female">ሴት / Female</option>
-                  <option value="other">ሌላ / Other</option>
-                </select>
-              </div>
+          <details className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+            <summary className="cursor-pointer font-medium text-slate-700">
+              ተጨማሪ መረጃ (አማራጭ) / Additional info (optional)
+            </summary>
+            <div className="mt-4 space-y-4">
+              <Input
+                label="ፋይዳ መታወቂያ / Fayda ID"
+                type="text"
+                name="fayida_id"
+                value={formData.fayida_id}
+                onChange={handleChange}
+              />
+              <Input
+                label="የትውልድ ቀን / Birth date"
+                type="date"
+                name="birth_date"
+                value={formData.birth_date}
+                onChange={handleChange}
+              />
+              <Select label="ጾታ / Gender" name="gender" value={formData.gender} onChange={handleChange}>
+                <option value="">ምረጥ / Select</option>
+                <option value="male">ወንድ / Male</option>
+                <option value="female">ሴት / Female</option>
+                <option value="other">ሌላ / Other</option>
+              </Select>
             </div>
           </details>
 
-          {error && <div className="p-2 bg-red-50 text-[#DC2626] rounded-xl text-sm">{error}</div>}
+          {error ? <Alert variant="error">{error}</Alert> : null}
 
-          <button type="submit" disabled={isLoading} className="w-full bg-[#1E3A8A] text-white py-3 rounded-xl font-bold hover:bg-[#1E40AF] transition disabled:opacity-50">
+          <Button type="submit" fullWidth disabled={isLoading}>
             {isLoading ? "በምዝገባ ላይ..." : "ተመዝገብ / Register"}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-sm text-[#6B7280]">
-          አካውንት አለህ?{" "}
-          <button onClick={() => router.push("/login")} className="text-[#1E3A8A] font-semibold hover:underline">
-            ግባ / Login
-          </button>
-        </p>
-        </div>
-      </div>
-    
+          </Button>
+        </AuthForm>
+      </form>
+    </AuthCard>
   );
 }

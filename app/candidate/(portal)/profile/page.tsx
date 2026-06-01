@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { User as UserIcon, Mail, Phone, MapPin, Award, CreditCard as CardIcon, Save, RefreshCw, CheckCircle, AlertCircle, Lock } from "lucide-react";
+import { Mail, Save, RefreshCw } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { getCurrentUser, changePassword, type User } from "@/services/auth.service";
 import { updateMyCandidateProfile } from "@/services/candidates.service";
 import { useI18n } from "@/i18n/useI18n";
 import { extractApiError } from "@/services/api-utils";
+import { Alert, Button, Card, CardHeader, Input, PageContainer, Select, ui } from "@/app/components/ui";
 
 export default function CandidateProfile() {
   const { user: storedUser, token: storedToken, role: storedRole, isAuthenticated, setUser } = useAuthStore();
@@ -194,284 +195,141 @@ export default function CandidateProfile() {
 
   if ((!isAuthenticated && typeof window === "undefined") || isProfileLoading) {
     return (
-      <main className="space-y-6 md:space-y-8 max-w-4xl mx-auto">
-        <div className="bg-white rounded-3xl p-6 md:p-8 border border-slate-100 animate-pulse">
-          <div className="flex items-center gap-6 mb-8">
-            <div className="w-20 h-20 bg-slate-100 rounded-full" />
+      <PageContainer width="narrow">
+        <Card padding="lg" className="animate-pulse">
+          <div className="mb-8 flex items-center gap-6">
+            <div className="h-20 w-20 rounded-full bg-slate-100" />
             <div className="space-y-2">
-              <div className="h-6 w-48 bg-slate-100 rounded" />
-              <div className="h-4 w-32 bg-slate-100 rounded" />
+              <div className="h-6 w-48 rounded bg-slate-100" />
+              <div className="h-4 w-32 rounded bg-slate-100" />
             </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="space-y-4">
-              <div className="h-10 bg-slate-100 rounded-xl" />
-              <div className="h-10 bg-slate-100 rounded-xl" />
-            </div>
-            <div className="space-y-4">
-              <div className="h-10 bg-slate-100 rounded-xl" />
-              <div className="h-10 bg-slate-100 rounded-xl" />
-            </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="h-10 rounded-lg bg-slate-100" />
+            <div className="h-10 rounded-lg bg-slate-100" />
           </div>
-        </div>
-      </main>
+        </Card>
+      </PageContainer>
     );
   }
 
-  // Initials for avatar
   const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || "C";
 
   return (
-    <main className="max-w-4xl mx-auto space-y-6 md:space-y-8">
-      {/* Header Profile Section */}
-      <div className="bg-linear-to-r from-blue-900 via-blue-800 to-indigo-900 rounded-3xl p-6 md:p-8 text-white shadow-md relative overflow-hidden">
-        <div className="absolute right-0 top-0 translate-x-10 -translate-y-10 w-40 h-40 bg-white/5 rounded-full blur-2xl" />
-        <div className="absolute left-0 bottom-0 -translate-x-10 translate-y-10 w-40 h-40 bg-white/5 rounded-full blur-2xl" />
-
-        <div className="flex flex-col sm:flex-row items-center gap-6 z-10 relative">
-          <div className="w-24 h-24 rounded-full bg-white text-blue-900 flex items-center justify-center text-3xl font-black shadow-inner border-4 border-white/20">
+    <PageContainer width="narrow">
+      <Card padding="lg" className="border-l-4 border-l-blue-900">
+        <div className="flex flex-col items-center gap-5 sm:flex-row sm:items-start">
+          <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-slate-50 text-xl font-semibold text-blue-900">
             {initials}
           </div>
-          <div className="text-center sm:text-left flex-1">
-            <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2">
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
+          <div className="flex-1 text-center sm:text-left">
+            <div className="flex flex-col items-center gap-2 sm:flex-row sm:items-center">
+              <h1 className="text-2xl font-semibold tracking-tight text-blue-950">
                 {firstName} {lastName}
               </h1>
-              <span className="px-3 py-1 bg-emerald-500/20 text-emerald-300 text-xs font-bold rounded-full border border-emerald-500/30 w-fit mx-auto sm:mx-0">
+              <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
                 {lang === "en" ? "Active" : "ንቁ"}
               </span>
             </div>
-            <p className="text-sm md:text-base text-blue-200/90 flex items-center justify-center sm:justify-start gap-2">
-              <Mail size={16} />
+            <p className="mt-2 flex items-center justify-center gap-2 text-sm text-slate-600 sm:justify-start">
+              <Mail size={16} className="shrink-0" />
               {email}
             </p>
           </div>
         </div>
-      </div>
+      </Card>
 
-      {/* Alert Messages */}
-      {successMessage && (
-        <div className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl shadow-sm">
-          <CheckCircle className="text-emerald-600 shrink-0" size={20} />
-          <p className="text-sm font-semibold">{successMessage}</p>
-        </div>
-      )}
+      {successMessage ? <Alert variant="success">{successMessage}</Alert> : null}
+      {errorMessage ? <Alert variant="error">{errorMessage}</Alert> : null}
 
-      {errorMessage && (
-        <div className="flex items-center gap-3 p-4 bg-red-50 border border-red-200 text-red-800 rounded-2xl shadow-sm">
-          <AlertCircle className="text-red-600 shrink-0" size={20} />
-          <p className="text-sm font-semibold">{errorMessage}</p>
-        </div>
-      )}
-
-        {/* Profile Edit Form */}
-        <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
-          <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-            <UserIcon className="text-blue-900" size={22} />
-            <h2 className="text-lg font-bold text-slate-800">{t("personalInfo")}</h2>
+      <Card padding="lg">
+        <CardHeader title={t("personalInfo")} />
+        <form onSubmit={handleUpdate} className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input label={t("firstNameLabel")} type="text" required value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+            <Input label={t("lastNameLabel")} type="text" required value={lastName} onChange={(e) => setLastName(e.target.value)} />
           </div>
 
-          <form onSubmit={handleUpdate} className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">{t("firstNameLabel")}</label>
-                <input
-                  type="text"
-                  required
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-slate-50/50 text-slate-800 font-medium"
-                />
-              </div>
+          <Input label={`${t("emailLabel")} (${t("readOnly")})`} type="email" disabled value={email} />
 
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">{t("lastNameLabel")}</label>
-                <input
-                  type="text"
-                  required
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-slate-50/50 text-slate-800 font-medium"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-bold text-slate-700 mb-2">{t("emailLabel")} ({t("readOnly")})</label>
-              <div className="relative">
-                <input
-                  type="email"
-                  disabled
-                  value={email}
-                  className="w-full px-4 py-3 pl-11 rounded-xl border border-slate-200 outline-none bg-slate-100 text-slate-500 font-medium cursor-not-allowed"
-                />
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">{t("phoneNumberLabel")}</label>
-                <div className="relative">
-                  <input
-                    type="tel"
-                    required
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                    className="w-full px-4 py-3 pl-11 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-slate-50/50 text-slate-800 font-medium"
-                  />
-                  <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">{t("dateOfBirthLabel")}</label>
-                <input
-                  type="date"
-                  value={birthDate}
-                  onChange={(e) => setBirthDate(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-slate-50/50 text-slate-800 font-medium"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">{t("genderLabel")}</label>
-                <select
-                  value={gender}
-                  onChange={(e) => setGender(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-slate-50/50 text-slate-800 font-medium appearance-none"
-                >
-                  <option value="">{t("selectGender")}</option>
-                  <option value="male">{t("male")}</option>
-                  <option value="female">{t("female")}</option>
-                  <option value="other">{t("other")}</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">{t("addressLabel")}</label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={address}
-                    onChange={(e) => setAddress(e.target.value)}
-                    className="w-full px-4 py-3 pl-11 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-slate-50/50 text-slate-800 font-medium"
-                  />
-                  <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex gap-4 pt-4 border-t border-slate-100">
-              <button
-                type="submit"
-                disabled={isSaving}
-                className="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-xl transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSaving ? (
-                  <>
-                    <RefreshCw className="animate-spin" size={18} />
-                    <span>{t("updatingProfile")}</span>
-                  </>
-                ) : (
-                  <>
-                    <Save size={18} />
-                    <span>{t("updateProfileButton")}</span>
-                  </>
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={handleReset}
-                disabled={isSaving}
-                className="border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold py-3 px-6 rounded-xl transition disabled:opacity-50"
-              >
-                {t("reset")}
-              </button>
-            </div>
-          </form>
-        </div>
-
-        {/* Change Password Form */}
-        <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
-          <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-            <Lock className="text-blue-900" size={22} />
-            <h2 className="text-lg font-bold text-slate-800">{t("changePassword")}</h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input label={t("phoneNumberLabel")} type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <Input label={t("dateOfBirthLabel")} type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
           </div>
 
-          {passwordSuccess && (
-            <div className="flex items-center gap-3 p-4 mb-6 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl shadow-sm">
-              <CheckCircle className="text-emerald-600 shrink-0" size={20} />
-              <p className="text-sm font-semibold">{passwordSuccess}</p>
-            </div>
-          )}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Select label={t("genderLabel")} value={gender} onChange={(e) => setGender(e.target.value)}>
+              <option value="">{t("selectGender")}</option>
+              <option value="male">{t("male")}</option>
+              <option value="female">{t("female")}</option>
+              <option value="other">{t("other")}</option>
+            </Select>
+            <Input label={t("addressLabel")} type="text" value={address} onChange={(e) => setAddress(e.target.value)} />
+          </div>
 
-          {passwordError && (
-            <div className="flex items-center gap-3 p-4 mb-6 bg-red-50 border border-red-200 text-red-800 rounded-2xl shadow-sm">
-              <AlertCircle className="text-red-600 shrink-0" size={20} />
-              <p className="text-sm font-semibold">{passwordError}</p>
-            </div>
-          )}
+          <div className="flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row">
+            <Button type="submit" disabled={isSaving} className="sm:flex-1">
+              {isSaving ? (
+                <>
+                  <RefreshCw className="mr-2 inline animate-spin" size={16} />
+                  {t("updatingProfile")}
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 inline" size={16} />
+                  {t("updateProfileButton")}
+                </>
+              )}
+            </Button>
+            <Button type="button" variant="secondary" onClick={handleReset} disabled={isSaving}>
+              {t("reset")}
+            </Button>
+          </div>
+        </form>
+      </Card>
 
-          <form onSubmit={handlePasswordChange} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">{t("currentPassword")}</label>
-                <input
-                  type="password"
-                  required
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-slate-50/50 text-slate-800 font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">{t("newPassword")}</label>
-                <input
-                  type="password"
-                  required
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-slate-50/50 text-slate-800 font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-slate-700 mb-2">{t("confirmPassword")}</label>
-                <input
-                  type="password"
-                  required
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-slate-50/50 text-slate-800 font-medium"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-4 pt-4 border-t border-slate-100">
-              <button
-                type="submit"
-                disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
-                className="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 px-6 rounded-xl transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isChangingPassword ? (
-                  <>
-                    <RefreshCw className="animate-spin" size={18} />
-                    <span>{t("updating")}</span>
-                  </>
-                ) : (
-                  <>
-                    <Save size={18} />
-                    <span>{t("updatePassword")}</span>
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
-        </div>
-    </main>
+      <Card padding="lg">
+        <CardHeader title={t("changePassword")} />
+        {passwordSuccess ? <Alert variant="success">{passwordSuccess}</Alert> : null}
+        {passwordError ? <Alert variant="error">{passwordError}</Alert> : null}
+        <form onSubmit={handlePasswordChange} className="mt-4 space-y-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <Input
+              label={t("currentPassword")}
+              type="password"
+              required
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+            />
+            <Input label={t("newPassword")} type="password" required value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+            <Input
+              label={t("confirmPassword")}
+              type="password"
+              required
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+            />
+          </div>
+          <div className="border-t border-slate-100 pt-4">
+            <Button
+              type="submit"
+              disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
+            >
+              {isChangingPassword ? (
+                <>
+                  <RefreshCw className="mr-2 inline animate-spin" size={16} />
+                  {t("updating")}
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 inline" size={16} />
+                  {t("updatePassword")}
+                </>
+              )}
+            </Button>
+          </div>
+        </form>
+      </Card>
+    </PageContainer>
   );
 }
