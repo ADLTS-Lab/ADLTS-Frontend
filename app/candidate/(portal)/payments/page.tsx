@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Card } from "@/app/components/ui/Card";
 import { Button } from "@/app/components/ui/Button";
-import PaymentHistory from "@/components/PaymentHistory";
 import {
   DEFAULT_PAYMENT_AMOUNT_CENTS,
   DEFAULT_PAYMENT_CURRENCY,
@@ -17,8 +16,6 @@ import { getAllBookings, type BookingRequest } from "@/services/booking.service"
 import { useAuthStore } from "@/store/authStore";
 import { useI18n } from "@/i18n/useI18n";
 
-const MAX_RETRIES = 3;
-
 export default function CandidatePaymentsPage() {
   const { t } = useI18n();
   const { user } = useAuthStore();
@@ -26,7 +23,7 @@ export default function CandidatePaymentsPage() {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [paymentLoading, setPaymentLoading] = useState(false);
-  const [actionLoading, setActionLoading] = useState<"pay" | "retry" | null>(null);
+  const [actionLoading, setActionLoading] = useState<"pay" | null>(null);
   const [message, setMessage] = useState("");
 
   useEffect(() => {
@@ -69,90 +66,44 @@ export default function CandidatePaymentsPage() {
   }, [user?.email]);
 
   const latestPayment = payments[0] ?? null;
-  const retryCount = Math.max(0, payments.length - 1);
   const isSuccessful = latestPayment?.status === 'Succeeded';
-
-  const paymentState = useMemo(() => {
-    if (!booking) {
-      return {
-        title: 'No approved booking yet',
-        subtitle: 'Your payment area appears after the institution approves your booking request.',
-        badgeClass: 'bg-slate-100 text-slate-700',
-        statusLabel: 'No booking',
-        action: null as null | 'pay' | 'retry' | 'continue',
-      };
-    }
-
-    if (booking.status === 'Pending') {
-      return {
-        title: 'Waiting for institution approval',
-        subtitle: 'Payment becomes available after approval.',
-        badgeClass: 'bg-amber-100 text-amber-700',
-        statusLabel: 'Waiting for institution approval',
-        action: null as null | 'pay' | 'retry' | 'continue',
-      };
-    }
-
-    if (booking.status === 'Scheduled') {
-      return {
-        title: 'Exam Scheduled',
-        subtitle: 'Your workflow has moved to the scheduled exam stage.',
-        badgeClass: 'bg-indigo-100 text-indigo-700',
-        statusLabel: 'Exam Scheduled',
-        action: null as null | 'pay' | 'retry' | 'continue',
-      };
-    }
-
-    if (isSuccessful) {
-      return {
-        title: 'Payment Complete',
-        subtitle: 'Payment is complete. Continue to exam scheduling when ready.',
-        badgeClass: 'bg-emerald-100 text-emerald-700',
-        statusLabel: 'Payment Complete',
-        action: 'continue' as const,
-      };
-    }
-
-    if (latestPayment && ['Failed', 'Cancelled'].includes(latestPayment.status)) {
-      return {
-        title: 'Payment Required',
-        subtitle: `Your last attempt did not complete. You can retry up to ${MAX_RETRIES} times.`,
-        badgeClass: 'bg-rose-100 text-rose-700',
-        statusLabel: 'Payment Required',
-        action: retryCount < MAX_RETRIES ? ('retry' as const) : null,
-      };
-    }
-
-    if (booking.status === 'Approved') {
-      return {
-        title: 'Payment Required',
-        subtitle: 'Complete payment to continue to exam scheduling.',
-        badgeClass: 'bg-amber-100 text-amber-700',
-        statusLabel: 'Payment Required',
-        action: 'pay' as const,
-      };
-    }
-
-    return {
-      title: 'Payment Complete',
-      subtitle: 'Your booking payment has already been completed.',
-      badgeClass: 'bg-emerald-100 text-emerald-700',
-      statusLabel: 'Payment Complete',
-      action: null as null | 'pay' | 'retry' | 'continue',
-    };
-  }, [booking, isSuccessful, latestPayment, retryCount]);
-
   const amountLabel = formatPaymentAmount(DEFAULT_PAYMENT_AMOUNT_CENTS, DEFAULT_PAYMENT_CURRENCY);
+  const paymentStatusLabel = !booking
+    ? 'No booking'
+    : isSuccessful
+      ? 'Payment Complete'
+      : booking.status === 'Approved'
+        ? 'Payment Required'
+        : booking.status === 'Pending'
+          ? 'Waiting for institution approval'
+          : booking.status === 'Scheduled'
+            ? 'Exam Scheduled'
+            : 'Not available';
+  const paymentStatusBadgeClass = !booking
+    ? 'bg-slate-100 text-slate-700'
+    : isSuccessful
+      ? 'bg-emerald-100 text-emerald-700'
+      : booking.status === 'Approved'
+        ? 'bg-amber-100 text-amber-700'
+        : booking.status === 'Pending'
+          ? 'bg-slate-100 text-slate-700'
+          : 'bg-indigo-100 text-indigo-700';
+  const canPayNow = Boolean(booking && booking.status === 'Approved' && !isSuccessful);
 
   const handlePayNow = async () => {
     if (!booking || booking.status !== 'Approved') return;
+
     setActionLoading('pay');
     setMessage('');
+
     try {
-      const response = await createPayment(booking.id, {
-        amountCents: DEFAULT_PAYMENT_AMOUNT_CENTS,
-        currency: DEFAULT_PAYMENT_CURRENCY,
-      });
+      const response = latestPayment && ['Failed', 'Cancelled'].includes(latestPayment.status)
+        ? await retryPayment(booking.id)
+        : await createPayment(booking.id, {
+            amountCents: DEFAULT_PAYMENT_AMOUNT_CENTS,
+            currency: DEFAULT_PAYMENT_CURRENCY,
+          });
+
       const refreshed = await getPaymentsForBooking(booking.id);
       setPayments(refreshed);
 
@@ -164,28 +115,6 @@ export default function CandidatePaymentsPage() {
       setMessage('Payment checkout is being prepared. Please refresh if the redirect is delayed.');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Unable to start payment right now.');
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleRetryPayment = async () => {
-    if (!booking || booking.status !== 'Approved') return;
-    setActionLoading('retry');
-    setMessage('');
-    try {
-      const response = await retryPayment(booking.id);
-      const refreshed = await getPaymentsForBooking(booking.id);
-      setPayments(refreshed);
-
-      if (response.checkout_url && typeof window !== 'undefined') {
-        window.location.href = response.checkout_url;
-        return;
-      }
-
-      setMessage('Retry created. If checkout redirect is available, it will open automatically when the backend provides it.');
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Unable to retry payment right now.');
     } finally {
       setActionLoading(null);
     }
@@ -216,11 +145,11 @@ export default function CandidatePaymentsPage() {
         </div>
       )}
 
-      {!booking ? (
-        <Card>
+      <Card>
+        {!booking ? (
           <div className="space-y-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600 mb-2">{paymentState.title}</p>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600 mb-2">Payment Summary</p>
               <h2 className="text-2xl font-black text-blue-950">No approved booking yet</h2>
               <p className="mt-2 text-sm text-slate-500 max-w-2xl">
                 Your payment area appears once your institution approves a booking request.
@@ -230,57 +159,41 @@ export default function CandidatePaymentsPage() {
               Back to Booking
             </Link>
           </div>
-        </Card>
-      ) : (
-        <div className="space-y-6">
-          <Card>
+        ) : (
+          <div className="space-y-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600 mb-2">{paymentState.title}</p>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600 mb-2">Payment Summary</p>
                 <h2 className="text-2xl font-black text-blue-950">{booking.institutionName || booking.institution}</h2>
-                <p className="mt-2 text-sm text-slate-500 max-w-2xl">{paymentState.subtitle}</p>
               </div>
-              <span className={["inline-flex items-center rounded-full px-3 py-1 text-xs font-bold", paymentState.badgeClass].join(" ")}>{paymentState.statusLabel}</span>
+              <span className={["inline-flex items-center rounded-full px-3 py-1 text-xs font-bold", paymentStatusBadgeClass].join(" ")}>{paymentStatusLabel}</span>
             </div>
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
               <InfoRow label="Institution" value={booking.institutionName || booking.institution} />
-              <InfoRow label="Category" value={booking.licenseCategory} />
+              <InfoRow label="License Category" value={booking.licenseCategory} />
               <InfoRow label="Amount" value={amountLabel} />
-              <InfoRow label="Status" value={paymentState.statusLabel} />
+              <InfoRow label="Payment Status" value={paymentStatusLabel} />
             </div>
 
-            <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-              {paymentState.action === 'pay' && (
-                <Button type="button" onClick={() => void handlePayNow()} disabled={actionLoading !== null || paymentLoading} className="sm:w-auto">
-                  {actionLoading === 'pay' ? 'Opening checkout…' : 'Pay Now'}
-                </Button>
-              )}
-              {paymentState.action === 'retry' && (
-                <Button type="button" variant="secondary" onClick={() => void handleRetryPayment()} disabled={actionLoading !== null || paymentLoading} className="sm:w-auto">
-                  {actionLoading === 'retry' ? 'Retrying…' : 'Retry Payment'}
-                </Button>
-              )}
-              {paymentState.action === 'continue' && (
-                <Link href="/candidate/exams" className="inline-flex items-center justify-center rounded-xl bg-blue-900 px-4 py-3 text-sm font-bold text-white shadow-md transition hover:bg-blue-800 sm:w-auto">
-                  Continue to Exams
-                </Link>
-              )}
-            </div>
-          </Card>
-
-          <Card>
-            <div className="flex items-center justify-between gap-4 mb-5">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600 mb-2">Payment History</p>
-                <h3 className="text-lg font-bold text-slate-800">Attempts and receipts</h3>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <InfoRow label="Booking Reference" value={booking.id} />
+              <div className="rounded-2xl bg-slate-50/70 p-4">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Action</p>
+                {canPayNow ? (
+                  <Button type="button" onClick={() => void handlePayNow()} disabled={actionLoading !== null || paymentLoading} className="w-full justify-center">
+                    {actionLoading === 'pay' ? 'Opening checkout…' : 'Pay Now'}
+                  </Button>
+                ) : (
+                  <Link href="/candidate/booking" className="inline-flex w-full items-center justify-center rounded-xl bg-blue-900 px-4 py-3 text-sm font-bold text-white shadow-md transition hover:bg-blue-800">
+                    Back to Booking
+                  </Link>
+                )}
               </div>
-              {paymentLoading && <span className="text-xs font-semibold text-slate-400">Refreshing...</span>}
             </div>
-            <PaymentHistory bookingId={booking.id} payments={payments} loading={paymentLoading} />
-          </Card>
-        </div>
-      )}
+          </div>
+        )}
+      </Card>
     </main>
   );
 }
