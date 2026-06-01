@@ -29,7 +29,6 @@ export default function CandidateBookingPage() {
   const [bookings, setBookings] = useState<BookingRequest[]>([]);
   const [showForm, setShowForm] = useState(true);
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
-  const [institutionSearch, setInstitutionSearch] = useState("");
   const [institutionId, setInstitutionId] = useState("");
   const [licenseCategory, setLicenseCategory] = useState<LicenseCategory>("B");
   const [bloodType, setBloodType] = useState("A+");
@@ -52,21 +51,17 @@ export default function CandidateBookingPage() {
         if (mine.length > 0) {
           const current = mine[0];
           setShowForm(!isActiveBookingStatus(current.status));
-          setInstitutionId(current.institutionId || MOCK_BOOKING_INSTITUTIONS[0].id);
-          setInstitutionSearch(current.institutionName || current.institution || MOCK_BOOKING_INSTITUTIONS[0].name);
           setLicenseCategory(current.licenseCategory);
           setBloodType(current.bloodType || "A+");
           setPreferredDate(current.preferredDate || "");
           setPreferredSession(current.preferredSession || "Morning");
           setAdditionalNotes(current.additionalNotes || "");
         } else {
-          setInstitutionId(MOCK_BOOKING_INSTITUTIONS[0].id);
-          setInstitutionSearch(MOCK_BOOKING_INSTITUTIONS[0].name);
+          setInstitutionId("");
         }
       } catch (err) {
         console.error("Failed to load bookings", err);
-        setInstitutionId(MOCK_BOOKING_INSTITUTIONS[0].id);
-        setInstitutionSearch(MOCK_BOOKING_INSTITUTIONS[0].name);
+        setInstitutionId("");
       }
     }
     loadBookings();
@@ -78,17 +73,9 @@ export default function CandidateBookingPage() {
   }, [user?.email]);
 
   const selectedInstitution = useMemo(
-    () => MOCK_BOOKING_INSTITUTIONS.find((item) => item.id === institutionId) || MOCK_BOOKING_INSTITUTIONS[0],
+    () => MOCK_BOOKING_INSTITUTIONS.find((item) => item.id === institutionId) || null,
     [institutionId]
   );
-  const visibleInstitutions = useMemo(() => {
-    const query = institutionSearch.trim().toLowerCase();
-    if (!query) return MOCK_BOOKING_INSTITUTIONS;
-
-    return MOCK_BOOKING_INSTITUTIONS.filter((institution) => {
-      return institution.name.toLowerCase().includes(query) || institution.id.toLowerCase().includes(query);
-    });
-  }, [institutionSearch]);
 
   const canSubmit = useMemo(() => institutionId && licenseCategory && preferredDate, [institutionId, licenseCategory, preferredDate]);
   const currentBooking = bookings[0] || null;
@@ -149,8 +136,6 @@ export default function CandidateBookingPage() {
   const openNewBookingForm = (resetDate = false) => {
     setShowForm(true);
     if (currentBooking) {
-      setInstitutionId(currentBooking.institutionId || MOCK_BOOKING_INSTITUTIONS[0].id);
-      setInstitutionSearch(currentBooking.institutionName || currentBooking.institution || MOCK_BOOKING_INSTITUTIONS[0].name);
       setLicenseCategory(currentBooking.licenseCategory);
       setBloodType(currentBooking.bloodType || "A+");
       setPreferredSession(currentBooking.preferredSession || "Morning");
@@ -163,8 +148,7 @@ export default function CandidateBookingPage() {
       return;
     }
 
-    setInstitutionId(MOCK_BOOKING_INSTITUTIONS[0].id);
-    setInstitutionSearch(MOCK_BOOKING_INSTITUTIONS[0].name);
+    setInstitutionId("");
     setLicenseCategory("B");
     setBloodType("A+");
     setPreferredDate("");
@@ -260,49 +244,21 @@ export default function CandidateBookingPage() {
               <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
                   <label className="block text-sm font-semibold text-[#1F2937] mb-2">{t("bookingInstitutionField")}</label>
-                  <div className="relative">
-                    <input
-                      list="booking-institutions"
-                      value={institutionSearch}
-                      onChange={(event) => {
-                        const value = event.target.value;
-                        setInstitutionSearch(value);
-                        const exactMatch = MOCK_BOOKING_INSTITUTIONS.find(
-                          (institution) => institution.name.toLowerCase() === value.trim().toLowerCase() || institution.id.toLowerCase() === value.trim().toLowerCase(),
-                        );
-                        if (exactMatch) {
-                          setInstitutionId(exactMatch.id);
-                        }
-                      }}
-                      placeholder="Search institution"
-                      className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent outline-none transition bg-[#F9FAFB] text-black"
-                    />
-                    <datalist id="booking-institutions">
-                      {MOCK_BOOKING_INSTITUTIONS.map((item) => (
-                        <option key={item.id} value={item.name} />
-                      ))}
-                    </datalist>
-                    {institutionSearch.trim() && visibleInstitutions.length > 0 && (
-                      <div className="absolute z-20 mt-2 max-h-56 w-full overflow-auto rounded-2xl border border-slate-200 bg-white shadow-lg">
-                        {visibleInstitutions.map((institution) => (
-                          <button
-                            key={institution.id}
-                            type="button"
-                            onMouseDown={(event) => {
-                              event.preventDefault();
-                              setInstitutionId(institution.id);
-                              setInstitutionSearch(institution.name);
-                            }}
-                            className="flex w-full items-center justify-between px-4 py-3 text-left text-sm text-slate-700 transition hover:bg-slate-50"
-                          >
-                            <span className="font-medium text-slate-800">{institution.name}</span>
-                            <span className="text-xs text-slate-400">{institution.id}</span>
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <p className="mt-2 text-xs text-slate-500">Start typing to find your institution quickly.</p>
+                  <select
+                    value={institutionId}
+                    onChange={(event) => setInstitutionId(event.target.value)}
+                    className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent outline-none transition bg-[#F9FAFB] text-black"
+                  >
+                    <option value="" disabled>
+                      Select institution
+                    </option>
+                    {MOCK_BOOKING_INSTITUTIONS.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-2 text-xs text-slate-500">Choose from the available sample institutions.</p>
                 </div>
 
                 <div>

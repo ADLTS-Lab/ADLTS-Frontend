@@ -318,6 +318,10 @@ function emitBookingStoreChange() {
   bookingListeners.forEach((listener) => listener());
 }
 
+export function notifyBookingChanges() {
+  emitBookingStoreChange();
+}
+
 function readStoredBookings(): BookingRequest[] {
   if (typeof window === 'undefined') return [];
 
@@ -349,6 +353,19 @@ function writeStoredBookings(bookings: BookingRequest[]): BookingRequest[] {
 
   emitBookingStoreChange();
   return sortedBookings;
+}
+
+function upsertStoredBooking(booking: BookingRequest): void {
+  const bookings = readStoredBookings();
+  const index = bookings.findIndex((bookingItem) => bookingItem.id === booking.id);
+
+  if (index === -1) {
+    bookings.unshift(booking);
+  } else {
+    bookings[index] = booking;
+  }
+
+  writeStoredBookings(bookings);
 }
 
 function matchesInstitution(booking: BookingRequest, institutionId?: string): boolean {
@@ -619,9 +636,15 @@ export async function submitBookingRequest(submission: BookingSubmission): Promi
   try {
     const response = await api.post('/bookings', buildBackendSubmissionPayload(submission));
     const booking = normalizeBooking(response.data?.data ?? response.data?.booking ?? response.data);
-    if (booking) return booking;
+    if (booking) {
+      upsertStoredBooking(booking);
+      notifyBookingChanges();
+      return booking;
+    }
 
-    return buildLocalBooking(submission);
+    const localBooking = buildLocalBooking(submission);
+    notifyBookingChanges();
+    return localBooking;
   } catch (error) {
     const responseStatus = (error as { response?: { status?: number } } | undefined)?.response?.status;
 
@@ -638,6 +661,7 @@ export async function submitBookingRequest(submission: BookingSubmission): Promi
       const booking = buildLocalBooking(submission);
       bookings.push(booking);
       writeStoredBookings(bookings);
+      notifyBookingChanges();
       return booking;
     }
 
@@ -655,7 +679,11 @@ export async function updateBookingStatus(id: string, status: BookingStatus): Pr
     const payload = { action: status === 'Approved' ? 'approve' : 'reject' };
     const response = await api.patch(`/bookings/${id}/verify`, payload);
     const booking = normalizeBooking(response.data?.data ?? response.data?.booking ?? response.data);
-    if (booking) return booking;
+    if (booking) {
+      upsertStoredBooking(booking);
+      notifyBookingChanges();
+      return booking;
+    }
 
     // If server responded but did not return a booking object, do not silently
     // mutate local client state when the response indicates an auth/permission
@@ -678,6 +706,7 @@ export async function updateBookingStatus(id: string, status: BookingStatus): Pr
     };
 
     writeStoredBookings(stored);
+    notifyBookingChanges();
     return stored[index];
   } catch (error) {
     const responseStatus = (error as { response?: { status?: number } } | undefined)?.response?.status;
@@ -688,7 +717,9 @@ export async function updateBookingStatus(id: string, status: BookingStatus): Pr
     }
 
     if (ALLOW_LOCAL_FALLBACK && shouldUseLocalFallback(error)) {
-      return updateLocalBookingStatus(id, status);
+      const updatedBooking = updateLocalBookingStatus(id, status);
+      notifyBookingChanges();
+      return updatedBooking;
     }
 
     throw new Error(extractApiError(error, 'Failed to update booking status.'));
@@ -704,7 +735,11 @@ export async function cancelBookingRequest(id: string): Promise<BookingRequest |
   try {
     const response = await api.patch(`/bookings/${id}/cancel`);
     const booking = normalizeBooking(response.data?.data ?? response.data?.booking ?? response.data);
-    if (booking) return booking;
+    if (booking) {
+      upsertStoredBooking(booking);
+      notifyBookingChanges();
+      return booking;
+    }
 
     const stored = readStoredBookings();
     const index = stored.findIndex((bookingItem) => bookingItem.id === id);
@@ -717,6 +752,7 @@ export async function cancelBookingRequest(id: string): Promise<BookingRequest |
     };
 
     writeStoredBookings(stored);
+    notifyBookingChanges();
     return stored[index];
   } catch (error) {
     const responseStatus = (error as { response?: { status?: number } } | undefined)?.response?.status;
@@ -726,7 +762,9 @@ export async function cancelBookingRequest(id: string): Promise<BookingRequest |
     }
 
     if (ALLOW_LOCAL_FALLBACK && shouldUseLocalFallback(error)) {
-      return updateLocalBookingStatus(id, 'Cancelled');
+      const cancelledBooking = updateLocalBookingStatus(id, 'Cancelled');
+      notifyBookingChanges();
+      return cancelledBooking;
     }
 
     throw new Error(extractApiError(error, 'Failed to cancel booking request.'));
@@ -736,6 +774,9 @@ export async function cancelBookingRequest(id: string): Promise<BookingRequest |
 export async function deleteBookingRequest(id: string): Promise<boolean> {
   try {
     await api.delete(`/bookings/${id}`);
+    const remaining = readStoredBookings().filter((booking) => booking.id !== id);
+    writeStoredBookings(remaining);
+    notifyBookingChanges();
     return true;
   } catch (error) {
     const responseStatus = (error as { response?: { status?: number } } | undefined)?.response?.status;
@@ -747,6 +788,7 @@ export async function deleteBookingRequest(id: string): Promise<boolean> {
     if (ALLOW_LOCAL_FALLBACK && shouldUseLocalFallback(error)) {
       const stored = readStoredBookings().filter((booking) => booking.id !== id);
       writeStoredBookings(stored);
+      notifyBookingChanges();
       return true;
     }
 

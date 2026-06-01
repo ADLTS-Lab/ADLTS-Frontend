@@ -4,19 +4,50 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useAuthStore } from "@/store/authStore";
 import { getCurrentUser, type User } from "@/services/auth.service";
-import { useI18n } from "@/i18n/useI18n";
 import { extractApiError } from "@/services/api-utils";
-import { getAllBookings, subscribeToBookingChanges, type BookingRequest, type BookingStatus } from "@/services/booking.service";
+import { getAllBookings, getStoredBookingSnapshot, isActiveBookingStatus, subscribeToBookingChanges, type BookingRequest, type BookingStatus } from "@/services/booking.service";
 import { DEFAULT_PAYMENT_AMOUNT_CENTS, DEFAULT_PAYMENT_CURRENCY, getPaymentsForBooking, type Payment } from "@/services/payment.service";
+
+const LICENSE_CATEGORIES = [
+  { code: "A", name: "Motorcycle", description: "For two-wheel motorbikes and light motorcycle test candidates." },
+  { code: "B", name: "Light Vehicle", description: "For standard private vehicles and everyday driving tests." },
+  { code: "C", name: "Public Service Vehicle", description: "For passenger transport and service vehicle categories." },
+  { code: "D", name: "Heavy Vehicle", description: "For larger vehicles that require advanced control." },
+] as const;
 
 export default function CandidateDashboard() {
   const { user: storedUser, isAuthenticated, setUser } = useAuthStore();
   const [profile, setProfile] = useState<User | null>(storedUser);
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const [error, setError] = useState("");
-  const [booking, setBooking] = useState<BookingRequest | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const didInitRef = useRef(false);
+
+  function selectCurrentBooking(items: BookingRequest[]) {
+    const sortedItems = [...items].sort((left, right) => {
+      const leftUpdated = new Date(left.updatedAt || left.createdAt).getTime();
+      const rightUpdated = new Date(right.updatedAt || right.createdAt).getTime();
+      return rightUpdated - leftUpdated;
+    });
+
+    return sortedItems.find((item) => isActiveBookingStatus(item.status)) ?? sortedItems[0] ?? null;
+  }
+
+  const [booking, setBooking] = useState<BookingRequest | null>(() => {
+    const currentEmail = String(storedUser?.email || "").toLowerCase();
+    const currentUserId = storedUser?.id;
+    const snapshot = getStoredBookingSnapshot();
+    const initialBookings = snapshot.filter((item) => {
+      const bookingCandidateId = item.candidateId || item.candidateDetails?.candidateId;
+      const bookingEmail = item.candidateDetails?.email?.toLowerCase();
+
+      if (currentUserId && bookingCandidateId === currentUserId) return true;
+      if (currentEmail && bookingEmail === currentEmail) return true;
+      return false;
+    });
+
+    return selectCurrentBooking(initialBookings);
+  });
 
   useEffect(() => {
     if (didInitRef.current) return;
@@ -26,27 +57,39 @@ export default function CandidateDashboard() {
 
     const loadBooking = async (candidateEmail?: string) => {
       try {
-        const bookings = await getAllBookings();
-        if (!isMounted) return;
         const currentUserId = storedUser?.id;
-        const currentEmail = String(candidateEmail || storedUser?.email || '').toLowerCase();
-        const mine = bookings.filter((booking) => {
-          const bookingCandidateId = booking.candidateId || booking.candidateDetails?.candidateId;
-          const bookingEmail = booking.candidateDetails?.email?.toLowerCase();
+        const currentEmail = String(candidateEmail || storedUser?.email || "").toLowerCase();
+
+        const snapshot = getStoredBookingSnapshot();
+        const snapshotBooking = snapshot.find((item) => {
+          const bookingCandidateId = item.candidateId || item.candidateDetails?.candidateId;
+          const bookingEmail = item.candidateDetails?.email?.toLowerCase();
 
           if (currentUserId && bookingCandidateId === currentUserId) return true;
           if (currentEmail && bookingEmail === currentEmail) return true;
-
           return false;
         });
-        setBooking(mine[0] ?? null);
+
+        const bookings = await getAllBookings();
+        if (!isMounted) return;
+
+        const mine = bookings.filter((item) => {
+          const bookingCandidateId = item.candidateId || item.candidateDetails?.candidateId;
+          const bookingEmail = item.candidateDetails?.email?.toLowerCase();
+
+          if (currentUserId && bookingCandidateId === currentUserId) return true;
+          if (currentEmail && bookingEmail === currentEmail) return true;
+          return false;
+        });
+
+        const currentBooking = selectCurrentBooking(mine);
+        setBooking((current) => currentBooking ?? snapshotBooking ?? current ?? null);
       } catch (err) {
         console.error(err);
       }
     };
 
     const loadProfileOnce = async () => {
-      // If we already have a user from the persisted store, skip the extra loading flicker.
       if (storedUser) {
         setIsProfileLoading(false);
         return;
@@ -64,7 +107,7 @@ export default function CandidateDashboard() {
         }
       } catch (err) {
         if (isMounted) {
-          setError(extractApiError(err, "Unable to load candidate profile and exam data right now."));
+          setError(extractApiError(err, 'Unable to load candidate profile and exam data right now.'));
         }
       } finally {
         if (isMounted) {
@@ -73,8 +116,8 @@ export default function CandidateDashboard() {
       }
     };
 
-    loadBooking();
-    loadProfileOnce();
+    void loadBooking();
+    void loadProfileOnce();
 
     const unsubscribeBookings = subscribeToBookingChanges(() => {
       void loadBooking();
@@ -84,7 +127,6 @@ export default function CandidateDashboard() {
       isMounted = false;
       unsubscribeBookings();
     };
-    // Intentionally run once per mount; the effect calls setUser(), which would otherwise cause re-fetch + loading flicker.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -96,6 +138,7 @@ export default function CandidateDashboard() {
         setPayments([]);
         return;
       }
+
       try {
         const bookingPayments = await getPaymentsForBooking(booking.id);
         if (!isMounted) return;
@@ -119,31 +162,24 @@ export default function CandidateDashboard() {
     if (!profile && storedUser) setProfile(storedUser);
   }, [profile, storedUser]);
 
-  const { t } = useI18n();
-  const bookingState = getBookingStateMeta(booking?.status);
+  const candidateName = profile?.name || storedUser?.name || 'Candidate';
   const latestPayment = payments[0] ?? null;
-  const paymentIsSuccessful = latestPayment?.status === 'Succeeded';
-  const paymentStatusLabel = paymentIsSuccessful ? 'Payment Successful' : 'Payment Required';
-  const paymentStatusBadgeClass = paymentIsSuccessful ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700';
-  const paymentActionLabel = paymentIsSuccessful ? 'View Payment' : 'Pay Now';
-  const showPaymentSummary = booking?.status === 'Approved';
+  const paymentSuccessful = latestPayment?.status === 'Succeeded';
+  const hasBooking = Boolean(booking);
+  const bookingStatusLabel = getBookingStatusLabel(booking?.status, paymentSuccessful);
+  const nextAction = getPrimaryNextAction(booking?.status, paymentSuccessful);
+  const progressSteps = getBookingProgressSteps(booking?.status, paymentSuccessful);
 
-  if ((!isAuthenticated && typeof window === "undefined") || isProfileLoading) {
+  if ((!isAuthenticated && typeof window === 'undefined') || isProfileLoading) {
     return (
       <main className="space-y-6 md:space-y-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-white rounded-3xl p-6 md:p-8 border border-slate-100 animate-pulse">
-            <div className="h-5 w-48 bg-slate-100 rounded mb-4" />
-            <div className="h-4 w-full max-w-md bg-slate-100 rounded mb-3" />
-            <div className="h-10 w-56 bg-slate-100 rounded-full" />
-          </div>
-          <div className="bg-white rounded-3xl p-6 border border-slate-100 animate-pulse">
-            <div className="h-5 w-32 bg-slate-100 rounded mb-6" />
-            <div className="space-y-4">
-              <div className="h-10 bg-slate-100 rounded-xl" />
-              <div className="h-10 bg-slate-100 rounded-xl" />
-              <div className="h-10 bg-slate-100 rounded-xl" />
-            </div>
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 animate-pulse">
+          <div className="h-4 w-44 rounded bg-slate-100 mb-3" />
+          <div className="h-7 w-72 rounded bg-slate-100 mb-4" />
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="h-20 rounded-2xl bg-slate-100" />
+            <div className="h-20 rounded-2xl bg-slate-100" />
+            <div className="h-20 rounded-2xl bg-slate-100" />
           </div>
         </div>
       </main>
@@ -154,217 +190,257 @@ export default function CandidateDashboard() {
     <main className="space-y-6 md:space-y-8">
       {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
 
-      <div className="grid grid-cols-1 gap-6">
-        <div className="bg-[#283C86] rounded-3xl p-6 md:p-8 text-white relative overflow-hidden flex flex-col justify-center">
-          <div className="max-w-md z-10">
-            <p className="text-base md:text-lg mb-6 md:mb-8 leading-relaxed opacity-90">{t('dashboardHero')}</p>
-            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-              {!booking ? (
-                <Link href="/candidate/booking" className="bg-white text-blue-900 px-5 md:px-6 py-3 rounded-full font-bold flex items-center justify-center gap-2 text-sm md:text-base w-full sm:w-auto shadow-md hover:bg-slate-50 transition active:scale-95">
-                  <span className="w-5 h-5 bg-blue-900 text-white rounded-full flex items-center justify-center text-xs">▶</span>
-                  {t('bookYourTest')}
-                </Link>
-              ) : (
-                <button
-                  type="button"
-                  disabled
-                  className={[
-                    "px-5 md:px-6 py-3 rounded-full font-bold flex items-center justify-center gap-2 text-sm md:text-base w-full sm:w-auto shadow-md border transition active:scale-95",
-                    booking.status === "Approved"
-                      ? "bg-green-100 text-green-800 border-green-200"
-                      : booking.status === "Rejected"
-                        ? "bg-rose-100 text-rose-800 border-rose-200"
-                        : "bg-amber-100 text-amber-800 border-amber-200",
-                  ].join(" ")}
-                >
-                  <span className={[
-                    "w-5 h-5 rounded-full flex items-center justify-center text-xs",
-                    booking.status === "Approved"
-                      ? "bg-green-700 text-white"
-                      : booking.status === "Rejected"
-                        ? "bg-rose-700 text-white"
-                        : "bg-amber-700 text-white",
-                  ].join(" ")}>
-                    !
-                  </span>
-                  {bookingState.title}
-                </button>
-              )}
-              <Link href="/guidelines" className="bg-white/10 hover:bg-white/20 border border-white/20 px-5 md:px-6 py-3 rounded-full font-bold text-sm md:text-base w-full sm:w-auto transition active:scale-95 text-center">
-                {t('readGuides')}
-              </Link>
-            </div>
-          </div>
-        </div>
-
-        {showPaymentSummary && (
-          <Link
-            href="/candidate/payments"
-            className="block rounded-3xl border border-blue-100 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-          >
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600 mb-2">Payment Summary</p>
-                <h3 className="text-2xl font-black text-blue-950">{paymentStatusLabel}</h3>
-              </div>
-              <div className="flex flex-col items-start gap-2 sm:items-end">
-                <span className={[
-                  "inline-flex items-center rounded-full px-3 py-1 text-xs font-bold",
-                  paymentStatusBadgeClass,
-                ].join(" ")}>{paymentStatusLabel}</span>
-                <span className="inline-flex items-center justify-center rounded-full bg-blue-900 px-5 py-3 text-sm font-bold text-white shadow-md">
-                  {paymentActionLabel}
-                </span>
-              </div>
-            </div>
-
-            <div className="mt-6 grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl bg-slate-50/70 p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Booking Reference</p>
-                <p className="text-sm font-bold text-slate-800">{booking.id}</p>
-              </div>
-              <div className="rounded-2xl bg-slate-50/70 p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Amount</p>
-                <p className="text-sm font-bold text-slate-800">{formatPaymentAmount(DEFAULT_PAYMENT_AMOUNT_CENTS, DEFAULT_PAYMENT_CURRENCY)}</p>
-              </div>
-              <div className="rounded-2xl bg-slate-50/70 p-4">
-                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Institution</p>
-                <p className="text-sm font-bold text-slate-800">{booking.institutionName || booking.institution}</p>
-              </div>
-            </div>
-          </Link>
-        )}
-
-      </div>
-
-      {!booking ? (
-        <Link
-          href="/candidate/booking"
-          className="block rounded-3xl border border-blue-100 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-        >
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <section className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-4">
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600 mb-2">{t('bookingCardTitle')}</p>
-              <h3 className="text-2xl font-black text-blue-950">{t('bookYourTest')}</h3>
-              <p className="mt-2 text-sm text-slate-500 max-w-2xl">{t('bookingNoRequest')}</p>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600 mb-2">Candidate Status</p>
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900">{candidateName}</h1>
             </div>
-            <span className="inline-flex items-center justify-center rounded-full bg-blue-900 px-5 py-3 text-sm font-bold text-white shadow-md">
-              {t('bookYourTest')}
-            </span>
-          </div>
-        </Link>
-      ) : (
-        <div className="bg-white rounded-3xl p-6 shadow-sm border border-slate-100">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between mb-6">
-            <h3 className="font-bold text-slate-700">{t('bookingCardTitle')}</h3>
-            <span className={[
-              "inline-flex items-center rounded-full px-3 py-1 text-xs font-bold",
-              bookingState.badgeClass,
-            ].join(" ")}>
-              {booking.status}
-            </span>
+
+            {!hasBooking ? (
+              <div className="max-w-2xl rounded-2xl border border-blue-100 bg-blue-50/60 p-5 md:p-6">
+                <p className="text-lg font-bold text-slate-900">Welcome back, Candidate</p>
+                <p className="mt-2 text-sm font-medium text-slate-700">You do not currently have an active booking.</p>
+                <p className="mt-3 text-sm text-slate-600">To begin your driving license application, select a license category and submit a booking request.</p>
+                <Link href="/candidate/booking" className="mt-5 inline-flex rounded-xl bg-blue-900 px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-blue-800">
+                  Book a Test
+                </Link>
+              </div>
+            ) : (
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Booking Status</p>
+                  <p className="text-sm font-bold text-slate-900">{bookingStatusLabel}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Institution</p>
+                  <p className="text-sm font-bold text-slate-900">{booking?.institutionName || booking?.institution}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Booking Reference</p>
+                  <p className="text-sm font-bold text-slate-900">{booking?.id}</p>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">Next Action</p>
+                  <p className="text-sm font-bold text-slate-900">{nextAction.label}</p>
+                  <Link href={nextAction.href} className="mt-3 inline-flex text-sm font-bold text-blue-700 hover:text-blue-800">
+                    {nextAction.buttonLabel}
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
-            <div className="rounded-2xl bg-slate-50/70 p-4">
-              <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">{t('bookingStatusLabel')}</p>
-              <p className="text-lg font-black text-slate-900">{bookingState.title}</p>
-              <p className="mt-1 text-sm text-slate-500">{bookingState.subtitle}</p>
-            </div>
-            <div className="rounded-2xl bg-slate-50/70 p-4">
-              <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">{t('bookingInstitutionLabel')}</p>
-              <p className="text-sm font-bold text-slate-800">{booking.institution}</p>
-            </div>
-            <div className="rounded-2xl bg-slate-50/70 p-4">
-              <p className="text-[10px] font-bold text-slate-400 uppercase mb-1">{t('bookingCategoryLabel')}</p>
-              <p className="text-sm font-bold text-slate-800">{booking.licenseCategory}</p>
-            </div>
-          </div>
         </div>
+      </section>
+
+      {hasBooking && (
+        <>
+          <section className="rounded-3xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600 mb-2">Booking Progress</p>
+                <h2 className="text-lg font-bold text-slate-900">Where you are in the process</h2>
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              {progressSteps.map((step) => (
+                <div
+                  key={step.label}
+                  className={[
+                    'inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium',
+                    step.state === 'complete'
+                      ? 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                      : step.state === 'current'
+                        ? 'border-blue-200 bg-blue-50 text-blue-800'
+                        : 'border-slate-200 bg-white text-slate-500',
+                  ].join(' ')}
+                >
+                  <span className="text-base leading-none">{step.symbol}</span>
+                  <span>{step.label}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        </>
       )}
 
-      <div className="pt-4">
-        <h3 className="text-xl font-bold text-slate-800 mb-6">{t('examTypesTitle')}</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          <div className="bg-white rounded-2xl md:rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition">
-            <h4 className="text-base font-bold text-slate-800 mb-1">{t('examCategoryAuto')}</h4>
-            <p className="text-sm text-slate-500 leading-relaxed">
-              {t('examCategoryAutoDesc')}
-            </p>
-          </div>
-          <div className="bg-white rounded-2xl md:rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition">
-            <h4 className="text-base font-bold text-slate-800 mb-1">{t('examCategoryPublic')}</h4>
-            <p className="text-sm text-slate-500 leading-relaxed">
-              {t('examCategoryPublicDesc')}
-            </p>
-          </div>
-          <div className="bg-white rounded-2xl md:rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition">
-            <h4 className="text-base font-bold text-slate-800 mb-1">{t('examCategoryCargo')}</h4>
-            <p className="text-sm text-slate-500 leading-relaxed">
-              {t('examCategoryCargoDesc')}
-            </p>
-          </div>
-          <div className="bg-white rounded-2xl md:rounded-3xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition">
-            <h4 className="text-base font-bold text-slate-800 mb-1">{t('examCategoryMotorcycle')}</h4>
-            <p className="text-sm text-slate-500 leading-relaxed">
-              {t('examCategoryMotorcycleDesc')}
-            </p>
-          </div>
+      <section className="space-y-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600 mb-2">Available License Categories</p>
+          <h2 className="text-lg font-bold text-slate-900">Choose the category that matches your test</h2>
         </div>
-      </div>
 
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {LICENSE_CATEGORIES.map((category) => (
+            <article key={category.code} className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600 mb-2">Category {category.code}</p>
+                  <h3 className="text-lg font-black text-slate-900">{category.name}</h3>
+                </div>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">{category.code}</span>
+              </div>
+
+              <p className="mt-4 text-sm leading-relaxed text-slate-600">{category.description}</p>
+
+              <Link href="/candidate/booking" className="mt-5 inline-flex w-full items-center justify-center rounded-xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-900 transition hover:bg-blue-100">
+                Book This Test
+              </Link>
+            </article>
+          ))}
+        </div>
+      </section>
     </main>
   );
 }
 
-function getBookingStateMeta(status?: BookingStatus | null) {
+function formatPaymentAmount(amountCents: number, currency: string) {
+  return `${currency} ${(amountCents / 100).toFixed(0)}`;
+}
+
+function getBookingStatusLabel(status?: BookingStatus | null, paymentSuccessful = false) {
   switch (status) {
-    case "Approved":
+    case 'Pending':
+      return 'Waiting for institution approval';
+    case 'Approved':
+      return paymentSuccessful ? 'Payment successful' : 'Payment required';
+    case 'Payment Pending':
+      return 'Payment required';
+    case 'Scheduled':
+      return 'Your exam is scheduled';
+    case 'Rejected':
+    case 'Cancelled':
+      return 'Book a new test';
+    case 'Completed':
+      return 'Results available';
+    default:
+      return 'No booking yet';
+  }
+}
+
+function getPrimaryNextAction(status?: BookingStatus | null, paymentSuccessful = false) {
+  if (!status) {
+    return {
+      label: 'Book a new test',
+      description: 'Start a fresh booking request to continue with your application.',
+      buttonLabel: 'Book a New Test',
+      href: '/candidate/booking',
+      badgeClass: 'bg-blue-100 text-blue-700',
+    };
+  }
+
+  switch (status) {
+    case 'Pending':
       return {
-        title: "Approved",
-        subtitle: "Ready to proceed to testing process",
-        badgeClass: "bg-green-100 text-green-700",
+        label: 'Waiting for institution approval',
+        description: 'The institution must review your request before payment becomes available.',
+        buttonLabel: 'View Booking',
+        href: '/candidate/booking',
+        badgeClass: 'bg-amber-100 text-amber-700',
       };
-    case "Payment Pending":
+    case 'Approved':
+      return paymentSuccessful
+        ? {
+            label: 'Payment successful',
+            description: 'Your payment is complete. Review the payment page for details.',
+            buttonLabel: 'View Payment',
+            href: '/candidate/payments',
+            badgeClass: 'bg-emerald-100 text-emerald-700',
+          }
+        : {
+            label: 'Payment required',
+            description: `You owe ${formatPaymentAmount(DEFAULT_PAYMENT_AMOUNT_CENTS, DEFAULT_PAYMENT_CURRENCY)} for this booking.`,
+            buttonLabel: 'Pay Now',
+            href: '/candidate/payments',
+            badgeClass: 'bg-amber-100 text-amber-700',
+          };
+    case 'Payment Pending':
       return {
-        title: "Payment Pending",
-        subtitle: "Your booking is approved and waiting for payment",
-        badgeClass: "bg-sky-100 text-sky-700",
+        label: 'Payment required',
+        description: `You owe ${formatPaymentAmount(DEFAULT_PAYMENT_AMOUNT_CENTS, DEFAULT_PAYMENT_CURRENCY)} for this booking.`,
+        buttonLabel: 'Pay Now',
+        href: '/candidate/payments',
+        badgeClass: 'bg-amber-100 text-amber-700',
       };
-    case "Scheduled":
+    case 'Scheduled':
       return {
-        title: "Scheduled",
-        subtitle: "Your exam or training slot has been scheduled",
-        badgeClass: "bg-indigo-100 text-indigo-700",
+        label: 'Your exam is scheduled',
+        description: 'Review your booking details while you wait for the test date.',
+        buttonLabel: 'View Booking',
+        href: '/candidate/booking',
+        badgeClass: 'bg-indigo-100 text-indigo-700',
       };
-    case "Completed":
-      return {
-        title: "Completed",
-        subtitle: "Your booking workflow is finished",
-        badgeClass: "bg-emerald-100 text-emerald-700",
-      };
-    case "Cancelled":
-      return {
-        title: "Cancelled",
-        subtitle: "This booking was cancelled and you can book again",
-        badgeClass: "bg-slate-100 text-slate-700",
-      };
-    case "Rejected":
-      return {
-        title: "Rejected",
-        subtitle: "Please submit a new booking request",
-        badgeClass: "bg-rose-100 text-rose-700",
-      };
-    case "Pending":
+    case 'Completed':
+    case 'Rejected':
+    case 'Cancelled':
+    case 'Expired':
     default:
       return {
-        title: "Pending Verification",
-        subtitle: "Your booking request is waiting for review",
-        badgeClass: "bg-amber-100 text-amber-700",
+        label: 'Book a new test',
+        description: 'Your last booking is closed. Start a new request when you are ready.',
+        buttonLabel: 'Book a New Test',
+        href: '/candidate/booking',
+        badgeClass: 'bg-slate-100 text-slate-700',
       };
   }
 }
 
-function formatPaymentAmount(amountCents: number, currency: string) {
-  return `${currency} ${(amountCents / 100).toFixed(2)}`;
+function getBookingProgressSteps(status?: BookingStatus | null, paymentSuccessful = false) {
+  const steps = [
+    { label: 'Booking Submitted', state: 'upcoming' as const, symbol: '○' },
+    { label: 'Institution Approval', state: 'upcoming' as const, symbol: '○' },
+    { label: 'Payment', state: 'upcoming' as const, symbol: '○' },
+    { label: 'Scheduling', state: 'upcoming' as const, symbol: '○' },
+    { label: 'Test', state: 'upcoming' as const, symbol: '○' },
+    { label: 'Results', state: 'upcoming' as const, symbol: '○' },
+  ];
+
+  if (!status) {
+    steps[0] = { label: 'Book a New Test', state: 'current', symbol: '⏳' };
+    return steps;
+  }
+
+  const setCompleteThrough = (index: number) => {
+    for (let i = 0; i <= index; i += 1) {
+      steps[i] = { ...steps[i], state: 'complete', symbol: '✓' };
+    }
+  };
+
+  switch (status) {
+    case 'Pending':
+      setCompleteThrough(0);
+      steps[1] = { ...steps[1], state: 'current', symbol: '⏳' };
+      return steps;
+    case 'Approved':
+    case 'Payment Pending':
+      setCompleteThrough(1);
+      if (paymentSuccessful) {
+        steps[2] = { ...steps[2], state: 'complete', symbol: '✓' };
+        steps[3] = { ...steps[3], state: 'current', symbol: '⏳' };
+      } else {
+        steps[2] = { ...steps[2], state: 'current', symbol: '⏳' };
+      }
+      return steps;
+    case 'Scheduled':
+      setCompleteThrough(3);
+      steps[4] = { ...steps[4], state: 'current', symbol: '⏳' };
+      return steps;
+    case 'Completed':
+      steps.forEach((step, index) => {
+        steps[index] = { ...step, state: 'complete', symbol: '✓' };
+      });
+      return steps;
+    case 'Rejected':
+    case 'Cancelled':
+    case 'Expired':
+      setCompleteThrough(0);
+      steps[1] = { ...steps[1], state: 'current', symbol: '⏳' };
+      return steps;
+    default:
+      return steps;
+  }
 }
+
