@@ -63,10 +63,11 @@ export default function AdminInvitationsPage() {
     setIsSubmitting(true);
     setError("");
 
-    try {
+  try {
       const response = await createInvitation(formData);
-      if (response.success && response.data?.id) {
-        setInvitations((current) => [response.data, ...current]);
+      const createdInvitation = response.data;
+      if (response.success && createdInvitation) {
+        setInvitations((current) => [createdInvitation, ...current]);
         setFormData({ email: "", first_name: "", last_name: "", entity_type: "expert" });
       } else if (response.message) {
         setError(response.message);
