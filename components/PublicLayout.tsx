@@ -1,21 +1,33 @@
 "use client";
 
 import Link from "next/link";
+import { Menu, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { logout as logoutService } from "@/services/auth.service";
 import { useI18n } from "@/i18n/useI18n";
 import { getHomeRouteForRole } from "@/config/routes";
+import { ui } from "@/app/components/ui/design-tokens";
 import UserMenu from "@/components/UserMenu";
+import { BrandMark } from "./BrandMark";
 
 type PublicLayoutProps = {
   children: React.ReactNode;
 };
 
+const publicNav = [
+  { href: "/", labelKey: "home" },
+  { href: "/guidelines", labelKey: "guidelines" },
+  { href: "/about", labelKey: "aboutUs" },
+  { href: "/contact", labelKey: "contact" },
+];
+
 export default function PublicLayout({ children }: PublicLayoutProps) {
   const router = useRouter();
   const { user, isAuthenticated, hasHydrated } = useAuthSession();
   const { t, lang, setLang } = useI18n();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = async () => {
     await logoutService();
@@ -33,43 +45,52 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
     user?.name || `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || user?.email;
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <header className="w-full bg-white/90 backdrop-blur-sm border-b border-slate-100 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3 font-bold text-blue-900">
-            <Link href="/" className="flex items-center gap-2">
-              <span className="text-2xl">🏛️</span>
-              <span className="hidden sm:inline">ADLTS</span>
+    <div className="min-h-screen flex flex-col bg-[var(--adlts-page)]">
+      <a href="#main-content" className="skip-link text-sm font-medium text-[var(--adlts-ink-900)]">
+        Skip to content
+      </a>
+
+      <header className="sticky top-0 z-40 border-b border-[var(--adlts-divider)] bg-[color:rgba(255,255,255,.92)] backdrop-blur">
+        <div className={`${ui.shellPanelPublic} h-16 items-center justify-between`}>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--adlts-border)] text-[var(--adlts-ink-700)] lg:hidden"
+              aria-label="Open menu"
+            >
+              <Menu size={20} />
+            </button>
+            <Link href="/" className="inline-flex items-center gap-2 text-[var(--adlts-ink-950)]">
+              <BrandMark label="ADLTS" />
+              <span className="hidden sm:inline text-base font-semibold tracking-tight">ADLTS</span>
             </Link>
           </div>
 
-          {!showAuthed ? (
-            <nav className="hidden md:flex items-center gap-6 text-sm text-slate-600">
-              <Link href="/" className="hover:text-blue-700">
-                {t("home")}
+          <nav className="hidden lg:flex items-center gap-7 text-sm" aria-label="Primary">
+            {publicNav.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className="font-medium text-[var(--adlts-ink-700)] transition-colors hover:text-[var(--adlts-blue-700)]"
+              >
+                {t(item.labelKey)}
               </Link>
-              <Link href="/guidelines" className="hover:text-blue-700">
-                {t("guidelines")}
-              </Link>
-              <Link href="/about" className="hover:text-blue-700">
-                {t("aboutUs")}
-              </Link>
-              <Link href="/login" className="hover:text-blue-700 font-semibold">
-                {t("login")}
-              </Link>
-            </nav>
-          ) : (
-            <div className="hidden md:flex items-center gap-6 text-sm text-slate-600">
-              <Link href={dashboardHref} className="hover:text-blue-700 font-semibold">
+            ))}
+            {showAuthed ? (
+              <Link
+                href={dashboardHref}
+                className="font-semibold text-[var(--adlts-blue-700)] transition-colors hover:text-[var(--adlts-blue-800)]"
+              >
                 {t("dashboard")}
               </Link>
-            </div>
-          )}
+            ) : null}
+          </nav>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
             <button
               onClick={() => setLang(lang === "en" ? "am" : "en")}
-              className="flex items-center gap-2 bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-slate-800 hover:bg-slate-50 transition text-xs md:text-sm font-semibold"
+              className="inline-flex h-9 items-center rounded-md border border-[var(--adlts-border)] px-2.5 text-xs font-semibold text-[var(--adlts-ink-700)] transition-colors hover:border-[var(--adlts-blue-600)] hover:text-[var(--adlts-blue-700)]"
               aria-label="Toggle language"
             >
               {lang === "en" ? "አማ" : "EN"}
@@ -82,7 +103,10 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
                 onSignOut={handleLogout}
               />
             ) : (
-              <Link href="/login" className="bg-blue-900 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition">
+              <Link
+                href="/login"
+                className="inline-flex h-9 items-center rounded-md bg-[var(--adlts-blue-600)] px-3 text-sm font-medium text-white transition-colors hover:bg-[var(--adlts-blue-700)]"
+              >
                 {t("login")}
               </Link>
             )}
@@ -90,25 +114,71 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
         </div>
       </header>
 
-      <div className="flex flex-1 bg-white">
-        <main className="flex-1 min-w-0">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 md:py-10">{children}</div>
-        </main>
-      </div>
+      {isMobileMenuOpen ? (
+        <>
+          <div
+            className="fixed inset-0 z-50 bg-[var(--adlts-navy-950)]/40"
+            onClick={() => setIsMobileMenuOpen(false)}
+          />
+          <div className="fixed left-0 right-0 top-16 z-50 border-t border-[var(--adlts-border)] bg-[var(--adlts-surface)]">
+            <div className="mx-auto flex w-full max-w-[75rem] flex-col p-4">
+              <div className="flex items-center justify-between pb-3">
+                <span className="text-sm font-semibold text-[var(--adlts-ink-950)]">{t("menu") || "Menu"}</span>
+                <button
+                  type="button"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="rounded-md p-2 text-[var(--adlts-ink-700)]"
+                  aria-label="Close menu"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="border-t border-[var(--adlts-divider)] pt-3">
+                {publicNav.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="block rounded-md px-2.5 py-2 text-sm text-[var(--adlts-ink-700)] transition-colors hover:bg-[var(--adlts-surface-soft)]"
+                  >
+                    {t(item.labelKey)}
+                  </Link>
+                ))}
+                {showAuthed ? (
+                  <Link
+                    href={dashboardHref}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="mt-1 block rounded-md bg-[var(--adlts-blue-50)] px-2.5 py-2 text-sm font-medium text-[var(--adlts-blue-700)]"
+                  >
+                    {t("dashboard")}
+                  </Link>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </>
+      ) : null}
 
-      <footer className="bg-slate-50 border-t mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 text-sm text-slate-500 flex flex-col md:flex-row justify-between items-center">
-          <div>© 2024 ADLTS Ethiopia. All rights reserved.</div>
-          <div className="flex gap-4 mt-4 md:mt-0">
-            <Link href="/about" className="hover:text-blue-700">
+      <main id="main-content" className="flex-1">
+        <div className={`${ui.shellPanelPublic} py-8 md:py-10`}>{children}</div>
+      </main>
+
+      <footer className="mt-auto border-t border-[color:rgba(7,20,38,0.1)] bg-[var(--adlts-navy-950)] text-slate-200">
+        <div className={`${ui.shellPanelPublic} flex flex-col gap-5 py-8 text-sm text-slate-200/85 md:flex-row md:items-center md:justify-between`}>
+          <p className="text-xs font-medium uppercase tracking-[0.12em] text-slate-300">© 2024 ADLTS Ethiopia</p>
+          <div className="flex flex-wrap items-center gap-5 text-slate-100/90">
+            <Link href="/about" className="hover:text-white">
               {t("about")}
             </Link>
-            <Link href="/contact" className="hover:text-blue-700">
+            <Link href="/contact" className="hover:text-white">
               {t("contact")}
             </Link>
-            <Link href="/privacy-policy" className="hover:text-blue-700">
+            <Link href="/privacy-policy" className="hover:text-white">
               {t("privacy")}
             </Link>
+            <a className="hover:text-white" href="mailto:support@adlts.example" target="_blank" rel="noreferrer">
+              support@adlts.example
+            </a>
           </div>
         </div>
       </footer>

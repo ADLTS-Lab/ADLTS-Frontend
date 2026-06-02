@@ -2,11 +2,13 @@
 
 import React from "react";
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { LogOut, Menu, X } from "lucide-react";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { logout as logoutService } from "@/services/auth.service";
 import { useI18n } from "@/i18n/useI18n";
+import { ui } from "@/app/components/ui/design-tokens";
+import { BrandMark } from "./BrandMark";
 import {
   ADMIN_NAV,
   CANDIDATE_NAV,
@@ -17,7 +19,7 @@ import {
   TRANSPORT_AUTHORITY_NAV,
   type NavItem,
 } from "@/config/navigation";
-import UserMenu from "@/components/UserMenu";
+import UserMenu from "./UserMenu";
 
 type PortalShellProps = {
   children: React.ReactNode;
@@ -25,12 +27,20 @@ type PortalShellProps = {
   dashboardHref: string;
 };
 
+function initialsFor(displayName: string) {
+  const tokens = displayName.trim().split(/\s+/).filter(Boolean);
+  const head = tokens[0]?.charAt(0) ?? "U";
+  const tail = tokens.length > 1 ? tokens[tokens.length - 1].charAt(0) : null;
+  return tail ? `${head}${tail}` : head;
+}
+
 export default function PortalShell({ children, navItems, dashboardHref }: PortalShellProps) {
   const router = useRouter();
   const pathname = usePathname() || "/";
   const { user } = useAuthSession();
   const { t, lang, setLang } = useI18n();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
+
   const hideTopDashboardLink = dashboardHref === PORTAL_DASHBOARD_HREF.candidate;
   const rolePrefix = user?.role ? `/${user.role.replace("_", "-")}` : "";
   const profileHref = rolePrefix ? `${rolePrefix}/profile` : "#";
@@ -44,113 +54,119 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
   const displayName =
     user?.name || `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || user?.email || "User";
 
+  const renderNavItems = ({ mobile = false }: { mobile?: boolean }) => (
+    <nav className={mobile ? "space-y-1.5" : "space-y-1.5 px-1"} aria-label="Portal navigation">
+      {navItems.map((item) => {
+        const isActive = !item.disabled && item.href !== "#" && pathname.startsWith(item.href);
+        const Icon = item.icon;
+        return (
+          <Link
+            key={`${item.href}-${item.labelKey}`}
+            href={item.href}
+            aria-current={isActive ? "page" : undefined}
+            onClick={() => {
+              if (mobile) {
+                setIsMobileMenuOpen(false);
+              }
+            }}
+            className={`group relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm ${
+              isActive
+                ? "bg-[var(--adlts-blue-50)] text-[var(--adlts-blue-700)]"
+                : "text-[var(--adlts-ink-700)] hover:bg-[var(--adlts-surface-soft)] hover:text-[var(--adlts-ink-900)]"
+            } ${item.disabled ? "pointer-events-none opacity-55" : ""}`}
+          >
+            {isActive ? (
+              <span className="absolute left-0 top-0 h-full w-1 rounded-r-full bg-[var(--adlts-blue-600)]" />
+            ) : null}
+            <Icon size={18} className={isActive ? "text-[var(--adlts-blue-700)]" : "text-[var(--adlts-ink-500)]"} />
+            <span>{t(item.labelKey)}</span>
+          </Link>
+        );
+      })}
+      <button
+        type="button"
+        onClick={() => {
+          setIsMobileMenuOpen(false);
+          handleLogout();
+        }}
+        className="mt-3 flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm text-[var(--adlts-ink-700)] transition-colors hover:bg-[var(--adlts-surface-soft)] hover:text-[var(--adlts-ink-900)]"
+      >
+        <LogOut size={18} className="text-[var(--adlts-error-600)]" />
+        <span className="font-medium text-[var(--adlts-error-700)]">{t("logout")}</span>
+      </button>
+    </nav>
+  );
+
   return (
-    <div className="min-h-screen flex flex-col">
-      {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden">
+    <div className="min-h-screen flex flex-col bg-[var(--adlts-page)]">
+      {isMobileMenuOpen ? (
+        <>
           <div
-            className="fixed inset-0 bg-slate-950/40 backdrop-blur-xs transition-opacity"
+            className="fixed inset-0 z-50 bg-[var(--adlts-navy-950)]/40 lg:hidden"
             onClick={() => setIsMobileMenuOpen(false)}
           />
-          <div className="fixed inset-y-0 left-0 w-64 bg-white shadow-2xl flex flex-col z-50 border-r border-slate-100">
-            <div className="p-6 h-16 border-b border-slate-100 flex items-center justify-between">
-              <Link
-                href="/"
-                className="flex items-center gap-2 font-bold text-blue-900"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <span className="text-2xl">🏛️</span>
-                <span>ADLTS</span>
-              </Link>
+          <div className="fixed inset-y-0 left-0 z-50 w-80 border-r border-[var(--adlts-divider)] bg-[var(--adlts-surface)] lg:hidden">
+            <div className="flex h-16 items-center justify-between border-b border-[var(--adlts-divider)] px-4">
+              <div className="flex items-center gap-2 text-[var(--adlts-ink-950)]">
+                <BrandMark />
+                <span className="font-semibold">ADLTS</span>
+              </div>
               <button
+                type="button"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="p-2 text-slate-400 hover:text-slate-600 focus:outline-none"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[var(--adlts-ink-700)]"
                 aria-label="Close menu"
               >
                 <X size={20} />
               </button>
             </div>
-            <div className="p-6 flex-1 flex flex-col justify-between overflow-y-auto">
-              <div className="space-y-6">
-                <Link
-                  href={profileHref}
-                  className="flex items-center gap-3 hover:bg-slate-50 p-2 rounded-xl transition -ml-2"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <div className="w-10 h-10 bg-blue-900 text-white rounded-full flex items-center justify-center font-black">
-                    {(user?.name || user?.first_name || user?.email || "U").charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <div className="font-bold text-slate-800 text-sm truncate max-w-35">{displayName}</div>
-                  </div>
-                </Link>
-                <nav className="space-y-1 text-sm">
-                  {navItems.map((item) => {
-                    const isActive = !item.disabled && item.href !== "#" && pathname.startsWith(item.href);
-                    const Icon = item.icon;
-                    return (
-                      <Link
-                        key={item.href + item.labelKey}
-                        href={item.href}
-                        onClick={() => setIsMobileMenuOpen(false)}
-                        className={[
-                          "flex items-center gap-3 py-2.5 px-3 rounded-xl transition",
-                          isActive
-                            ? "bg-blue-50 text-blue-900 font-bold"
-                            : "text-slate-700 hover:bg-slate-50 hover:text-slate-900",
-                          item.disabled ? "opacity-60 pointer-events-none" : "",
-                        ].join(" ")}
-                      >
-                        <Icon size={18} className={isActive ? "text-blue-700" : "text-slate-400"} />
-                        <span>{t(item.labelKey)}</span>
-                      </Link>
-                    );
-                  })}
-                </nav>
-              </div>
-              <button
-                onClick={() => {
-                  setIsMobileMenuOpen(false);
-                  handleLogout();
-                }}
-                className="mt-6 flex w-full items-center gap-3 py-2.5 px-3 rounded-xl transition text-slate-700 hover:bg-slate-50 hover:text-slate-900 border-t border-slate-100 pt-6"
+            <div className="space-y-4 px-3 py-4">
+              <Link
+                href={profileHref}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="mb-2 flex items-center gap-3 rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-2 transition hover:bg-[var(--adlts-surface)]"
               >
-                <LogOut size={18} className="text-slate-400" />
-                <span className="font-semibold text-red-600">{t("logout")}</span>
-              </button>
+                <div className="grid h-9 w-9 place-items-center rounded-full bg-[var(--adlts-blue-600)] text-xs font-bold text-white">
+                  {initialsFor(displayName)}
+                </div>
+                <span className="max-w-52 truncate text-sm font-medium text-[var(--adlts-ink-900)]">{displayName}</span>
+              </Link>
+              {renderNavItems({ mobile: true })}
             </div>
           </div>
-        </div>
-      )}
+        </>
+      ) : null}
 
-      <header className="w-full bg-white/90 backdrop-blur-sm border-b border-slate-100 z-40">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3 font-bold text-blue-900">
+      <header className="sticky top-0 z-40 border-b border-[var(--adlts-divider)] bg-[color:rgba(255,255,255,.93)] backdrop-blur">
+        <div className={`${ui.shellPanel} h-16 items-center justify-between`}>
+          <div className="flex items-center gap-3 text-[var(--adlts-ink-950)]">
             <button
-              onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden p-2 -ml-2 text-slate-600 hover:text-blue-900 focus:outline-none"
-              aria-label="Toggle menu"
+              type="button"
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--adlts-border)] text-[var(--adlts-ink-700)]"
+              aria-label="Open menu"
             >
-              <Menu size={22} />
+              <Menu size={20} />
             </button>
-            <Link href="/" className="flex items-center gap-2">
-              <span className="text-2xl">🏛️</span>
-              <span className="hidden sm:inline">ADLTS</span>
+            <Link href="/" className="inline-flex items-center gap-2">
+              <BrandMark />
+              <span className="hidden md:inline text-sm font-semibold">ADLTS</span>
             </Link>
-          </div>
-
-          {!hideTopDashboardLink && (
-            <div className="hidden md:flex items-center gap-6 text-sm text-slate-600">
-              <Link href={dashboardHref} className="hover:text-blue-700 font-semibold">
+            {!hideTopDashboardLink ? (
+              <Link
+                href={dashboardHref}
+                className="ml-3 hidden text-sm font-medium text-[var(--adlts-blue-700)] transition-colors hover:text-[var(--adlts-blue-800)] md:inline-flex"
+              >
                 {t("dashboard")}
               </Link>
-            </div>
-          )}
+            ) : null}
+          </div>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
             <button
+              type="button"
               onClick={() => setLang(lang === "en" ? "am" : "en")}
-              className="flex items-center gap-2 bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-slate-800 hover:bg-slate-50 transition text-xs md:text-sm font-semibold"
+              className="inline-flex h-9 items-center rounded-md border border-[var(--adlts-border)] px-2.5 text-xs font-semibold text-[var(--adlts-ink-700)] transition-colors hover:border-[var(--adlts-blue-600)] hover:text-[var(--adlts-blue-700)]"
               aria-label="Toggle language"
             >
               {lang === "en" ? "አማ" : "EN"}
@@ -165,76 +181,32 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
         </div>
       </header>
 
-      <div className="flex flex-1 bg-[#F8FAFC]">
-        <aside className="w-64 bg-white border-r border-slate-100 hidden lg:block sticky top-16 h-[calc(100vh-4rem)]">
-          <div className="p-6">
-            <Link
-              href={profileHref}
-              className="flex items-center gap-3 mb-6 hover:bg-slate-50 p-2 rounded-xl transition -ml-2"
-            >
-              <div className="w-10 h-10 bg-blue-900 text-white rounded-full flex items-center justify-center font-black">
-                {(user?.name || user?.first_name || user?.email || "U").charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <div className="font-bold text-slate-800">{displayName}</div>
-              </div>
-            </Link>
-            <nav className="space-y-1 text-sm">
-              {navItems.map((item) => {
-                const isActive = !item.disabled && item.href !== "#" && pathname.startsWith(item.href);
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href + item.labelKey}
-                    href={item.href}
-                    aria-current={isActive ? "page" : undefined}
-                    className={[
-                      "flex items-center gap-3 py-2.5 px-3 rounded-xl transition",
-                      isActive
-                        ? "bg-blue-50 text-blue-900 font-bold"
-                        : "text-slate-700 hover:bg-slate-50 hover:text-slate-900",
-                      item.disabled ? "opacity-60 pointer-events-none" : "",
-                    ].join(" ")}
-                  >
-                    <Icon
-                      size={18}
-                      className={isActive ? "text-blue-700" : "text-slate-400"}
-                      aria-hidden="true"
-                    />
-                    <span>{t(item.labelKey)}</span>
-                  </Link>
-                );
-              })}
-              <button
-                onClick={handleLogout}
-                className="mt-3 flex w-full items-center gap-3 py-2.5 px-3 rounded-xl transition text-slate-700 hover:bg-slate-50 hover:text-slate-900"
+      <div className="flex flex-1">
+        <aside className="hidden w-72 border-r border-[var(--adlts-divider)] bg-[var(--adlts-surface)] lg:block">
+          <div className="sticky top-16 max-h-[calc(100vh-4rem)] overflow-y-auto">
+            <div className="px-5 py-4">
+              <Link
+                href={profileHref}
+                className="mb-5 flex items-center gap-3 rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-2 transition hover:bg-[var(--adlts-surface)]"
               >
-                <LogOut size={18} className="text-slate-400" aria-hidden="true" />
-                <span className="font-semibold text-red-600">{t("logout")}</span>
-              </button>
-            </nav>
+                <div className="grid h-10 w-10 place-items-center rounded-full bg-[var(--adlts-blue-600)] text-sm font-semibold text-white">
+                  {initialsFor(displayName)}
+                </div>
+                <span className="max-w-52 truncate text-sm font-medium text-[var(--adlts-ink-900)]">{displayName}</span>
+              </Link>
+              {renderNavItems({ mobile: false })}
+            </div>
           </div>
         </aside>
 
-        <main className="flex-1 min-w-0">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 md:py-8">{children}</div>
+        <main id="portal-main" className="flex-1 min-w-0">
+          <div className="px-4 py-6 sm:px-6 md:py-8 lg:py-10">{children}</div>
         </main>
       </div>
 
-      <footer className="bg-slate-50 border-t mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 text-sm text-slate-500 flex flex-col md:flex-row justify-between items-center">
-          <div>© 2024 ADLTS Ethiopia. All rights reserved.</div>
-          <div className="flex gap-4 mt-4 md:mt-0">
-            <Link href="/about" className="hover:text-blue-700">
-              {t("about")}
-            </Link>
-            <Link href="/contact" className="hover:text-blue-700">
-              {t("contact")}
-            </Link>
-            <Link href="/privacy-policy" className="hover:text-blue-700">
-              {t("privacy")}
-            </Link>
-          </div>
+      <footer className="border-t border-[var(--adlts-border)] bg-[var(--adlts-surface)]">
+        <div className={`${ui.shellPanel} py-5 text-xs text-[var(--adlts-ink-600)]`}>
+          <p className="text-center text-[0.75rem] md:text-left">© 2024 ADLTS Ethiopia.</p>
         </div>
       </footer>
     </div>

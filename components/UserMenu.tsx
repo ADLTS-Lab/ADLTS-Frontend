@@ -29,8 +29,18 @@ export default function UserMenu({ displayName, profileHref, settingsHref, onSig
       }
     };
 
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
     document.addEventListener("mousedown", handlePointerDown);
-    return () => document.removeEventListener("mousedown", handlePointerDown);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("keydown", handleEscape);
+    };
   }, []);
 
   const handleSignOut = async () => {
@@ -43,36 +53,37 @@ export default function UserMenu({ displayName, profileHref, settingsHref, onSig
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="hidden sm:flex items-center gap-3 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-200 hover:bg-slate-100 transition"
+        aria-expanded={open}
+        aria-haspopup="true"
+        className="hidden sm:inline-flex items-center gap-2.5 rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface)] px-2.5 py-1.5 transition-colors hover:border-[var(--adlts-blue-700)] hover:bg-[var(--adlts-surface-soft)]"
       >
-        <span className="w-7 h-7 rounded-full bg-blue-900 text-white flex items-center justify-center text-xs font-black">
+        <span className="grid h-7 w-7 place-items-center rounded-full bg-[var(--adlts-blue-600)] text-xs font-semibold text-white">
           {avatar}
-          <span className="sr-only">{name}</span>
         </span>
-        <span className="text-xs font-bold text-slate-800">{name}</span>
-        <ChevronDown size={16} className="text-slate-500" />
+        <span className="text-sm font-medium text-[var(--adlts-ink-800)]">{name}</span>
+        <ChevronDown size={16} className="text-[var(--adlts-ink-500)]" />
       </button>
 
-      {open && (
-        <div className="absolute right-0 mt-2 w-52 rounded-xl border border-slate-200 bg-white shadow-lg py-2 z-50">
+      {open ? (
+        <div className="absolute right-0 z-50 mt-2 w-56 rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface)] shadow-popover py-2">
           <Link
             href={profileHref}
             onClick={() => setOpen(false)}
-            className="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-50"
+            className="block px-4 py-2 text-sm text-[var(--adlts-ink-800)] transition-colors hover:bg-[var(--adlts-surface-soft)]"
           >
             {t("profile") || "Profile"}
           </Link>
           <Link
             href={settingsHref}
             onClick={() => setOpen(false)}
-            className="block px-4 py-2 text-sm text-slate-800 hover:bg-slate-50"
+            className="block px-4 py-2 text-sm text-[var(--adlts-ink-800)] transition-colors hover:bg-[var(--adlts-surface-soft)]"
           >
             {t("settings") || "Settings"}
           </Link>
           <button
             type="button"
             onClick={handleSignOut}
-            className="w-full text-left px-4 py-2 text-sm text-rose-600 hover:bg-rose-50"
+            className="w-full text-left px-4 py-2 text-sm text-[var(--adlts-error-700)] transition-colors hover:bg-[var(--adlts-error-50)]"
           >
             <span className="inline-flex items-center gap-2">
               <LogOut size={14} />
@@ -80,12 +91,13 @@ export default function UserMenu({ displayName, profileHref, settingsHref, onSig
             </span>
           </button>
         </div>
-      )}
+      ) : null}
 
       <button
         type="button"
         onClick={() => setOpen((value) => !value)}
-        className="sm:hidden w-10 h-10 rounded-full bg-blue-900 text-white flex items-center justify-center"
+        className="sm:hidden h-10 w-10 rounded-full bg-[var(--adlts-blue-600)] text-sm font-semibold text-white"
+        aria-label={`Open account menu for ${name}`}
       >
         {avatar}
       </button>
