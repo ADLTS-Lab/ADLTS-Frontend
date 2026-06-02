@@ -44,24 +44,29 @@ export default function SuperAdminDashboard() {
       {error ? (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
       ) : null}
+      {!error && !loading && !metrics ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          Super-admin metrics endpoint did not return data.
+        </div>
+      ) : null}
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
-          { label: "Total Active Candidates", value: metrics?.totalActiveCandidates.toLocaleString(), color: "text-blue-600" },
+          { label: "Total Active Candidates", value: metrics?.totalActiveCandidates, color: "text-blue-600" },
           { label: "Registered Institutes", value: metrics?.registeredInstitutes, color: "text-indigo-600" },
           { label: "Active Biometric Devices", value: metrics?.activeDevices, color: "text-emerald-600" },
           { label: "System Health", value: metrics ? `${metrics.systemHealth}%` : undefined, color: "text-slate-700" },
         ].map((stat, i) => (
           <Card key={i} className="p-6">
             <h3 className="text-sm font-medium text-slate-500">{stat.label}</h3>
-            {loading ? (
-              <div className="h-9 w-24 bg-slate-200 animate-pulse rounded mt-2"></div>
-            ) : (
-              <p className={`text-3xl font-bold mt-2 ${stat.color}`}>{stat.value || "—"}</p>
-            )}
-          </Card>
-        ))}
+              {loading ? (
+                <div className="h-9 w-24 bg-slate-200 animate-pulse rounded mt-2"></div>
+              ) : (
+                <p className={`text-3xl font-bold mt-2 ${stat.color}`}>{stat.value?.toLocaleString?.() ?? "—"}</p>
+              )}
+            </Card>
+          ))}
       </div>
 
       {/* Table Section */}
