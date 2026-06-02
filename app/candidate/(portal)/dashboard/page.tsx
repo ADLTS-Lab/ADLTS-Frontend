@@ -387,13 +387,16 @@ function getPrimaryNextAction(status?: BookingStatus | null, paymentSuccessful =
 }
 
 function getBookingProgressSteps(status?: BookingStatus | null, paymentSuccessful = false) {
-  const steps = [
-    { label: 'Booking Submitted', state: 'upcoming' as const, symbol: '○' },
-    { label: 'Institution Approval', state: 'upcoming' as const, symbol: '○' },
-    { label: 'Payment', state: 'upcoming' as const, symbol: '○' },
-    { label: 'Scheduling', state: 'upcoming' as const, symbol: '○' },
-    { label: 'Test', state: 'upcoming' as const, symbol: '○' },
-    { label: 'Results', state: 'upcoming' as const, symbol: '○' },
+  type StepState = "upcoming" | "current" | "complete";
+  type ProgressStep = { label: string; state: StepState; symbol: string };
+
+  const steps: ProgressStep[] = [
+    { label: 'Booking Submitted', state: 'upcoming', symbol: '○' },
+    { label: 'Institution Approval', state: 'upcoming', symbol: '○' },
+    { label: 'Payment', state: 'upcoming', symbol: '○' },
+    { label: 'Scheduling', state: 'upcoming', symbol: '○' },
+    { label: 'Test', state: 'upcoming', symbol: '○' },
+    { label: 'Results', state: 'upcoming', symbol: '○' },
   ];
 
   if (!status) {
@@ -441,4 +444,3 @@ function getBookingProgressSteps(status?: BookingStatus | null, paymentSuccessfu
       return steps;
   }
 }
-
