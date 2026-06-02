@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card } from "@/app/components/ui/Card";
-import { Button } from "@/app/components/ui/Button";
 import { getRecentAudits, type AuditLog } from "@/services/super-admin.service";
 import { useI18n } from "@/i18n/useI18n";
 import { extractApiError } from "@/services/api-utils";
+import { Alert, Button, Card, CardHeader, PageContainer, PageHeader, StatusBadge } from "@/app/components/ui";
 
 export default function SuperAdminAuditsPage() {
   const { t } = useI18n();
@@ -45,71 +44,61 @@ export default function SuperAdminAuditsPage() {
   }, []);
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-300">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-[0.32em] text-slate-400">Super Admin</p>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">{t("superAdmin_audits_title")}</h1>
-          <p className="mt-1 max-w-2xl text-sm text-slate-500">{t("superAdmin_audits_subtitle")}</p>
-        </div>
-        <Button variant="secondary" onClick={() => window.location.reload()}>
-          Refresh
-        </Button>
-      </div>
+    <PageContainer width="wide">
+      <PageHeader
+        eyebrow="Super Admin"
+        title={t("superAdmin_audits_title")}
+        description={t("superAdmin_audits_subtitle")}
+        action={<Button variant="secondary" onClick={() => window.location.reload()}>Refresh</Button>}
+      />
 
-      {error ? (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>
-      ) : null}
+      {error ? <Alert variant="error">{error}</Alert> : null}
 
       <Card className="overflow-hidden p-0">
-        <div className="border-b border-slate-100 bg-white px-6 py-4">
-          <h2 className="text-lg font-semibold text-slate-900">Recent audit events</h2>
-        </div>
+        <CardHeader title="Recent audit events" />
         <div className="overflow-x-auto">
-          <table className="w-full min-w-190 text-left text-sm text-slate-600">
-            <thead className="bg-slate-50 text-xs uppercase tracking-widest text-slate-400">
+          <table className="w-full min-w-[60rem] text-left text-sm">
+            <thead className="bg-[var(--adlts-surface-soft)] border-b border-[var(--adlts-divider)]">
               <tr>
-                <th className="px-6 py-4 font-medium">Action</th>
-                <th className="px-6 py-4 font-medium">User</th>
-                <th className="px-6 py-4 font-medium">Timestamp</th>
-                <th className="px-6 py-4 font-medium">Status</th>
+                <th className="px-6 py-4 font-medium text-[var(--adlts-ink-700)]">Action</th>
+                <th className="px-6 py-4 font-medium text-[var(--adlts-ink-700)]">User</th>
+                <th className="px-6 py-4 font-medium text-[var(--adlts-ink-700)]">Timestamp</th>
+                <th className="px-6 py-4 font-medium text-[var(--adlts-ink-700)]">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
+            <tbody className="divide-y divide-[var(--adlts-divider)]">
               {loading ? (
                 Array.from({ length: 4 }).map((_, index) => (
                   <tr key={index}>
-                    <td className="px-6 py-4"><div className="h-5 w-56 animate-pulse rounded bg-slate-100" /></td>
-                    <td className="px-6 py-4"><div className="h-5 w-28 animate-pulse rounded bg-slate-100" /></td>
-                    <td className="px-6 py-4"><div className="h-5 w-36 animate-pulse rounded bg-slate-100" /></td>
-                    <td className="px-6 py-4"><div className="h-5 w-20 animate-pulse rounded bg-slate-100" /></td>
+                    <td className="px-6 py-4"><div className="h-5 w-56 animate-pulse rounded bg-[var(--adlts-surface-soft)]" /></td>
+                    <td className="px-6 py-4"><div className="h-5 w-28 animate-pulse rounded bg-[var(--adlts-surface-soft)]" /></td>
+                    <td className="px-6 py-4"><div className="h-5 w-36 animate-pulse rounded bg-[var(--adlts-surface-soft)]" /></td>
+                    <td className="px-6 py-4"><div className="h-5 w-20 animate-pulse rounded bg-[var(--adlts-surface-soft)]" /></td>
                   </tr>
                 ))
               ) : audits.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-slate-400">
+                  <td colSpan={4} className="px-6 py-12 text-center text-[var(--adlts-ink-500)]">
                     {t("superAdmin_audits_empty")}
                   </td>
                 </tr>
               ) : (
                 audits.map((audit) => (
-                  <tr key={audit.id} className="transition-colors hover:bg-slate-50/80">
-                    <td className="px-6 py-4 font-medium text-slate-900">{audit.action}</td>
+                  <tr key={audit.id} className="transition-colors hover:bg-[var(--adlts-surface-soft)]">
+                    <td className="px-6 py-4 font-medium text-[var(--adlts-ink-900)]">{audit.action}</td>
                     <td className="px-6 py-4">{audit.user}</td>
                     <td className="px-6 py-4">{formatTimestamp(audit.timestamp)}</td>
                     <td className="px-6 py-4">
-                      <span
-                        className={[
-                          "inline-flex rounded-full px-3 py-1 text-xs font-bold capitalize",
+                      <StatusBadge
+                        status={audit.status}
+                        tone={
                           audit.status === "success"
-                            ? "bg-emerald-100 text-emerald-800"
+                            ? "success"
                             : audit.status === "error"
-                              ? "bg-rose-100 text-rose-800"
-                              : "bg-amber-100 text-amber-800",
-                        ].join(" ")}
-                      >
-                        {audit.status}
-                      </span>
+                              ? "error"
+                              : "warning"
+                        }
+                      />
                     </td>
                   </tr>
                 ))
@@ -118,7 +107,7 @@ export default function SuperAdminAuditsPage() {
           </table>
         </div>
       </Card>
-    </div>
+    </PageContainer>
   );
 }
 

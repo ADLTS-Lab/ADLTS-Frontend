@@ -1,34 +1,55 @@
+import { Card, CardHeader, PageContainer, PageHeader } from "@/app/components/ui";
+
+const items = [
+  {
+    title: "What we store",
+    detail:
+      "Basic account identity details, role context, booking data, and platform interactions required to keep services operational.",
+  },
+  {
+    title: "How we use data",
+    detail:
+      "Data supports authentication, authorization, workflow routing, status visibility, and security monitoring.",
+  },
+  {
+    title: "Your control",
+    detail:
+      "You can sign out at any time. Session tokens and account changes are managed by platform login state.",
+  },
+];
+
 export default function PrivacyPolicyPage() {
   return (
-    <div className="min-h-[60vh] bg-[#F5F7FA] rounded-2xl border border-[#E5E7EB] p-6 sm:p-10 space-y-6">
-      <div>
-        <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600 mb-3">Privacy & security</p>
-        <h1 className="text-2xl sm:text-3xl font-bold text-[#1F2937]">የግላዊነት ፖሊሲ / Privacy Policy</h1>
+    <PageContainer width="wide" className="space-y-8">
+      <PageHeader
+        eyebrow="Privacy"
+        title="Privacy & Security"
+        description="How profile and process data is handled in the ADLTS portals."
+      />
+
+      <Card className="space-y-3">
+        <CardHeader title="Overview" description="Data handling at a glance." />
+        <p className="text-sm text-[var(--adlts-ink-600)]">
+          ADLTS is a role-based portal system. We show only operationally necessary information based on your authenticated role.
+        </p>
+      </Card>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        {items.map((item) => (
+          <Card key={item.title} className="space-y-2">
+            <h2 className="text-base font-semibold text-[var(--adlts-ink-900)]">{item.title}</h2>
+            <p className="text-sm text-[var(--adlts-ink-600)]">{item.detail}</p>
+          </Card>
+        ))}
       </div>
 
-      <p className="text-[#4B5563] leading-relaxed max-w-3xl">
-        This page explains, in plain language, how ADLTS handles account details, login data, and contact information. It is a placeholder policy for the current frontend workflow.
-      </p>
-
-      <div className="grid md:grid-cols-3 gap-4">
-        <div className="bg-white rounded-2xl p-5 border border-[#E5E7EB] shadow-sm">
-          <h2 className="font-bold text-[#1F2937] mb-2">What we store</h2>
-          <p className="text-sm text-[#4B5563] leading-relaxed">Basic profile information, role, and session token data needed to keep users signed in.</p>
-        </div>
-        <div className="bg-white rounded-2xl p-5 border border-[#E5E7EB] shadow-sm">
-          <h2 className="font-bold text-[#1F2937] mb-2">How it is used</h2>
-          <p className="text-sm text-[#4B5563] leading-relaxed">To authenticate users, route them to the right dashboard, and support account recovery flows.</p>
-        </div>
-        <div className="bg-white rounded-2xl p-5 border border-[#E5E7EB] shadow-sm">
-          <h2 className="font-bold text-[#1F2937] mb-2">Your choice</h2>
-          <p className="text-sm text-[#4B5563] leading-relaxed">You can log out at any time, and any future policy changes should be reflected here before release.</p>
-        </div>
-      </div>
-
-      <p className="text-[#4B5563] leading-relaxed max-w-3xl">
-        ይህ ለ ADLTS የግላዊነት ፖሊሲ ጊዜያዊ ገጽ ነው። የተጠቃሚ መረጃ እንዴት እንደሚሰበሰብ፣ እንዴት እንደሚጠቀም እና
-        እንዴት እንደሚጠበቅ ያብራራል።
-      </p>
-    </div>
+      <Card className="space-y-2">
+        <CardHeader title="Contact & updates" description="For compliance or correction requests." />
+        <p className="text-sm text-[var(--adlts-ink-600)]">
+          If your rights request, account question, or data update request concerns profile details, contact support directly.
+          Operational requests are reviewed according to role governance and platform procedures.
+        </p>
+      </Card>
+    </PageContainer>
   );
 }

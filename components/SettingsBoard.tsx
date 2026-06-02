@@ -1,9 +1,21 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
-import { RefreshCw, CheckCircle, Globe, Bell, Save } from "lucide-react";
+import { type FormEvent, useState, useEffect } from "react";
+import { CheckCircle, Globe, RefreshCw } from "lucide-react";
 import { useI18n } from "@/i18n/useI18n";
 import { getAppSettings, updateAppSettings, type CandidateSettings } from "@/services/settings.service";
+import {
+  Alert,
+  Button,
+  Card,
+  CardContent,
+  CardHeader,
+  Input,
+  PageContainer,
+  PageHeader,
+  Select,
+  ui,
+} from "@/app/components/ui";
 
 type NotificationKey = keyof CandidateSettings["notifications"];
 
@@ -59,130 +71,116 @@ export function SettingsBoard() {
 
   if (isLoading || !settings) {
     return (
-      <main className="max-w-4xl mx-auto space-y-6">
-        <div className="bg-white rounded-3xl p-8 border border-slate-100 animate-pulse">
-          <div className="h-6 w-48 bg-slate-100 rounded mb-8" />
-          <div className="space-y-4">
-            <div className="h-12 bg-slate-100 rounded-xl" />
-            <div className="h-12 bg-slate-100 rounded-xl" />
-            <div className="h-24 bg-slate-100 rounded-xl" />
-          </div>
-        </div>
-      </main>
+      <PageContainer width="wide">
+        <Card padding="lg" className="animate-pulse space-y-5">
+          <div className="h-5 w-24 bg-[var(--adlts-surface-soft)] rounded" />
+          <div className="h-11 w-full bg-[var(--adlts-surface-soft)] rounded-md" />
+          <div className="h-11 w-full bg-[var(--adlts-surface-soft)] rounded-md" />
+          <div className="h-24 w-full bg-[var(--adlts-surface-soft)] rounded-md" />
+        </Card>
+      </PageContainer>
     );
   }
 
   return (
-    <main className="max-w-4xl mx-auto space-y-6">
-      <div className="flex flex-col gap-2">
-        <h1 className="text-2xl font-bold text-slate-800">{t("settings") || "Settings"}</h1>
-        <p className="text-slate-500 text-sm">
-          {t("settingsDescription") || "Manage your appearance, language, and notification preferences."}
-        </p>
-      </div>
+    <PageContainer width="wide" className="space-y-6">
+      <PageHeader
+        eyebrow={t("settings") || "Settings"}
+        title={t("settings") || "Settings"}
+        description={t("settingsDescription") || "Manage language and notification preferences."}
+      />
 
       {successMessage && (
-        <div className="flex items-center gap-3 p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl shadow-sm">
-          <CheckCircle className="text-emerald-600 shrink-0" size={20} />
-          <p className="text-sm font-semibold">{successMessage}</p>
-        </div>
+        <Alert variant="success">
+          <div className="flex items-center gap-3">
+            <CheckCircle className="shrink-0 text-[var(--adlts-success-700)]" size={18} />
+            <p className="text-sm font-semibold">{successMessage}</p>
+          </div>
+        </Alert>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <section className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
-          <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-            <Globe className="text-blue-900" size={22} />
-            <h2 className="text-lg font-bold text-slate-800">{t("languagePreference") || "Language Preference"}</h2>
-          </div>
-          <label className="block text-sm font-bold text-slate-700 mb-2">
-            {t("selectLanguage") || "Select Language"}
-          </label>
-          <select
-            value={settings.language}
-            onChange={(event) =>
-              setSettings((current) =>
-                current ? { ...current, language: event.target.value as CandidateSettings["language"] } : current
-              )
+        <Card>
+          <CardHeader
+            title={t("languagePreference") || "Language Preference"}
+            description={t("selectLanguage") || "Select your preferred interface language."}
+            action={<Globe className="h-5 w-5 text-[var(--adlts-blue-700)]" />}
+          />
+
+          <CardContent>
+            <Select
+              value={settings.language}
+              onChange={(event) =>
+                setSettings((current) =>
+                  current ? { ...current, language: event.target.value as CandidateSettings["language"] } : current
+                )
+              }
+            >
+              <option value="en">English</option>
+              <option value="am">አማርኛ (Amharic)</option>
+            </Select>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader
+            title={t("notifications") || "Notification Preferences"}
+            description={
+              t("notificationSettingsDescription") ||
+              "Choose the account alerts you want to receive from this portal."
             }
-            className="w-full sm:max-w-md px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition bg-slate-50/50 text-slate-800 font-medium appearance-none"
-          >
-            <option value="en">English</option>
-            <option value="am">አማርኛ (Amharic)</option>
-          </select>
-        </section>
+            action={<Globe className="h-5 w-5 text-[var(--adlts-blue-700)]" />}
+          />
 
-        <section className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
-          <div className="flex items-center gap-3 mb-6 border-b border-slate-100 pb-4">
-            <Bell className="text-blue-900" size={22} />
-            <h2 className="text-lg font-bold text-slate-800">{t("notifications") || "Notification Preferences"}</h2>
-          </div>
+          <CardContent>
+            <fieldset className="space-y-3">
+              <legend className="sr-only">{t("notificationSettingsDescription") || "Notification settings"}</legend>
+              <label className="flex items-center justify-between gap-3 rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface)] p-3 transition hover:bg-[var(--adlts-surface-soft)]">
+                <span className={ui.statLabel}>{t("bookingUpdates") || "Booking updates"}</span>
+                <input
+                  type="checkbox"
+                  checked={settings.notifications.bookingUpdates}
+                  onChange={(event) => updateNotification("bookingUpdates", event.target.checked)}
+                  className="h-4 w-4 rounded border border-[var(--adlts-border)] text-[var(--adlts-blue-600)] focus:ring-2 focus:ring-[var(--adlts-focus-ring)]"
+                />
+              </label>
+              <label className="flex items-center justify-between gap-3 rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface)] p-3 transition hover:bg-[var(--adlts-surface-soft)]">
+                <span className={ui.statLabel}>{t("examUpdates") || "Exam updates"}</span>
+                <input
+                  type="checkbox"
+                  checked={settings.notifications.examUpdates}
+                  onChange={(event) => updateNotification("examUpdates", event.target.checked)}
+                  className="h-4 w-4 rounded border border-[var(--adlts-border)] text-[var(--adlts-blue-600)] focus:ring-2 focus:ring-[var(--adlts-focus-ring)]"
+                />
+              </label>
+              <label className="flex items-center justify-between gap-3 rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface)] p-3 transition hover:bg-[var(--adlts-surface-soft)]">
+                <span className={ui.statLabel}>{t("resultNotifications") || "Result notifications"}</span>
+                <input
+                  type="checkbox"
+                  checked={settings.notifications.resultNotifications}
+                  onChange={(event) => updateNotification("resultNotifications", event.target.checked)}
+                  className="h-4 w-4 rounded border border-[var(--adlts-border)] text-[var(--adlts-blue-600)] focus:ring-2 focus:ring-[var(--adlts-focus-ring)]"
+                />
+              </label>
+              <label className="flex items-center justify-between gap-3 rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface)] p-3 transition hover:bg-[var(--adlts-surface-soft)]">
+                <span className={ui.statLabel}>{t("licensePickupNotifications") || "License pickup notifications"}</span>
+                <input
+                  type="checkbox"
+                  checked={settings.notifications.licensePickupNotifications}
+                  onChange={(event) => updateNotification("licensePickupNotifications", event.target.checked)}
+                  className="h-4 w-4 rounded border border-[var(--adlts-border)] text-[var(--adlts-blue-600)] focus:ring-2 focus:ring-[var(--adlts-focus-ring)]"
+                />
+              </label>
+            </fieldset>
+          </CardContent>
+        </Card>
 
-          <div className="space-y-4">
-            <label className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg cursor-pointer transition">
-              <input
-                type="checkbox"
-                checked={settings.notifications.bookingUpdates}
-                onChange={(event) => updateNotification("bookingUpdates", event.target.checked)}
-                className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500 border-slate-300"
-              />
-              <span className="text-sm font-medium text-slate-700">{t("bookingUpdates") || "Booking updates"}</span>
-            </label>
-            <label className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg cursor-pointer transition">
-              <input
-                type="checkbox"
-                checked={settings.notifications.examUpdates}
-                onChange={(event) => updateNotification("examUpdates", event.target.checked)}
-                className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500 border-slate-300"
-              />
-              <span className="text-sm font-medium text-slate-700">{t("examUpdates") || "Exam updates"}</span>
-            </label>
-            <label className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg cursor-pointer transition">
-              <input
-                type="checkbox"
-                checked={settings.notifications.resultNotifications}
-                onChange={(event) =>
-                  updateNotification("resultNotifications", event.target.checked)
-                }
-                className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500 border-slate-300"
-              />
-              <span className="text-sm font-medium text-slate-700">{t("resultNotifications") || "Result notifications"}</span>
-            </label>
-            <label className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-lg cursor-pointer transition">
-              <input
-                type="checkbox"
-                checked={settings.notifications.licensePickupNotifications}
-                onChange={(event) =>
-                  updateNotification("licensePickupNotifications", event.target.checked)
-                }
-                className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500 border-slate-300"
-              />
-              <span className="text-sm font-medium text-slate-700">
-                {t("licensePickupNotifications") || "License pickup notifications"}
-              </span>
-            </label>
-          </div>
-        </section>
-
-        <div className="flex justify-end pt-4">
-          <button
-            type="submit"
-            disabled={isSaving}
-            className="bg-blue-900 hover:bg-blue-800 text-white font-bold py-3 px-8 rounded-xl transition flex items-center justify-center gap-2 shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSaving ? (
-              <>
-                <RefreshCw className="animate-spin" size={18} />
-                <span>{t("saving") || "Saving..."}</span>
-              </>
-            ) : (
-              <>
-                <Save size={18} />
-                <span>{t("saveSettings") || "Save Settings"}</span>
-              </>
-            )}
-          </button>
+        <div className="flex justify-end">
+          <Button type="submit" disabled={isSaving} state={isSaving ? { loading: true } : undefined}>
+            {t("saveSettings") || "Save settings"}
+          </Button>
         </div>
       </form>
-    </main>
+    </PageContainer>
   );
 }

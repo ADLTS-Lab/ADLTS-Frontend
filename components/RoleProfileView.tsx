@@ -2,6 +2,8 @@
 
 import { useAuthStore } from "@/store/authStore";
 import { useI18n } from "@/i18n/useI18n";
+import { Card } from "@/app/components/ui/Card";
+import { CardHeader } from "@/app/components/ui/Card";
 
 type RoleProfileViewProps = {
   avatarUrl?: string | null;
@@ -47,39 +49,39 @@ export default function RoleProfileView({ avatarUrl }: RoleProfileViewProps) {
     user?.name || `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "—";
 
   return (
-    <div className="max-w-lg">
-      <h1 className="text-2xl font-bold text-slate-900 mb-6">{t("roleProfile_title")}</h1>
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 space-y-4 text-sm">
+    <Card className="max-w-lg space-y-4 p-0">
+      <CardHeader
+        title={t("roleProfile_title")}
+        description={t("profile") || "Profile overview"}
+      />
+
+      <div className="px-6 pb-6 space-y-4">
         {Boolean(displayAvatar) ? (
           <div className="mb-2">
-            <div className="h-16 w-16 overflow-hidden rounded-full border border-slate-200 bg-slate-100">
+            <div className="h-16 w-16 overflow-hidden rounded-full border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)]">
               <img
                 src={displayAvatar || ""}
-                alt="Profile"
+                alt={t("profilePhoto") || "Profile"}
                 className="h-full w-full object-cover"
               />
             </div>
           </div>
         ) : null}
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">
-            {t("roleProfile_name")}
-          </p>
-          <p className="font-semibold text-slate-900">{displayName}</p>
-        </div>
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">
-            {t("roleProfile_email")}
-          </p>
-          <p className="text-slate-700">{user?.email || "—"}</p>
-        </div>
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">
-            {t("roleProfile_role")}
-          </p>
-          <p className="text-slate-700">{user?.role || "—"}</p>
-        </div>
+        <dl className="grid gap-3 text-sm">
+          <div className="grid gap-1 rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-3">
+            <dt className="text-[11px] font-semibold uppercase tracking-wide text-[var(--adlts-ink-500)]">{t("roleProfile_name")}</dt>
+            <dd className="font-medium text-[var(--adlts-ink-900)]">{displayName}</dd>
+          </div>
+          <div className="grid gap-1 rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-3">
+            <dt className="text-[11px] font-semibold uppercase tracking-wide text-[var(--adlts-ink-500)]">{t("roleProfile_email")}</dt>
+            <dd className="font-medium text-[var(--adlts-ink-900)]">{user?.email || "—"}</dd>
+          </div>
+          <div className="grid gap-1 rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-3">
+            <dt className="text-[11px] font-semibold uppercase tracking-wide text-[var(--adlts-ink-500)]">{t("roleProfile_role")}</dt>
+            <dd className="font-medium text-[var(--adlts-ink-900)]">{user?.role || "—"}</dd>
+          </div>
+        </dl>
       </div>
-    </div>
+    </Card>
   );
 }

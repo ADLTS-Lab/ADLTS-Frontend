@@ -59,21 +59,24 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
       {navItems.map((item) => {
         const isActive = !item.disabled && item.href !== "#" && pathname.startsWith(item.href);
         const Icon = item.icon;
+        const navClass = `group relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm ${
+          isActive
+            ? "bg-[var(--adlts-blue-50)] text-[var(--adlts-blue-700)]"
+            : "text-[var(--adlts-ink-700)] hover:bg-[var(--adlts-surface-soft)] hover:text-[var(--adlts-ink-900)]"
+        } ${item.disabled ? "pointer-events-none opacity-55" : ""}`;
+
         return (
           <Link
             key={`${item.href}-${item.labelKey}`}
             href={item.href}
             aria-current={isActive ? "page" : undefined}
+            role="menuitem"
             onClick={() => {
               if (mobile) {
                 setIsMobileMenuOpen(false);
               }
             }}
-            className={`group relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm ${
-              isActive
-                ? "bg-[var(--adlts-blue-50)] text-[var(--adlts-blue-700)]"
-                : "text-[var(--adlts-ink-700)] hover:bg-[var(--adlts-surface-soft)] hover:text-[var(--adlts-ink-900)]"
-            } ${item.disabled ? "pointer-events-none opacity-55" : ""}`}
+            className={navClass}
           >
             {isActive ? (
               <span className="absolute left-0 top-0 h-full w-1 rounded-r-full bg-[var(--adlts-blue-600)]" />
@@ -206,7 +209,7 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
 
       <footer className="border-t border-[var(--adlts-border)] bg-[var(--adlts-surface)]">
         <div className={`${ui.shellPanel} py-5 text-xs text-[var(--adlts-ink-600)]`}>
-          <p className="text-center text-[0.75rem] md:text-left">© 2024 ADLTS Ethiopia.</p>
+          <p className="text-center text-[0.75rem] md:text-left">© {new Date().getFullYear()} ADLTS Ethiopia.</p>
         </div>
       </footer>
     </div>

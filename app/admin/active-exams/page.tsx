@@ -2,7 +2,30 @@
 
 import { useEffect, useState } from "react";
 import { listActiveExamsSafe, type ActiveExam } from "@/services/exams.service";
-import { useI18n } from '@/i18n/useI18n';
+import { useI18n } from "@/i18n/useI18n";
+import {
+  Alert,
+  Button,
+  Card,
+  CardHeader,
+  PageContainer,
+  PageHeader,
+  StatusBadge,
+  ui,
+} from "@/app/components/ui";
+
+function getStatusTone(status: ActiveExam["status"] | string) {
+  switch (status) {
+    case "Warning":
+      return "warning";
+    case "Review":
+      return "error";
+    case "Excellent":
+      return "success";
+    default:
+      return "info";
+  }
+}
 
 export default function AdminActiveExamsPage() {
   const { t } = useI18n();
@@ -33,60 +56,78 @@ export default function AdminActiveExamsPage() {
   }, []);
 
   return (
-    <main className="space-y-6">
-      <div>
-        <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">{t('adminPortal')}</p>
-        <h1 className="text-2xl font-bold text-slate-900">{t('activeExams_monitor_title')}</h1>
-        <p className="text-sm text-slate-500 mt-1">{t('activeExams_monitor_subtitle')}</p>
-      </div>
+    <PageContainer width="wide">
+      <PageHeader
+        eyebrow={t("adminPortal")}
+        title={t("activeExams_monitor_title") || "Active Exams"}
+        description={t("activeExams_monitor_subtitle") || "Live exam monitoring and progress insights."}
+        action={
+          <Button variant="outline" size="sm" onClick={() => void loadActiveExams()}>
+            Refresh
+          </Button>
+        }
+      />
 
-      {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
+      {error ? <Alert variant="error">{error}</Alert> : null}
 
-      {isLoading ? (
-        <p className="text-sm text-slate-500">{t('loadingCandidates')}</p>
-      ) : activeExams.length === 0 ? (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-6 py-12 text-center text-sm text-slate-500">
-          No active exams are currently running.
-        </div>
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <Kpi label={t("active") || "Active exams"} value={activeExams.length} />
+        <Kpi label={t("warnings") || "Warnings"} value={activeExams.filter((exam) => exam.status === "Warning").length} />
+        <Kpi label={t("reviews") || "Reviews"} value={activeExams.filter((exam) => exam.status === "Review").length} />
+        <Kpi
+          label={t("excellent") || "Excellent"}
+          value={activeExams.filter((exam) => exam.status === "Excellent").length}
+        />
+      </section>
+
+      {isLoading ? <Alert variant="info">{t("loadingCandidates") || "Loading active exams…"}</Alert> : activeExams.length === 0 ? (
+        <Card padding="lg" className="text-center">
+          <p className="text-sm text-[var(--adlts-ink-600)]">No active exams are currently running.</p>
+        </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {activeExams.map((exam) => (
-            <article key={exam.id} className="bg-white rounded-3xl border border-slate-100 shadow-sm p-5 space-y-4">
+            <Card key={exam.id} className="space-y-4">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-widest text-slate-400">{exam.center}</p>
-                  <h2 className="text-lg font-bold text-slate-900 mt-1">{exam.candidateName}</h2>
+                  <p className={ui.statLabel}>{exam.center}</p>
+                  <h2 className="mt-1 text-lg font-semibold text-[var(--adlts-ink-900)]">{exam.candidateName}</h2>
                 </div>
-                <span className={`rounded-full px-3 py-1 text-[10px] font-bold ${exam.status === "Warning" ? "bg-amber-100 text-amber-700" : exam.status === "Review" ? "bg-rose-100 text-rose-700" : exam.status === "Excellent" ? "bg-emerald-100 text-emerald-700" : "bg-sky-100 text-sky-700"}`}>
-                  {exam.status === 'Warning' ? t('status_warning') : exam.status === 'Review' ? t('status_review') : exam.status === 'Excellent' ? t('status_excellent') : t('status_stable')}
-                </span>
+                <StatusBadge status={exam.status} tone={getStatusTone(exam.status)} />
               </div>
 
               <div>
-                <div className="flex items-center justify-between text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">
-                  <span>{t('metric_progress')}</span>
+                <div className="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-[var(--adlts-ink-500)]">
+                  <span>{t("metric_progress")}</span>
                   <span>{exam.progress}%</span>
                 </div>
-                <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
-                  <div className="h-full rounded-full bg-blue-600" style={{ width: `${exam.progress}%` }} />
+                <div className="h-2 rounded-full bg-[var(--adlts-surface-soft)] overflow-hidden">
+                  <div className="h-full rounded-full bg-[var(--adlts-blue-600)]" style={{ width: `${exam.progress}%` }} />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-sm">
-                <Metric label={t('metric_liveScore')} value={`${exam.liveScore}%`} />
-                <Metric label={t('metric_violations')} value={exam.violations.toString()} />
+                <Metric label={t("metric_liveScore")} value={`${exam.liveScore}%`} />
+                <Metric label={t("metric_violations")} value={exam.violations.toString()} />
               </div>
-            </article>
+            </Card>
           ))}
         </div>
       )}
-    </main>
+    </PageContainer>
   );
 }
 
 const Metric = ({ label, value }: { label: string; value: string }) => (
-  <div className="rounded-2xl bg-slate-50 p-3">
-    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-1">{label}</p>
-    <p className="font-bold text-slate-900">{value}</p>
+  <div className="rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-3">
+    <p className={`${ui.statLabel} mb-1`}>{label}</p>
+    <p className="font-semibold text-[var(--adlts-ink-900)]">{value}</p>
   </div>
+);
+
+const Kpi = ({ label, value }: { label: string; value: number }) => (
+  <Card padding="md" className="space-y-1">
+    <p className={ui.statLabel}>{label}</p>
+    <p className="text-2xl font-semibold text-[var(--adlts-ink-900)]">{value}</p>
+  </Card>
 );

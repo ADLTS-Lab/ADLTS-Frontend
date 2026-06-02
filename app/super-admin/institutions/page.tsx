@@ -5,7 +5,9 @@ import Link from "next/link";
 import { Building2, CheckCircle2, Copy, Mail, PowerOff, RefreshCcw } from "lucide-react";
 import { Button } from "@/app/components/ui/Button";
 import { Card } from "@/app/components/ui/Card";
+import { CardHeader } from "@/app/components/ui/Card";
 import { Input } from "@/app/components/ui/Input";
+import { PageContainer, PageHeader, StatusBadge, ui, Alert } from "@/app/components/ui";
 import {
   disableInstitution,
   inviteInstitution,
@@ -15,10 +17,10 @@ import {
 } from "@/services/institution-invitation.service";
 import { extractApiError } from "@/services/api-utils";
 
-const statusStyles: Record<InstitutionAccount["status"], string> = {
-  Invited: "bg-amber-50 text-amber-700 border-amber-200",
-  Active: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  Disabled: "bg-slate-100 text-slate-600 border-slate-200",
+const statusStyles: Record<string, "success" | "inactive" | "warning" | "neutral"> = {
+  Invited: "success",
+  Active: "success",
+  Disabled: "inactive",
 };
 
 export default function SuperAdminInstitutionsPage() {
@@ -109,58 +111,50 @@ export default function SuperAdminInstitutionsPage() {
   };
 
   return (
-    <main className="max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Super Admin</p>
-          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Institutions</h1>
-          <p className="text-slate-500 mt-1">Invite institutions, resend onboarding emails, and manage account status.</p>
-        </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
-          <Summary label="Total" value={counts.total} />
-          <Summary label="Invited" value={counts.invited} />
-          <Summary label="Active" value={counts.active} />
-          <Summary label="Disabled" value={counts.disabled} />
-        </div>
-      </div>
+    <PageContainer width="wide">
+      <PageHeader
+        eyebrow="Super Admin"
+        title="Institutions"
+        description="Invite institutions, resend onboarding emails, and manage account status."
+      />
 
-      {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
-      {success && (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 flex items-start gap-2">
-          <CheckCircle2 size={18} className="mt-0.5 shrink-0" />
-          <div>
-              <p>{success}</p>
-              {latestInviteLink ? (
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <Link className="font-semibold underline" href={latestInviteLink}>
+      <section className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
+        <Summary label="Total" value={counts.total} />
+        <Summary label="Invited" value={counts.invited} />
+        <Summary label="Active" value={counts.active} />
+        <Summary label="Disabled" value={counts.disabled} />
+      </section>
+
+      {error ? <Alert variant="error">{error}</Alert> : null}
+      {success ? (
+        <Alert variant="success">
+          <div className="space-y-1">
+            <p>{success}</p>
+            {latestInviteLink ? (
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <Link className="font-medium underline" href={latestInviteLink}>
                   Open invitation link
-                  </Link>
-                  <button
+                </Link>
+                <button
                   type="button"
                   onClick={copyInviteLink}
-                  className="inline-flex items-center gap-1 rounded-full border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-700"
+                  className="inline-flex items-center gap-1 rounded-md border border-[var(--adlts-border)] px-3 py-1 text-xs font-semibold text-[var(--adlts-success-700)]"
                 >
                   <Copy size={12} /> Copy
                 </button>
               </div>
             ) : null}
           </div>
-        </div>
-      )}
+        </Alert>
+      ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[380px,1fr]">
-        <Card>
+        <Card className="space-y-4">
+          <CardHeader
+            title="Invite Institution"
+            description="Invite links are generated from the connected backend service."
+          />
           <form onSubmit={handleInvite} className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="rounded-2xl bg-blue-50 p-3 text-blue-900">
-                <Mail size={22} />
-              </div>
-              <div>
-                <h2 className="font-bold text-slate-900">Invite Institution</h2>
-                <p className="text-sm text-slate-500">Invite links are generated from the connected backend service.</p>
-              </div>
-            </div>
-
             <Input
               label="Institution Name"
               value={form.institutionName}
@@ -177,22 +171,20 @@ export default function SuperAdminInstitutionsPage() {
               placeholder="admin@institution.et"
             />
 
-            <Button type="submit" disabled={isSubmitting} className="w-full">
-              {isSubmitting ? "Sending..." : "Invite Institution"}
+            <Button type="submit" disabled={isSubmitting} className="w-full" state={isSubmitting ? { loading: true } : undefined}>
+              Invite Institution
             </Button>
           </form>
         </Card>
 
         <Card className="overflow-hidden p-0">
-          <div className="border-b border-slate-100 px-6 py-4 flex items-center justify-between">
-            <div>
-              <h2 className="font-bold text-slate-900">Institution Accounts</h2>
-              <p className="text-sm text-slate-500">Status is synchronized from backend endpoints.</p>
-            </div>
-          </div>
+          <CardHeader
+            title="Institution Accounts"
+            description="Status is synchronized from backend endpoints."
+          />
           <div className="overflow-x-auto">
             <table className="w-full min-w-[760px] text-left text-sm">
-              <thead className="bg-slate-50 text-xs uppercase tracking-widest text-slate-400">
+              <thead className="bg-[var(--adlts-surface-soft)] text-xs uppercase tracking-wide text-[var(--adlts-ink-500)]">
                 <tr>
                   <th className="px-6 py-4">Institution Name</th>
                   <th className="px-6 py-4">Email</th>
@@ -200,27 +192,27 @@ export default function SuperAdminInstitutionsPage() {
                   <th className="px-6 py-4">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-[var(--adlts-divider)] bg-[var(--adlts-surface)]">
                 {isLoading ? (
                   <tr>
-                    <td className="px-6 py-8 text-slate-500" colSpan={4}>Loading institutions...</td>
+                    <td className="px-6 py-8 text-[var(--adlts-ink-500)]" colSpan={4}>
+                      Loading institutions...
+                    </td>
                   </tr>
                 ) : institutions.length === 0 ? (
                   <tr>
-                    <td className="px-6 py-12 text-center text-slate-500" colSpan={4}>
-                      <Building2 size={28} className="mx-auto mb-3 text-slate-300" />
+                    <td colSpan={4} className="px-6 py-12 text-center text-[var(--adlts-ink-500)]">
+                      <Building2 size={28} className="mx-auto mb-3 text-[var(--adlts-ink-400)]" />
                       No institutions have been invited yet.
                     </td>
                   </tr>
                 ) : (
                   institutions.map((institution) => (
-                    <tr key={institution.id} className="hover:bg-slate-50/70">
-                      <td className="px-6 py-4 font-semibold text-slate-900">{institution.name}</td>
-                      <td className="px-6 py-4 text-slate-600">{institution.email}</td>
+                    <tr key={institution.id} className="transition-colors hover:bg-[var(--adlts-surface-soft)]">
+                      <td className="px-6 py-4 font-semibold text-[var(--adlts-ink-900)]">{institution.name}</td>
+                      <td className="px-6 py-4 text-[var(--adlts-ink-600)]">{institution.email}</td>
                       <td className="px-6 py-4">
-                        <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-bold ${statusStyles[institution.status]}`}>
-                          {institution.status}
-                        </span>
+                        <StatusBadge status={institution.status} tone={statusStyles[institution.status] ?? "neutral"} />
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex flex-wrap gap-2">
@@ -228,17 +220,19 @@ export default function SuperAdminInstitutionsPage() {
                             type="button"
                             onClick={() => handleResend(institution)}
                             disabled={institution.status === "Disabled"}
-                            className="inline-flex items-center gap-1 rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                            className="inline-flex items-center gap-1 rounded-md border border-[var(--adlts-border)] px-3 py-1.5 text-xs font-semibold text-[var(--adlts-ink-700)] hover:bg-[var(--adlts-surface-soft)] disabled:opacity-50"
                           >
-                            <RefreshCcw size={12} /> Resend Invitation
+                            <RefreshCcw size={12} />
+                            Resend Invitation
                           </button>
                           <button
                             type="button"
                             onClick={() => handleDisable(institution)}
                             disabled={institution.status === "Disabled"}
-                            className="inline-flex items-center gap-1 rounded-full border border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-50 disabled:opacity-50"
+                            className="inline-flex items-center gap-1 rounded-md border border-rose-200 px-3 py-1.5 text-xs font-semibold text-rose-700 hover:bg-rose-50 disabled:opacity-50"
                           >
-                            <PowerOff size={12} /> Disable
+                            <PowerOff size={12} />
+                            Disable
                           </button>
                         </div>
                       </td>
@@ -250,15 +244,18 @@ export default function SuperAdminInstitutionsPage() {
           </div>
         </Card>
       </div>
-    </main>
+    </PageContainer>
   );
 }
 
 function Summary({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl border border-slate-100 bg-white px-4 py-3 shadow-sm">
-      <div className="text-xs text-slate-400">{label}</div>
-      <div className="text-xl font-bold text-slate-900">{value}</div>
-    </div>
+    <Card padding="md" className="space-y-1">
+      <p className={`${ui.statLabel} text-[var(--adlts-ink-500)]`}>{label}</p>
+      <p className="text-2xl font-semibold text-[var(--adlts-ink-900)]">{value}</p>
+      <p className="flex items-center gap-2 text-xs text-[var(--adlts-ink-500)]">
+        <CheckCircle2 size={12} /> Updated
+      </p>
+    </Card>
   );
 }

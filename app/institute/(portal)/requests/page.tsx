@@ -1,16 +1,58 @@
-"use client";
+ "use client";
 
-import React, { useEffect, useState } from "react";
-import { AlertCircle, FileText, RefreshCw, Search, ChevronLeft, ChevronRight, CheckCircle, XCircle } from "lucide-react";
-
+import { useEffect, useState } from "react";
+import {
+  AlertCircle,
+  ChevronLeft,
+  ChevronRight,
+  CheckCircle2,
+  FileText,
+  Search,
+  XCircle,
+} from "lucide-react";
 import { useI18n } from "@/i18n/useI18n";
-import { BookingRequest, BookingStatus, getStoredBookingSnapshot, subscribeToBookingChanges } from "@/services/booking.service";
-import { approveInstitutionRequest, getInstitutionRequests, rejectInstitutionRequest } from "@/services/institution.service";
-
+import {
+  BookingRequest,
+  BookingStatus,
+  getStoredBookingSnapshot,
+  subscribeToBookingChanges,
+} from "@/services/booking.service";
+import {
+  approveInstitutionRequest,
+  getInstitutionRequests,
+  rejectInstitutionRequest,
+} from "@/services/institution.service";
+import {
+  Alert,
+  Button,
+  Card,
+  CardHeader,
+  Input,
+  PageContainer,
+  PageHeader,
+  Select,
+  StatusBadge,
+  ui,
+} from "@/app/components/ui";
 import CandidateModal from "./CandidateModal";
 
 const LICENSE_CATEGORY_OPTIONS = ["All", "A", "B", "C", "D"] as const;
 const STATUS_OPTIONS = ["All", "Pending", "Approved", "Rejected"] as const;
+
+function getStatusTone(
+  status: BookingStatus | string,
+): "success" | "warning" | "error" | "neutral" | "pending" {
+  if (status === "Approved") return "success";
+  if (status === "Rejected") return "error";
+  if (status === "Expired") return "warning";
+  return "pending";
+}
+
+function formatDate(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date);
+}
 
 export default function InstituteRequestsPage() {
   const { t } = useI18n();
@@ -45,9 +87,9 @@ export default function InstituteRequestsPage() {
       setTotal(result.total);
     } catch (err) {
       const fallbackBookings = getStoredBookingSnapshot();
-      const message = err instanceof Error ? err.message : "Failed to load requests.";
-      setError(message);
+      setError(err instanceof Error ? err.message : "Failed to load requests.");
       setRequests(fallbackBookings);
+      setTotal(fallbackBookings.length);
     } finally {
       setLoading(false);
     }
@@ -67,215 +109,202 @@ export default function InstituteRequestsPage() {
     const unsubscribe = subscribeToBookingChanges(() => {
       void fetchRequests(page);
     });
-
     return unsubscribe;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, search, statusFilter, licenseFilter]);
 
   const handleStatusChange = async (id: string, newStatus: BookingStatus) => {
     try {
-      const updated = newStatus === "Approved"
-        ? await approveInstitutionRequest(id)
-        : await rejectInstitutionRequest(id);
-
-      if (updated) {
-        await fetchRequests(page);
+      if (newStatus === "Approved") {
+        await approveInstitutionRequest(id);
+      } else {
+        await rejectInstitutionRequest(id);
       }
+      await fetchRequests(page);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update status.");
     }
   };
 
-  const getStatusBadge = (status: BookingStatus) => {
-    switch (status) {
-      case "Approved":
-        return (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-800">
-            <CheckCircle className="h-3 w-3" />
-            {t("approved") || "Approved"}
-          </span>
-        );
-      case "Rejected":
-        return (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-2.5 py-0.5 text-xs font-medium text-rose-800">
-            <XCircle className="h-3 w-3" />
-            {t("rejected") || "Rejected"}
-          </span>
-        );
-      case "Expired":
-        return (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-800">
-            <AlertCircle className="h-3 w-3" />
-            Expired
-          </span>
-        );
-      default:
-        return (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800">
-            <AlertCircle className="h-3 w-3" />
-            {t("pending") || "Pending"}
-          </span>
-        );
-    }
-  };
-
   return (
-    <div className="mx-auto max-w-7xl space-y-6">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-800">{t("requests") || "Booking Requests"}</h1>
-          <p className="mt-1 text-sm text-slate-500">Manage candidate booking requests for your institution.</p>
-        </div>
-        <button
-          onClick={() => void fetchRequests(page)}
-          disabled={loading}
-          className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
-        >
-          <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          {t("refresh") || "Refresh"}
-        </button>
-      </div>
+    <PageContainer width="wide" className="space-y-6">
+      <PageHeader
+        eyebrow={t("institutePortal") || "Institute Portal"}
+        title={t("requests") || "Booking Requests"}
+        description={t("requestsDesc") || "Review booking requests assigned to your institution."}
+        action={
+          <Button variant="secondary" onClick={() => void fetchRequests(page)} disabled={loading}>
+            <Search className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+            {t("refresh") || "Refresh"}
+          </Button>
+        }
+      />
 
-      <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:grid-cols-3">
-        <label className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-          <Search className="h-4 w-4 text-slate-400" />
-          <input
+      <Card className="space-y-4">
+        <CardHeader
+          title={t("filterRequests") || "Filter requests"}
+          description={t("filterHint") || "Narrow the list by keyword, status, and license category."}
+        />
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <Input
             value={search}
             onChange={(event) => {
               setPage(1);
               setSearch(event.target.value);
             }}
+            label={t("search") || "Search"}
             placeholder="Search by candidate, email, or phone"
-            className="w-full bg-transparent text-sm text-slate-800 outline-none placeholder:text-slate-400"
+            suffix={<Search size={16} className="text-[var(--adlts-ink-400)]" />}
           />
-        </label>
 
-        <select
-          value={statusFilter}
-          onChange={(event) => {
-            setPage(1);
-            setStatusFilter(event.target.value as (typeof STATUS_OPTIONS)[number]);
-          }}
-          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500"
-        >
-          {STATUS_OPTIONS.map((option) => (
-            <option key={option} value={option}>
-              {option === 'All' ? 'All Statuses' : option}
-            </option>
-          ))}
-        </select>
+          <Select
+            value={statusFilter}
+            onChange={(event) => {
+              setPage(1);
+              setStatusFilter(event.target.value as (typeof STATUS_OPTIONS)[number]);
+            }}
+            label={t("status") || "Status"}
+          >
+            {STATUS_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {option === "All" ? t("allStatuses") || "All Statuses" : option}
+              </option>
+            ))}
+          </Select>
 
-        <select
-          value={licenseFilter}
-          onChange={(event) => {
-            setPage(1);
-            setLicenseFilter(event.target.value as (typeof LICENSE_CATEGORY_OPTIONS)[number]);
-          }}
-          className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 outline-none transition focus:border-blue-500"
-        >
-          {LICENSE_CATEGORY_OPTIONS.map((option) => (
-            <option key={option} value={option}>
-              {option === 'All' ? 'All License Categories' : `License ${option}`}
-            </option>
-          ))}
-        </select>
-      </div>
-
-      {error && (
-        <div className="flex items-center rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
-          <AlertCircle className="mr-2 h-5 w-5 shrink-0" />
-          {error}
+          <Select
+            value={licenseFilter}
+            onChange={(event) => {
+              setPage(1);
+              setLicenseFilter(event.target.value as (typeof LICENSE_CATEGORY_OPTIONS)[number]);
+            }}
+            label={t("licenseCategory") || "License Category"}
+          >
+            {LICENSE_CATEGORY_OPTIONS.map((option) => (
+              <option key={option} value={option}>
+                {option === "All" ? t("allLicenseCategories") || "All License Categories" : `License ${option}`}
+              </option>
+            ))}
+          </Select>
         </div>
-      )}
+      </Card>
 
-      <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-        {loading && requests.length === 0 ? (
-          <div className="p-10 text-center text-slate-500">Loading requests...</div>
-        ) : requests.length === 0 ? (
-          <div className="p-12 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-50">
-              <FileText className="h-8 w-8 text-slate-300" />
-            </div>
-            <p className="font-medium text-slate-500">No booking requests found.</p>
-            <p className="mt-1 text-sm text-slate-400">Requests assigned to your institution will appear here.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto lg:overflow-visible">
-            <table className="w-full table-fixed divide-y divide-slate-200">
-              <thead className="bg-slate-50">
+      {error ? (
+        <Alert variant="error">
+          <AlertCircle className="h-4 w-4 text-[var(--adlts-error-700)]" />
+          {error}
+        </Alert>
+      ) : null}
+
+      <Card className="overflow-hidden p-0">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left">
+            <thead className="bg-[var(--adlts-surface-soft)] text-[var(--adlts-ink-500)] border-b border-[var(--adlts-divider)]">
+              <tr>
+                <th className="px-6 py-4 text-sm font-medium">Candidate Name</th>
+                <th className="px-6 py-4 text-sm font-medium">Email</th>
+                <th className="px-6 py-4 text-sm font-medium">Phone Number</th>
+                <th className="px-6 py-4 text-sm font-medium">License Category</th>
+                <th className="px-6 py-4 text-sm font-medium">Preferred Exam Date</th>
+                <th className="px-6 py-4 text-sm font-medium">Preferred Session</th>
+                <th className="px-6 py-4 text-sm font-medium">Booking Date</th>
+                <th className="px-6 py-4 text-sm font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--adlts-divider)]">
+              {loading && requests.length === 0 ? (
                 <tr>
-                  <th className="w-[17%] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Candidate Name</th>
-                  <th className="w-[18%] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Email</th>
-                  <th className="w-[13%] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Phone Number</th>
-                  <th className="w-[10%] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">License Category</th>
-                  <th className="w-[14%] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Preferred Exam Date</th>
-                  <th className="w-[11%] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Preferred Session</th>
-                  <th className="w-[12%] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Booking Date</th>
-                  <th className="w-[8%] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider text-slate-500">Status</th>
+                  <td className="px-6 py-12" colSpan={8}>
+                    <div className="flex items-center justify-center text-[var(--adlts-ink-500)]">
+                      {t("loading") || "Loading requests..."}
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200 bg-white">
-                {requests.map((request) => (
-                  <tr key={request.id} className="transition hover:bg-slate-50">
-                    <td className="truncate px-4 py-3 font-medium text-slate-900">
+              ) : requests.length === 0 ? (
+                <tr>
+                  <td className="px-6 py-12" colSpan={8}>
+                    <div className="mx-auto flex w-full max-w-lg flex-col items-center gap-3 text-center">
+                      <FileText className="h-8 w-8 text-[var(--adlts-ink-400)]" />
+                      <p className="font-medium text-[var(--adlts-ink-600)]">No booking requests found.</p>
+                      <p className="text-sm text-[var(--adlts-ink-500)]">
+                        Requests for your institution will appear here.
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+              ) : (
+                requests.map((request) => (
+                  <tr key={request.id} className="transition-colors hover:bg-[var(--adlts-surface-soft)]">
+                    <td className="px-6 py-4 text-sm">
                       <button
+                        type="button"
                         onClick={() => setSelectedRequest(request)}
-                        className="max-w-full truncate text-left text-blue-700 hover:text-blue-900 hover:underline transition font-semibold"
+                        className="max-w-[16rem] truncate text-left font-medium text-[var(--adlts-blue-700)] hover:text-[var(--adlts-blue-800)]"
                       >
-                        {request.candidateDetails?.name || 'Unknown Candidate'}
+                        {request.candidateDetails?.name || "Unknown Candidate"}
                       </button>
                     </td>
-                    <td className="truncate px-4 py-3 text-sm text-slate-600">{request.candidateDetails?.email || '—'}</td>
-                    <td className="truncate px-4 py-3 text-sm text-slate-600">{request.candidateDetails?.phone || '—'}</td>
-                    <td className="truncate px-4 py-3 text-sm text-slate-600">{request.licenseCategory}</td>
-                    <td className="truncate px-4 py-3 text-sm text-slate-600">{request.preferredDate}</td>
-                    <td className="truncate px-4 py-3 text-sm text-slate-600">{request.preferredSession}</td>
-                    <td className="truncate px-4 py-3 text-sm text-slate-600">{new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(request.createdAt))}</td>
-                    <td className="px-4 py-3">{getStatusBadge(request.status)}</td>
+                    <td className="px-6 py-4 text-sm text-[var(--adlts-ink-600)]">
+                      {request.candidateDetails?.email || "—"}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-[var(--adlts-ink-600)]">
+                      {request.candidateDetails?.phone || "—"}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-[var(--adlts-ink-600)]">
+                      {request.licenseCategory}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-[var(--adlts-ink-600)]">
+                      {request.preferredDate || "—"}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-[var(--adlts-ink-600)]">
+                      {request.preferredSession || "—"}
+                    </td>
+                    <td className="px-6 py-4 text-sm text-[var(--adlts-ink-600)]">{formatDate(request.createdAt)}</td>
+                    <td className="px-6 py-4 text-sm">
+                      <StatusBadge status={request.status} tone={getStatusTone(request.status)} />
+                    </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      <div className="flex flex-col items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 shadow-sm sm:flex-row">
-        <div>
-          Showing page {page} of {totalPages} · {total} total requests
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
+      </Card>
+
+      <Card className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className={`${ui.statLabel} sm:mb-0`}>
+          Showing page {page} of {totalPages} · {total} total requests
+        </p>
         <div className="flex items-center gap-2">
-          <button
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => setPage((current) => Math.max(1, current - 1))}
             disabled={loading || page <= 1}
-            className="inline-flex items-center rounded-lg border border-slate-200 px-3 py-2 font-medium transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             <ChevronLeft className="mr-1 h-4 w-4" />
             Previous
-          </button>
-          <button
+          </Button>
+          <Button
+            variant="secondary"
+            size="sm"
             onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
             disabled={loading || page >= totalPages}
-            className="inline-flex items-center rounded-lg border border-slate-200 px-3 py-2 font-medium transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
           >
             Next
             <ChevronRight className="ml-1 h-4 w-4" />
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
 
-      {selectedRequest && (
+      {selectedRequest ? (
         <CandidateModal
           request={selectedRequest}
           onClose={() => setSelectedRequest(null)}
-          onApprove={() => void handleStatusChange(selectedRequest.id, 'Approved')}
-          onReject={() => {
-            const confirmed = window.confirm('Are you sure you want to reject this request?');
-            if (!confirmed) return;
-            void handleStatusChange(selectedRequest.id, 'Rejected');
-          }}
+          onApprove={() => handleStatusChange(selectedRequest.id, "Approved")}
+          onReject={() => handleStatusChange(selectedRequest.id, "Rejected")}
         />
-      )}
-    </div>
+      ) : null}
+    </PageContainer>
   );
 }

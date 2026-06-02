@@ -1,12 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { useAuthStore } from "@/store/authStore";
+import { Alert, Card, CardHeader, PageContainer, PageHeader } from "@/app/components/ui";
 import { useI18n } from "@/i18n/useI18n";
-import { Alert } from "@/app/components/ui";
-import ProfilePhotoUpload from "@/components/ProfilePhotoUpload";
-import { extractApiError } from "@/services/api-utils";
+import { useAuthStore } from "@/store/authStore";
 import { uploadExpertPhoto } from "@/services/expert.service";
+import { extractApiError } from "@/services/api-utils";
+import ProfilePhotoUpload from "@/components/ProfilePhotoUpload";
 import RoleProfileView from "@/components/RoleProfileView";
 
 type ProfileImageSource = {
@@ -70,7 +70,7 @@ export default function ExpertProfilePage() {
       }
 
       setPhotoUrl(nextPhotoUrl);
-      setUploadSuccess("Profile photo uploaded successfully.");
+      setUploadSuccess(t("uploadSuccess") || "Profile photo uploaded successfully.");
       setTimeout(() => {
         setUploadSuccess("");
       }, 5000);
@@ -84,27 +84,29 @@ export default function ExpertProfilePage() {
   };
 
   return (
-    <main className="max-w-4xl mx-auto space-y-6 md:space-y-8">
+    <PageContainer width="wide" className="space-y-6">
+      <PageHeader
+        eyebrow={t("expertPortal") || "Expert Portal"}
+        title={t("profile") || "Profile"}
+        description={t("profileDescription") || "Update identity and visual profile settings."}
+      />
+
       <RoleProfileView avatarUrl={photoUrl || undefined} />
 
-      {uploadSuccess ? (
-        <Alert variant="success">{uploadSuccess}</Alert>
-      ) : null}
-      {uploadError ? (
-        <Alert variant="error">{uploadError}</Alert>
-      ) : null}
+      {uploadSuccess ? <Alert variant="success">{uploadSuccess}</Alert> : null}
+      {uploadError ? <Alert variant="error">{uploadError}</Alert> : null}
 
-      <div className="bg-white rounded-3xl border border-slate-100 p-6 shadow-sm">
-        <h2 className="mb-4 text-lg font-semibold text-slate-900">
-          {t("profilePhoto") || "Profile Photo"}
-        </h2>
+      <Card>
+        <CardHeader
+          title={t("profilePhoto") || "Profile Photo"}
+          description={t("uploadProfilePhoto") || "Upload profile photo"}
+        />
         <ProfilePhotoUpload
-          title={t("uploadProfilePhoto") || "Upload profile photo"}
           imageUrl={photoUrl}
           onUpload={handlePhotoUpload}
           onUploadError={(message) => setUploadError(message)}
         />
-      </div>
-    </main>
+      </Card>
+    </PageContainer>
   );
 }

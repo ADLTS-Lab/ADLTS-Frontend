@@ -7,6 +7,7 @@ import { useState } from "react";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { logout as logoutService } from "@/services/auth.service";
 import { useI18n } from "@/i18n/useI18n";
+import { usePathname } from "next/navigation";
 import { getHomeRouteForRole } from "@/config/routes";
 import { ui } from "@/app/components/ui/design-tokens";
 import UserMenu from "@/components/UserMenu";
@@ -28,6 +29,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
   const { user, isAuthenticated, hasHydrated } = useAuthSession();
   const { t, lang, setLang } = useI18n();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   const handleLogout = async () => {
     await logoutService();
@@ -72,7 +74,12 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
               <Link
                 key={item.href}
                 href={item.href}
-                className="font-medium text-[var(--adlts-ink-700)] transition-colors hover:text-[var(--adlts-blue-700)]"
+                aria-current={pathname === item.href ? "page" : undefined}
+                className={`font-medium transition-colors ${
+                  pathname === item.href
+                    ? "text-[var(--adlts-blue-700)]"
+                    : "text-[var(--adlts-ink-700)] hover:text-[var(--adlts-blue-700)]"
+                }`}
               >
                 {t(item.labelKey)}
               </Link>
@@ -133,13 +140,18 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
                   <X size={18} />
                 </button>
               </div>
-              <div className="border-t border-[var(--adlts-divider)] pt-3">
+            <div className="border-t border-[var(--adlts-divider)] pt-3">
                 {publicNav.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="block rounded-md px-2.5 py-2 text-sm text-[var(--adlts-ink-700)] transition-colors hover:bg-[var(--adlts-surface-soft)]"
+                    aria-current={pathname === item.href ? "page" : undefined}
+                    className={`block rounded-md px-2.5 py-2 text-sm transition-colors ${
+                      pathname === item.href
+                        ? "bg-[var(--adlts-blue-50)] text-[var(--adlts-blue-700)]"
+                        : "text-[var(--adlts-ink-700)] hover:bg-[var(--adlts-surface-soft)]"
+                    }`}
                   >
                     {t(item.labelKey)}
                   </Link>
@@ -163,9 +175,9 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
         <div className={`${ui.shellPanelPublic} py-8 md:py-10`}>{children}</div>
       </main>
 
-      <footer className="mt-auto border-t border-[color:rgba(7,20,38,0.1)] bg-[var(--adlts-navy-950)] text-slate-200">
-        <div className={`${ui.shellPanelPublic} flex flex-col gap-5 py-8 text-sm text-slate-200/85 md:flex-row md:items-center md:justify-between`}>
-          <p className="text-xs font-medium uppercase tracking-[0.12em] text-slate-300">© 2024 ADLTS Ethiopia</p>
+      <footer className="mt-auto border-t border-[var(--adlts-border)] bg-[var(--adlts-navy-950)] text-[var(--adlts-surface)]">
+        <div className={`${ui.shellPanelPublic} flex flex-col gap-5 py-8 text-sm text-[var(--adlts-surface)]/85 md:flex-row md:items-center md:justify-between`}>
+          <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--adlts-surface)]/75">© {new Date().getFullYear()} ADLTS Ethiopia</p>
           <div className="flex flex-wrap items-center gap-5 text-slate-100/90">
             <Link href="/about" className="hover:text-white">
               {t("about")}

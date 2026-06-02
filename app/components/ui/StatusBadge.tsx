@@ -20,6 +20,7 @@ type BadgeStatus =
   | "active"
   | "inactive"
   | "suspended"
+  | "success"
   | "pending_verification"
   | "pending_approval"
   | "pending"
@@ -91,6 +92,7 @@ const statusStyles: Record<string, StatusStyle> = {
   info: { label: "Info", className: "bg-[var(--adlts-blue-50)] text-[var(--adlts-blue-700)] border border-[var(--adlts-blue-700)]/35", icon: Info },
   new: { label: "New", className: "bg-[var(--adlts-blue-50)] text-[var(--adlts-blue-700)] border border-[var(--adlts-blue-700)]/35", icon: Timer },
   succeeded: { label: "Succeeded", className: "bg-[var(--adlts-success-50)] text-[var(--adlts-success-700)] border border-[var(--adlts-success-700)]/35", icon: CheckCircle2 },
+  success: { label: "Success", className: "bg-[var(--adlts-success-50)] text-[var(--adlts-success-700)] border border-[var(--adlts-success-700)]/35", icon: CheckCircle2 },
 };
 
 const aliases: Record<string, string> = {
