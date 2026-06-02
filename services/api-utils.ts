@@ -1,12 +1,26 @@
-/** Shared helpers for service-layer API calls (Postman contract: `{ success, data?, message? }`). */
+/** Shared helpers for service-layer API calls (contract: `{ success, data?, message?, meta? }`). */
 
 import { isAxiosError } from 'axios';
 
-export type ApiSuccess<T> = {
+export type ApiResponse<T> = {
   success: boolean;
-  data: T;
+  data?: T;
+  meta?: Record<string, unknown>;
   message?: string;
 };
+
+export type ApiListResponse<T> = ApiResponse<T[]> & {
+  meta?: {
+    page?: number;
+    limit?: number;
+    total?: number;
+    total_items?: number;
+    totalPages?: number;
+    total_pages?: number;
+  };
+};
+
+export type ApiSuccess<T> = ApiResponse<T>;
 
 export type ApiErrorContext = 'default' | 'auth-login' | 'auth-register' | 'auth-refresh' | 'auth-session';
 
@@ -195,6 +209,20 @@ export function normalizeApiError(err: unknown, fallback: string, context: ApiEr
 
 export function extractApiError(err: unknown, fallback: string, context: ApiErrorContext = 'default'): string {
   return normalizeApiError(err, fallback, context).message || fallback;
+}
+
+export function extractData<T>(response: unknown): T | null {
+  if (!response || typeof response !== 'object') return null;
+
+  const envelope = response as ApiResponse<T>;
+  if (envelope.success === false && envelope.data === undefined) return null;
+
+  return (envelope.data as T) ?? null;
+}
+
+export function extractList<T>(response: unknown): T[] {
+  const data = extractData<unknown>(response);
+  return Array.isArray(data) ? (data as T[]) : [];
 }
 
 export function shouldUseLocalFallback(err: unknown): boolean {
