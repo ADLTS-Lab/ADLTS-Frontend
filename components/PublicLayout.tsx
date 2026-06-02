@@ -175,22 +175,77 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
         <div className={`${ui.shellPanelPublic} py-8 md:py-10`}>{children}</div>
       </main>
 
-      <footer className="mt-auto border-t border-[var(--adlts-border)] bg-[var(--adlts-navy-950)] text-[var(--adlts-surface)]">
-        <div className={`${ui.shellPanelPublic} flex flex-col gap-5 py-8 text-sm text-[var(--adlts-surface)]/85 md:flex-row md:items-center md:justify-between`}>
-          <p className="text-xs font-medium uppercase tracking-[0.12em] text-[var(--adlts-surface)]/75">© {new Date().getFullYear()} ADLTS Ethiopia</p>
-          <div className="flex flex-wrap items-center gap-5 text-slate-100/90">
-            <Link href="/about" className="hover:text-white">
-              {t("about")}
-            </Link>
-            <Link href="/contact" className="hover:text-white">
-              {t("contact")}
-            </Link>
-            <Link href="/privacy-policy" className="hover:text-white">
-              {t("privacy")}
-            </Link>
-            <a className="hover:text-white" href="mailto:support@adlts.example" target="_blank" rel="noreferrer">
-              support@adlts.example
-            </a>
+      <footer className="mt-auto bg-[var(--adlts-navy-900)] text-white">
+        <div className="mx-auto w-full max-w-container-public px-4 py-10 sm:px-6 lg:px-8">
+          <div className="grid gap-10 md:grid-cols-[1.1fr_1fr_1fr_1fr]">
+            <div>
+              <div className="font-mono text-sm font-bold tracking-[0.16em] text-white">ADLTS</div>
+              <p className="mt-3 max-w-[15rem] text-sm leading-6 text-white/45">
+                Automated Driving License Testing System. Official digital platform for Ethiopia's transport testing operations.
+              </p>
+            </div>
+
+            {[
+              {
+                heading: "Candidates",
+                links: [
+                  { label: "Register", href: "/candidate/register" },
+                  { label: "Book a test", href: "/candidate/booking" },
+                  { label: "View results", href: "/candidate/exams" },
+                  { label: "Submit appeal", href: "/candidate/dashboard" },
+                ],
+              },
+              {
+                heading: "Institutions",
+                links: [
+                  { label: "Institute login", href: "/login" },
+                  { label: "Admin login", href: "/login" },
+                  { label: "Request access", href: "/contact" },
+                  { label: "Guidelines", href: "/guidelines" },
+                ],
+              },
+              {
+                heading: "Resources",
+                links: [
+                  { label: "About ADLTS", href: "/about" },
+                  { label: "Privacy policy", href: "/privacy-policy" },
+                  { label: "Terms of service", href: "/terms" },
+                  { label: "Contact support", href: "/contact" },
+                ],
+              },
+            ].map((section) => (
+              <div key={section.heading}>
+                <div className="font-mono text-[11px] font-bold uppercase tracking-[0.24em] text-white/35">
+                  {section.heading}
+                </div>
+                <ul className="mt-4 flex list-none flex-col gap-3 p-0 text-sm">
+                  {section.links.map((link) => (
+                    <li key={link.label}>
+                      <Link href={link.href} className="text-white/50 transition-colors hover:text-white/85">
+                        {link.label}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-8 flex flex-col gap-4 border-t border-white/10 pt-6 md:flex-row md:items-center md:justify-between">
+            <span className="font-mono text-[11px] tracking-[0.08em] text-white/30">
+              © {new Date().getFullYear()} ADLTS Core Engine — Automated Driving License Testing System
+            </span>
+            <div className="flex flex-wrap gap-5 text-xs text-white/35">
+              {[
+                { label: "Privacy", href: "/privacy-policy" },
+                { label: "Terms", href: "/terms" },
+                { label: "API Docs", href: "/docs" },
+              ].map((link) => (
+                <Link key={link.label} href={link.href} className="transition-colors hover:text-white/75">
+                  {link.label}
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       </footer>

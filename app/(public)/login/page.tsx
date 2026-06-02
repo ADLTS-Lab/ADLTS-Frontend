@@ -53,6 +53,11 @@ export default function UnifiedLoginPage() {
       setUser(user, access_token, entity_type, refresh_token);
 
       const nextRoute = getHomeRouteForRole(entity_type ?? user.role);
+      if (nextRoute === '/login') {
+        setError('Login succeeded, but your account role is not recognized for portal routing. Contact support.');
+        return;
+      }
+
       router.push(nextRoute);
     } catch (err: unknown) {
       setError(extractApiError(err, "Login failed. Please check your email and password.", "auth-login"));

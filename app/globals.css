@@ -149,11 +149,7 @@ kbd {
 .bg-white,
 .bg-slate-50,
 .bg-slate-100,
-.bg-slate-200,
-.bg-[#F8FAFC],
-.bg-[#F5F7FA],
-.bg-[#F9FAFB],
-.bg-[#E5E7EB] {
+.bg-slate-200 {
   background-color: var(--adlts-surface);
 }
 
