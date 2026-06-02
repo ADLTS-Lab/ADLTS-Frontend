@@ -102,7 +102,9 @@ export async function getReviewMetrics(): Promise<ApiResponse<ReviewMetrics>> {
 /** Resolve appeal — PATCH /appeals/{id}/resolve */
 export async function resolveAppeal(appealId: string): Promise<ApiResponse<ExamReview>> {
   try {
-    const response = await api.patch<ApiResponse<ExamReview>>(`/appeals/${encodeURIComponent(appealId)}/resolve`);
+    const response = await api.patch<ApiResponse<ExamReview>>(`/appeals/${encodeURIComponent(appealId)}/resolve`, {
+      decision: 'accepted',
+    });
     return {
       success: !!response.data?.success,
       data: response.data?.data || {
