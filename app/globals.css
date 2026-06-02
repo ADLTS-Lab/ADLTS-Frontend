@@ -1,7 +1,8 @@
 @import "tailwindcss";
 
 :root {
-  --adlts-font-ui: "Manrope", "Nunito Sans", "Avenir Next", "Segoe UI", sans-serif;
+  --font-sans: "IBM Plex Sans", "Inter", "Noto Sans Ethiopic", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   --adlts-blue-50: #eff6ff;
   --adlts-blue-100: #dbeafe;
@@ -33,6 +34,10 @@
   --adlts-border-strong: #cbd5e1;
   --adlts-divider: #edf1f7;
 
+  --adlts-navy-950: #071426;
+  --adlts-navy-900: #0b1b3a;
+  --adlts-navy-800: #102a56;
+
   --adlts-success-50: #ecfdf5;
   --adlts-success-600: #16a34a;
   --adlts-success-700: #15803d;
@@ -54,9 +59,30 @@
   --adlts-focus: #0f62fe;
   --adlts-focus-ring: rgba(15, 98, 254, 0.22);
 
-  --adlts-page-max: 80rem;
-  --adlts-motion-duration: 220ms;
-  --adlts-motion-easing: cubic-bezier(0.2, 0, 0, 1);
+  --adlts-radius-xs: 4px;
+  --adlts-radius-sm: 8px;
+  --adlts-radius-md: 12px;
+  --adlts-radius-lg: 16px;
+  --adlts-radius-xl: 24px;
+  --adlts-radius-pill: 999px;
+
+  --adlts-shadow-card: 0 1px 2px rgba(15, 23, 42, 0.05);
+  --adlts-shadow-card-hover: 0 12px 28px rgba(15, 23, 42, 0.08);
+  --adlts-shadow-popover: 0 18px 48px rgba(15, 23, 42, 0.16);
+
+  --adlts-motion-fast: 120ms;
+  --adlts-motion-base: 180ms;
+  --adlts-motion-smooth: 240ms;
+  --adlts-motion-slow: 360ms;
+  --adlts-motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --adlts-motion-ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --adlts-container-public: 75rem;
+  --adlts-container-wide: 85rem;
+  --adlts-container-reading: 52.5rem;
+  --adlts-container-form: 35rem;
+
+  --adlts-page-max: 85rem;
 
   --background: var(--adlts-page);
   --foreground: var(--adlts-ink-900);
@@ -71,12 +97,14 @@
 html,
 body {
   min-width: 320px;
-  background-color: var(--adlts-canvas);
+  min-height: 100%;
+  margin: 0;
+  background-color: var(--adlts-page);
   color: var(--adlts-ink-900);
 }
 
 body {
-  font-family: var(--adlts-font-ui);
+  font-family: var(--font-sans);
   font-size: 16px;
   line-height: 1.5;
   text-rendering: optimizeLegibility;
@@ -104,7 +132,13 @@ label,
 summary,
 th,
 td {
-  font-family: var(--adlts-font-ui);
+  font-family: var(--font-sans);
+}
+
+code,
+pre,
+kbd {
+  font-family: var(--font-mono);
 }
 
 :focus-visible {
@@ -125,30 +159,34 @@ td {
 
 .text-slate-500,
 .text-slate-400,
-.text-blue-950,
-.text-blue-900,
-.text-blue-800,
-.text-blue-700,
-.text-blue-600,
-.text-indigo-600,
 .text-slate-700,
 .text-slate-800,
 .text-slate-900,
-.text-rose-600,
-.text-emerald-600,
 .text-amber-600 {
   color: var(--adlts-ink-700);
 }
 
-.bg-blue-900,
-.bg-blue-950,
-.bg-blue-800,
-.bg-blue-700,
 .bg-blue-600,
+.bg-blue-700,
+.bg-blue-800,
+.bg-indigo-600,
+.bg-indigo-700,
 .button-primary,
 .btn-primary {
   background-color: var(--adlts-blue-600);
   color: #ffffff;
+}
+
+.bg-surface {
+  background-color: var(--adlts-surface);
+}
+
+.bg-navy-gradient {
+  background: linear-gradient(180deg, var(--adlts-navy-900), var(--adlts-navy-950));
+}
+
+.text-link {
+  color: var(--adlts-blue-700);
 }
 
 .border,
@@ -157,6 +195,13 @@ td {
 .border-slate-200,
 .border-slate-300 {
   border-color: var(--adlts-border);
+}
+
+.surface-card {
+  border: 1px solid var(--adlts-border);
+  background-color: var(--adlts-surface);
+  border-radius: var(--adlts-radius-md);
+  box-shadow: var(--adlts-shadow-card);
 }
 
 .skip-link {
