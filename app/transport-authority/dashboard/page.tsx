@@ -13,15 +13,30 @@ export default function TransportAuthorityDashboard() {
   const [alerts, setAlerts] = useState<ComplianceAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [unavailableReason, setUnavailableReason] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
       setError(null);
+      setUnavailableReason(null);
       try {
         const [analyticsRes, alertsRes] = await Promise.all([getRegionalAnalytics(), getComplianceAlerts()]);
-        if (analyticsRes.success) setAnalytics(analyticsRes.data);
-        if (alertsRes.success) setAlerts(alertsRes.data);
+        if (analyticsRes.success && analyticsRes.data) {
+          setAnalytics(analyticsRes.data);
+        } else {
+          setUnavailableReason(analyticsRes.message || 'Regional analytics endpoint is unavailable.');
+          setAnalytics(null);
+        }
+
+        if (alertsRes.success && alertsRes.data) {
+          setAlerts(alertsRes.data);
+        } else {
+          setAlerts([]);
+          if (!analyticsRes.success) {
+            setUnavailableReason(alertsRes.message || 'Compliance alerts endpoint is unavailable.');
+          }
+        }
       } catch (err) {
         setError(extractApiError(err, "Failed to load authority data"));
       } finally {
@@ -38,6 +53,9 @@ export default function TransportAuthorityDashboard() {
           <p className="text-sm text-rose-700">{error}</p>
         </div>
       )}
+      {unavailableReason ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{unavailableReason}</div>
+      ) : null}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Regional Authority Portal</h1>
