@@ -214,8 +214,7 @@ export async function getCandidateNotifications(query: NotificationQueryParams =
       return paginateNotifications(filterNotifications(seed, query), page, pageSize);
     }
 
-    const seed = getSeedNotifications();
-    return paginateNotifications(filterNotifications(seed, query), page, pageSize);
+    return paginateNotifications([], page, pageSize);
   }
 }
 

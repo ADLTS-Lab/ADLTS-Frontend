@@ -370,8 +370,7 @@ export async function getNotificationsPage(query: NotificationQueryParams = {}):
       return paginateNotifications(filterNotifications(seeded, context, query), page, pageSize);
     }
 
-    const seed = getSeedNotifications(context);
-    return paginateNotifications(filterNotifications(seed, context, query), page, pageSize);
+    return paginateNotifications([], page, pageSize);
   }
 }
 
