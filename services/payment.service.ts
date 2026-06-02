@@ -148,6 +148,7 @@ export async function retryPayment(bookingId: string): Promise<Payment> {
 
 export function isMockCheckoutUrl(url?: string): boolean {
   if (!url) return false;
+  if (!ALLOW_LOCAL_FALLBACK) return false;
   return url.includes('checkout.chapa.co/mock') || url.includes('/mock/');
 }
 

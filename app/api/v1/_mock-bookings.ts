@@ -4,6 +4,8 @@ import type { NextRequest } from 'next/server';
 
 import type { MockUser } from './_mock-auth';
 
+const ALLOW_LOCAL_FALLBACK = process.env.NEXT_PUBLIC_ALLOW_LOCAL_FALLBACK === 'true';
+
 export type MockBookingStatus = 'Pending' | 'Approved' | 'Payment Pending' | 'Scheduled' | 'Rejected' | 'Cancelled' | 'Completed' | 'Expired';
 
 const ACTIVE_BOOKING_STATUSES = new Set<MockBookingStatus>(['Pending', 'Approved', 'Payment Pending', 'Scheduled']);
@@ -152,6 +154,9 @@ const state: MockBookingState = globalThis.__adltsMockBookingState ?? {
 };
 
 globalThis.__adltsMockBookingState = state;
+if (!ALLOW_LOCAL_FALLBACK) {
+  state.bookings.clear();
+}
 
 function institutionIdForUser(user: MockUser): string | undefined {
   return (

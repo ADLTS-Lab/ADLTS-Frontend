@@ -129,13 +129,13 @@ export default function SuperAdminInstitutionsPage() {
         <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 flex items-start gap-2">
           <CheckCircle2 size={18} className="mt-0.5 shrink-0" />
           <div>
-            <p>{success}</p>
-            {latestInviteLink ? (
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <Link className="font-semibold underline" href={latestInviteLink}>
-                  Open mock invitation link
-                </Link>
-                <button
+              <p>{success}</p>
+              {latestInviteLink ? (
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <Link className="font-semibold underline" href={latestInviteLink}>
+                  Open invitation link
+                  </Link>
+                  <button
                   type="button"
                   onClick={copyInviteLink}
                   className="inline-flex items-center gap-1 rounded-full border border-emerald-200 px-3 py-1 text-xs font-bold text-emerald-700"
@@ -157,7 +157,7 @@ export default function SuperAdminInstitutionsPage() {
               </div>
               <div>
                 <h2 className="font-bold text-slate-900">Invite Institution</h2>
-                <p className="text-sm text-slate-500">A mock email link is generated until the backend mailer is deployed.</p>
+                <p className="text-sm text-slate-500">Invite links are generated from the connected backend service.</p>
               </div>
             </div>
 
@@ -187,7 +187,7 @@ export default function SuperAdminInstitutionsPage() {
           <div className="border-b border-slate-100 px-6 py-4 flex items-center justify-between">
             <div>
               <h2 className="font-bold text-slate-900">Institution Accounts</h2>
-              <p className="text-sm text-slate-500">Status is synchronized from backend endpoints or local mock invitations.</p>
+              <p className="text-sm text-slate-500">Status is synchronized from backend endpoints.</p>
             </div>
           </div>
           <div className="overflow-x-auto">

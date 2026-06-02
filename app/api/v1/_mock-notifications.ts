@@ -2,6 +2,8 @@ import type { NextRequest } from 'next/server';
 
 import type { MockUser } from './_mock-auth';
 
+const ALLOW_LOCAL_FALLBACK = process.env.NEXT_PUBLIC_ALLOW_LOCAL_FALLBACK === 'true';
+
 export type MockNotification = {
   id: string;
   recipientRole: string;
@@ -185,6 +187,10 @@ const state: MockNotificationState = globalThis.__adltsMockNotificationState ?? 
 };
 
 globalThis.__adltsMockNotificationState = state;
+
+if (!ALLOW_LOCAL_FALLBACK) {
+  state.notifications.clear();
+}
 
 function matchesRecipient(notification: MockNotification, user: MockUser) {
   return notification.recipientRole === 'all' || notification.recipientRole === user.role;

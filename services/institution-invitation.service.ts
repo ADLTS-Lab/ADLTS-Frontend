@@ -1,6 +1,8 @@
 import api from '@/lib/api';
 import { extractApiError, shouldUseLocalFallback, type ApiSuccess } from './api-utils';
 
+const ALLOW_LOCAL_FALLBACK = typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_ALLOW_LOCAL_FALLBACK === 'true' : true;
+
 export type InstitutionAccountStatus = 'Invited' | 'Active' | 'Disabled';
 
 export interface InstitutionAccount {
@@ -115,7 +117,7 @@ function getArrayPayload<T>(response: BackendListResponse<T>): T[] {
 }
 
 function readMockInstitutions(): InstitutionAccount[] {
-  if (!isBrowser()) return [];
+  if (!ALLOW_LOCAL_FALLBACK || !isBrowser()) return [];
 
   try {
     const raw = window.localStorage.getItem(MOCK_STORAGE_KEY);
@@ -128,12 +130,12 @@ function readMockInstitutions(): InstitutionAccount[] {
 }
 
 function writeMockInstitutions(institutions: InstitutionAccount[]): void {
-  if (!isBrowser()) return;
+  if (!ALLOW_LOCAL_FALLBACK || !isBrowser()) return;
   window.localStorage.setItem(MOCK_STORAGE_KEY, JSON.stringify(institutions));
 }
 
 function writeMockInstitutionUser(institution: InstitutionAccount, password: string): void {
-  if (!isBrowser()) return;
+  if (!ALLOW_LOCAL_FALLBACK || !isBrowser()) return;
 
   const raw = window.localStorage.getItem(LOCAL_REGISTERED_USERS_KEY);
   const existingUsers = raw ? (JSON.parse(raw) as Array<Record<string, unknown>>) : [];
@@ -221,10 +223,10 @@ async function listBackendInstitutions(): Promise<InstitutionAccount[]> {
 export async function listInstitutions(): Promise<InstitutionAccount[]> {
   try {
     const backendInstitutions = await listBackendInstitutions();
-    if (backendInstitutions.length > 0) return backendInstitutions;
+    if (backendInstitutions.length > 0 || !ALLOW_LOCAL_FALLBACK) return backendInstitutions;
     return readMockInstitutions();
   } catch (err) {
-    if (shouldUseLocalFallback(err)) return readMockInstitutions();
+    if (ALLOW_LOCAL_FALLBACK && shouldUseLocalFallback(err)) return readMockInstitutions();
     throw new Error(extractApiError(err, 'Unable to load institutions.'));
   }
 }
@@ -254,7 +256,7 @@ export async function inviteInstitution(data: InviteInstitutionRequest): Promise
       message: response.data.message ?? 'Institution invitation sent.',
     };
   } catch (err) {
-    if (!shouldUseLocalFallback(err)) {
+    if (!ALLOW_LOCAL_FALLBACK || !shouldUseLocalFallback(err)) {
       throw new Error(extractApiError(err, 'Unable to invite institution.'));
     }
 
@@ -286,6 +288,22 @@ export async function inviteInstitution(data: InviteInstitutionRequest): Promise
 }
 
 export async function resendInstitutionInvitation(institutionId: string): Promise<InviteInstitutionResult> {
+  if (!ALLOW_LOCAL_FALLBACK) {
+    try {
+      const response = await api.post<ApiSuccess<BackendInvitationRecord>>(`/invitations/${institutionId}/resend`);
+      const invitation = response.data.data;
+      const token = invitation?.token ?? '';
+      return {
+        institution: toInstitutionFromInvitation({ ...invitation, id: institutionId, email: invitation?.email }),
+        invitationToken: token,
+        mockEmailLink: '',
+        message: response.data.message ?? 'Institution invitation resent.',
+      };
+    } catch (err) {
+      throw new Error(extractApiError(err, 'Unable to resend invitation.'));
+    }
+  }
+
   const institutions = readMockInstitutions();
   const current = institutions.find((item) => item.id === institutionId || item.invitationId === institutionId);
 
@@ -330,6 +348,21 @@ export async function resendInstitutionInvitation(institutionId: string): Promis
 }
 
 export async function disableInstitution(institutionId: string): Promise<InstitutionAccount> {
+  if (!ALLOW_LOCAL_FALLBACK) {
+    try {
+      await api.patch(`/institutes/${institutionId}/status`, { status: 'disabled' });
+      return {
+        id: institutionId,
+        name: 'Institution',
+        email: '',
+        status: 'Disabled',
+        disabledAt: new Date().toISOString(),
+      };
+    } catch (err) {
+      throw new Error(extractApiError(err, 'Unable to disable institution.'));
+    }
+  }
+
   try {
     await api.patch(`/institutes/${institutionId}/status`, { status: 'disabled' });
   } catch (err) {
@@ -359,6 +392,7 @@ export async function disableInstitution(institutionId: string): Promise<Institu
 }
 
 export async function getInstitutionInvitationByToken(token: string): Promise<InstitutionInvitationDetails | null> {
+  if (!ALLOW_LOCAL_FALLBACK) return null;
   const invitation = readMockInstitutions().find((item) => item.invitationToken === token);
   if (!invitation) return null;
 
@@ -395,7 +429,7 @@ export async function acceptInstitutionInvitation(
       data: institution,
     };
   } catch (err) {
-    if (!shouldUseLocalFallback(err)) {
+    if (!ALLOW_LOCAL_FALLBACK || !shouldUseLocalFallback(err)) {
       throw new Error(extractApiError(err, 'Unable to accept invitation.'));
     }
 

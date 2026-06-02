@@ -2,6 +2,8 @@ import { randomUUID } from 'crypto';
 
 import type { NextRequest } from 'next/server';
 
+const ALLOW_LOCAL_FALLBACK = process.env.NEXT_PUBLIC_ALLOW_LOCAL_FALLBACK === 'true';
+
 type MockRole =
   | 'candidate'
   | 'admin'
@@ -315,6 +317,12 @@ const state: MockState = globalThis.__adltsMockAuthState ?? {
 
 globalThis.__adltsMockAuthState = state;
 
+if (!ALLOW_LOCAL_FALLBACK) {
+  state.users.clear();
+  state.tokens.clear();
+  state.refreshTokens.clear();
+}
+
 // Ensure state always has refreshTokens mapped (for backward compatibility during fast refreshes)
 if (!state.refreshTokens) {
   state.refreshTokens = new Map<string, string>();
@@ -589,4 +597,3 @@ export async function updateCandidateProfile(request: NextRequest) {
     return null;
   }
 }
-

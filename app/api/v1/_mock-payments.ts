@@ -3,6 +3,8 @@ import type { NextRequest } from 'next/server';
 
 import { markBookingAwaitingPayment, markBookingPaid } from './_mock-bookings';
 
+const ALLOW_LOCAL_FALLBACK = process.env.NEXT_PUBLIC_ALLOW_LOCAL_FALLBACK === 'true';
+
 export type MockPaymentStatus = 'Initiated' | 'Pending' | 'Succeeded' | 'Failed' | 'Cancelled';
 
 export type MockPayment = {
@@ -50,6 +52,11 @@ const state: MockPaymentState = globalThis.__adltsMockPaymentState ?? {
   retryCounts: new Map<string, number>(),
 };
 globalThis.__adltsMockPaymentState = state;
+
+if (!ALLOW_LOCAL_FALLBACK) {
+  state.payments.clear();
+  state.retryCounts.clear();
+}
 
 if (!state.retryCounts) {
   state.retryCounts = new Map<string, number>();
