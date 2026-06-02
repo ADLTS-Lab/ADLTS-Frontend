@@ -17,6 +17,8 @@ import {
 } from "@/services/payment.service";
 import { useAuthStore } from "@/store/authStore";
 
+const ENABLE_LOCAL_DEBUG = process.env.NEXT_PUBLIC_ALLOW_LOCAL_FALLBACK === 'true';
+
 const PAYABLE_BOOKING_STATUSES = new Set(["Approved", "Payment Pending"]);
 
 function formatAmount(amountCents: number, currency: string) {
@@ -82,24 +84,26 @@ export default function CandidatePaymentsPage() {
       setPayments(bookingPayments);
 
       // #region agent log
-      fetch("http://127.0.0.1:7485/ingest/750002e8-fc34-4f4c-aec9-03b23cf457b3", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "30f368" },
-        body: JSON.stringify({
-          sessionId: "30f368",
-          runId: "payment-flow",
-          hypothesisId: "H1",
-          location: "payments/page.tsx:loadData",
-          message: "payment page loaded",
-          data: {
-            bookingId: resolvedBooking.id,
-            status: resolvedBooking.status,
-            paymentCount: bookingPayments.length,
-            amountCents: resolvePaymentAmountCents(bookingPayments),
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
+      if (ENABLE_LOCAL_DEBUG) {
+        fetch("http://127.0.0.1:7485/ingest/750002e8-fc34-4f4c-aec9-03b23cf457b3", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "30f368" },
+          body: JSON.stringify({
+            sessionId: "30f368",
+            runId: "payment-flow",
+            hypothesisId: "H1",
+            location: "payments/page.tsx:loadData",
+            message: "payment page loaded",
+            data: {
+              bookingId: resolvedBooking.id,
+              status: resolvedBooking.status,
+              paymentCount: bookingPayments.length,
+              amountCents: resolvePaymentAmountCents(bookingPayments),
+            },
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+      }
       // #endregion
     } catch (loadError) {
       setBooking(null);
@@ -143,23 +147,25 @@ export default function CandidatePaymentsPage() {
           });
 
       // #region agent log
-      fetch("http://127.0.0.1:7485/ingest/750002e8-fc34-4f4c-aec9-03b23cf457b3", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "30f368" },
-        body: JSON.stringify({
-          sessionId: "30f368",
-          runId: "payment-flow",
-          hypothesisId: "H2",
-          location: "payments/page.tsx:handlePay",
-          message: "payment initiated",
-          data: {
-            paymentId: initiated.id,
-            providerRef: initiated.providerRef,
-            checkoutUrl: initiated.checkout_url,
-          },
-          timestamp: Date.now(),
-        }),
-      }).catch(() => {});
+      if (ENABLE_LOCAL_DEBUG) {
+        fetch("http://127.0.0.1:7485/ingest/750002e8-fc34-4f4c-aec9-03b23cf457b3", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "30f368" },
+          body: JSON.stringify({
+            sessionId: "30f368",
+            runId: "payment-flow",
+            hypothesisId: "H2",
+            location: "payments/page.tsx:handlePay",
+            message: "payment initiated",
+            data: {
+              paymentId: initiated.id,
+              providerRef: initiated.providerRef,
+              checkoutUrl: initiated.checkout_url,
+            },
+            timestamp: Date.now(),
+          }),
+        }).catch(() => {});
+      }
       // #endregion
 
       const completed = await completePaymentCheckout(booking.id, initiated);
@@ -168,19 +174,21 @@ export default function CandidatePaymentsPage() {
 
       if (completed.status === "Succeeded" || refreshed[0]?.status === "Succeeded") {
         // #region agent log
-        fetch("http://127.0.0.1:7485/ingest/750002e8-fc34-4f4c-aec9-03b23cf457b3", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "30f368" },
-          body: JSON.stringify({
-            sessionId: "30f368",
-            runId: "payment-flow",
-            hypothesisId: "H3",
-            location: "payments/page.tsx:handlePay",
-            message: "payment succeeded redirecting",
-            data: { bookingId: booking.id },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
+        if (ENABLE_LOCAL_DEBUG) {
+          fetch("http://127.0.0.1:7485/ingest/750002e8-fc34-4f4c-aec9-03b23cf457b3", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "30f368" },
+            body: JSON.stringify({
+              sessionId: "30f368",
+              runId: "payment-flow",
+              hypothesisId: "H3",
+              location: "payments/page.tsx:handlePay",
+              message: "payment succeeded redirecting",
+              data: { bookingId: booking.id },
+              timestamp: Date.now(),
+            }),
+          }).catch(() => {});
+        }
         // #endregion
 
         router.push(`/candidate/booking?payment=success&bookingId=${encodeURIComponent(booking.id)}`);

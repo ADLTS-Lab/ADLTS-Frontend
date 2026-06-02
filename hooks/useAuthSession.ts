@@ -5,6 +5,8 @@ import { useAuthStore } from '@/store/authStore';
 import { hasAuthToken, isSessionValid } from '@/lib/auth-session';
 import type { User } from '@/services/auth.service';
 
+const ENABLE_LOCAL_DEBUG = process.env.NEXT_PUBLIC_ALLOW_LOCAL_FALLBACK === 'true';
+
 type AuthSession = {
   user: User | null;
   isAuthenticated: boolean;
@@ -56,7 +58,9 @@ export function useAuthSession(): AuthSession {
   // #region agent log
   useEffect(() => {
     if (!hasHydrated) return;
-    fetch('http://127.0.0.1:7485/ingest/750002e8-fc34-4f4c-aec9-03b23cf457b3',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'30f368'},body:JSON.stringify({sessionId:'30f368',location:'hooks/useAuthSession.ts',message:'session evaluated',data:{active,isAuthenticated,hasUser:!!user,hasToken:hasAuthToken()},timestamp:Date.now(),hypothesisId:'B',runId:'post-fix'})}).catch(()=>{});
+    if (ENABLE_LOCAL_DEBUG) {
+      fetch('http://127.0.0.1:7485/ingest/750002e8-fc34-4f4c-aec9-03b23cf457b3',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'30f368'},body:JSON.stringify({sessionId:'30f368',location:'hooks/useAuthSession.ts',message:'session evaluated',data:{active,isAuthenticated,hasUser:!!user,hasToken:hasAuthToken()},timestamp:Date.now(),hypothesisId:'B',runId:'post-fix'})}).catch(()=>{});
+    }
   }, [hasHydrated, active, isAuthenticated, user]);
   // #endregion
 
