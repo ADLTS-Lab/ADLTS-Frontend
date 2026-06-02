@@ -10,25 +10,26 @@ export default function AdminActiveExamsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    let isMounted = true;
-
+  const loadActiveExams = async () => {
     setIsLoading(true);
     setError("");
 
-    listActiveExamsSafe()
-      .then(({ data, error: nextError }) => {
-        if (!isMounted) return;
-        setActiveExams(data);
-        setError(nextError ?? "");
-      })
-      .finally(() => {
-        if (isMounted) setIsLoading(false);
-      });
+    try {
+      const { data, error: nextError } = await listActiveExamsSafe();
+      setActiveExams(data);
+      setError(nextError ?? "");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-    return () => {
-      isMounted = false;
-    };
+  useEffect(() => {
+    void loadActiveExams();
+    const polling = setInterval(() => {
+      void loadActiveExams();
+    }, 30 * 1000);
+
+    return () => clearInterval(polling);
   }, []);
 
   return (
@@ -43,6 +44,10 @@ export default function AdminActiveExamsPage() {
 
       {isLoading ? (
         <p className="text-sm text-slate-500">{t('loadingCandidates')}</p>
+      ) : activeExams.length === 0 ? (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 px-6 py-12 text-center text-sm text-slate-500">
+          No active exams are currently running.
+        </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {activeExams.map((exam) => (
