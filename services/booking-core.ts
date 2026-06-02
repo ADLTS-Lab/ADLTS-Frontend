@@ -1,6 +1,5 @@
 import api from '@/lib/api';
-import { useAuthStore } from '@/store/authStore';
-import { extractApiError, shouldUseLocalFallback } from './api-utils';
+import { extractApiError } from './api-utils';
 
 export type BookingStatus = 'Pending' | 'Approved' | 'Payment Pending' | 'Scheduled' | 'Rejected' | 'Cancelled' | 'Completed' | 'Expired';
 
@@ -56,30 +55,19 @@ export function getBookingBlockMessage(status?: BookingStatus | null): string {
 
 export type LicenseCategory = 'A' | 'B' | 'C' | 'D';
 
-export type BookingInstitution = {
+export interface BookingInstitution {
   id: string;
   name: string;
-  aliases?: string[];
-};
+}
 
-export const MOCK_BOOKING_INSTITUTIONS: BookingInstitution[] = [
-  { id: 'kality-driving-school', name: 'Kality Driving School' },
-  { id: 'adey-ababa-driving-center', name: 'Adey Ababa Driving Center' },
-  { id: 'bole-driving-institute', name: 'Bole Driving Institute' },
-  { id: 'lideta-driving-school', name: 'Lideta Driving School' },
-  { id: 'yeka-driving-academy', name: 'Yeka Driving Academy' },
-  { id: 'nifas-silk-driving-center', name: 'Nifas Silk Driving Center' },
-  { id: 'aau-driving-school', name: 'AAU Driving School' },
-];
-
-export type BookingCandidateDetails = {
+export interface BookingCandidateDetails {
   candidateId?: string;
   name: string;
   email: string;
   phone?: string;
   fayidaId?: string;
   gender?: string;
-};
+}
 
 export interface BookingRequest {
   id: string;
@@ -128,87 +116,111 @@ export interface BookingPageResult {
   hasPreviousPage: boolean;
 }
 
-const BOOKING_STORAGE_KEY = 'adlts-booking-requests';
-const LEGACY_BOOKING_STORAGE_KEY = 'adlts-candidate-bookings';
-const ALLOW_LOCAL_FALLBACK =
-  typeof process !== 'undefined' ? process.env.NEXT_PUBLIC_ALLOW_LOCAL_FALLBACK !== 'false' : true;
+interface RawBookingResponse {
+  page?: number;
+  current_page?: number;
+  per_page?: number;
+  limit?: number;
+  total?: number;
+  total_items?: number;
+  totalPages?: number;
+  total_pages?: number;
+  items?: unknown[];
+  data?: unknown;
+}
 
-const BOOKING_INSTITUTION_LOOKUP = new Map(MOCK_BOOKING_INSTITUTIONS.map((institution) => [institution.id, institution]));
 const bookingListeners = new Set<() => void>();
 
-let storageListenerAttached = false;
+let cachedBookings: BookingRequest[] = [];
 
-function slugify(value: string): string {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+function extractArray(value: unknown): unknown[] {
+  if (Array.isArray(value)) return value;
+
+  if (value && typeof value === 'object') {
+    const record = value as Record<string, unknown>;
+    const candidates = [
+      record.data,
+      record.items,
+      record.bookings,
+      record.result,
+      record.results,
+      record.payload,
+      record.records,
+      record.collection,
+      typeof record.data === 'object' && record.data !== null ? (record.data as Record<string, unknown>).items : undefined,
+      typeof record.data === 'object' && record.data !== null ? (record.data as Record<string, unknown>).bookings : undefined,
+      typeof record.data === 'object' && record.data !== null ? (record.data as Record<string, unknown>).data : undefined,
+    ];
+
+    for (const candidate of candidates) {
+      if (Array.isArray(candidate)) {
+        return candidate;
+      }
+    }
+  }
+
+  return [];
 }
 
-function getInstitutionNameById(institutionId: string): string {
-  return BOOKING_INSTITUTION_LOOKUP.get(institutionId)?.name ?? institutionId;
-}
+function extractMeta(value: unknown): { page: number; pageSize: number; total: number; totalPages: number } {
+  const fallback = { page: 1, pageSize: 10, total: 0, totalPages: 1 };
+  if (!value || typeof value !== 'object') return fallback;
 
-function resolveInstitutionDetails(input: string | undefined): BookingInstitution {
-  const normalized = String(input || '').trim();
-  const matchedById = BOOKING_INSTITUTION_LOOKUP.get(normalized);
-  if (matchedById) return matchedById;
+  const normalized = value as RawBookingResponse & Record<string, unknown>;
+  const fromData = typeof normalized.data === 'object' && normalized.data !== null ? (normalized.data as Record<string, unknown>) : null;
 
-  const matchedByName = MOCK_BOOKING_INSTITUTIONS.find((institution) => {
-    const aliases = institution.aliases ?? [];
-    return institution.name === normalized || aliases.includes(normalized);
-  });
+  const page = Number(normalized.page ?? fromData?.page ?? normalized.current_page ?? fromData?.current_page ?? 1);
+  const pageSize = Number(
+    normalized.limit ??
+      normalized.per_page ??
+      fromData?.limit ??
+      fromData?.per_page ??
+      fromData?.page_size ??
+      10,
+  );
+  const totalCandidate =
+    normalized.total ??
+    normalized.total_items ??
+    fromData?.total ??
+    fromData?.total_items ??
+    fromData?.meta?.total ??
+    0;
+  const providedTotal = Math.max(0, Number(totalCandidate));
+  const totalPages = Number(
+    normalized.totalPages ??
+      normalized.total_pages ??
+      fromData?.totalPages ??
+      fromData?.total_pages ??
+      (providedTotal ? Math.max(1, Math.ceil(providedTotal / (Math.max(1, pageSize)))) : 1),
+  );
 
-  if (matchedByName) return matchedByName;
-
-  const id = slugify(normalized || 'institution');
   return {
-    id,
-    name: normalized || getInstitutionNameById(id),
+    page: Number.isFinite(page) && page > 0 ? page : fallback.page,
+    pageSize: Number.isFinite(pageSize) && pageSize > 0 ? pageSize : fallback.pageSize,
+    total: Number.isFinite(providedTotal) ? providedTotal : fallback.total,
+    totalPages: Number.isFinite(totalPages) && totalPages > 0 ? totalPages : fallback.totalPages,
   };
 }
 
-function normalizeCandidateDetails(raw: unknown): BookingCandidateDetails | undefined {
-  if (!raw || typeof raw !== 'object') return undefined;
-
-  const candidate = raw as Record<string, unknown>;
-  const name = typeof candidate.name === 'string' ? candidate.name : '';
-  const email = typeof candidate.email === 'string' ? candidate.email : '';
-
-  if (!name && !email) return undefined;
-
-  return {
-    candidateId: typeof candidate.candidateId === 'string' ? candidate.candidateId : typeof candidate.candidate_id === 'string' ? candidate.candidate_id : undefined,
-    name,
-    email,
-    phone: typeof candidate.phone === 'string' ? candidate.phone : undefined,
-    fayidaId: typeof candidate.fayidaId === 'string' ? candidate.fayidaId : typeof candidate.fayida_id === 'string' ? candidate.fayida_id : undefined,
-    gender: typeof candidate.gender === 'string' ? candidate.gender : undefined,
-  };
-}
-
-function normalizeLicenseCategory(value: unknown): LicenseCategory {
-  const category = String(value || '').trim().toUpperCase();
-  return category === 'A' || category === 'B' || category === 'C' || category === 'D' ? category : 'B';
+function parseStatus(value: unknown): BookingStatus {
+  const statusValue = typeof value === 'string' ? value : 'Pending';
+  return statusValue === 'Approved' ||
+    statusValue === 'Payment Pending' ||
+    statusValue === 'Scheduled' ||
+    statusValue === 'Rejected' ||
+    statusValue === 'Cancelled' ||
+    statusValue === 'Completed' ||
+    statusValue === 'Expired'
+    ? statusValue
+    : 'Pending';
 }
 
 function normalizeBooking(raw: unknown): BookingRequest | null {
-  if (!raw || typeof raw !== 'object') return null;
+  if (!raw || typeof raw !== 'object') {
+    return null;
+  }
 
   const data = raw as Record<string, unknown>;
-  const rawInstitution =
-    typeof data.institutionName === 'string'
-      ? data.institutionName
-      : typeof data.institution === 'string'
-        ? data.institution
-        : typeof data.institution_id === 'string'
-          ? data.institution_id
-          : typeof data.institute_id === 'string'
-            ? data.institute_id
-            : '';
-
-  const institutionDetails = resolveInstitutionDetails(rawInstitution);
   const institutionId =
     typeof data.institutionId === 'string'
       ? data.institutionId
@@ -216,19 +228,16 @@ function normalizeBooking(raw: unknown): BookingRequest | null {
         ? data.institution_id
         : typeof data.institute_id === 'string'
           ? data.institute_id
-          : institutionDetails.id;
+          : '';
+  const institutionName =
+    typeof data.institutionName === 'string'
+      ? data.institutionName
+      : typeof data.institution === 'string'
+        ? data.institution
+        : typeof data.institution_name === 'string'
+          ? data.institution_name
+          : '';
 
-  const statusValue = typeof data.status === 'string' ? data.status : 'Pending';
-  const status: BookingStatus =
-    statusValue === 'Approved' ||
-    statusValue === 'Payment Pending' ||
-    statusValue === 'Scheduled' ||
-    statusValue === 'Rejected' ||
-    statusValue === 'Cancelled' ||
-    statusValue === 'Completed' ||
-    statusValue === 'Expired'
-      ? statusValue
-      : 'Pending';
   const createdAt =
     typeof data.createdAt === 'string'
       ? data.createdAt
@@ -242,23 +251,40 @@ function normalizeBooking(raw: unknown): BookingRequest | null {
         ? data.updated_at
         : createdAt;
 
+  const candidateDetailsRaw = data.candidate_details ?? data.candidateDetails;
+  const idRaw = data.id ?? data.booking_id ?? data.bookingId;
+  const bookingId = typeof idRaw === 'string' || typeof idRaw === 'number' ? String(idRaw).trim() : '';
+  if (!bookingId) {
+    return null;
+  }
+
   return {
-    id: typeof data.id === 'string' ? data.id : `booking-${Date.now()}`,
+    id: bookingId,
     institutionId,
-    institution: institutionDetails.name,
-    institutionName: institutionDetails.name,
+    institution: institutionName || String(institutionId || 'Unknown Institute'),
+    institutionName: institutionName || String(institutionId || 'Unknown Institute'),
     candidateId:
       typeof data.candidateId === 'string'
         ? data.candidateId
         : typeof data.candidate_id === 'string'
           ? data.candidate_id
-          : typeof data.candidateDetails === 'object' && data.candidateDetails && typeof (data.candidateDetails as Record<string, unknown>).candidateId === 'string'
-            ? String((data.candidateDetails as Record<string, unknown>).candidateId)
-            : typeof data.candidate_details === 'object' && data.candidate_details && typeof (data.candidate_details as Record<string, unknown>).candidateId === 'string'
-              ? String((data.candidate_details as Record<string, unknown>).candidateId)
-              : undefined,
-    licenseCategory: normalizeLicenseCategory(data.licenseCategory || data.license_category),
-    bloodType: typeof data.bloodType === 'string' ? data.bloodType : typeof data.blood_type === 'string' ? data.blood_type : '',
+          : typeof candidateDetailsRaw === 'object' && candidateDetailsRaw !== null && typeof (candidateDetailsRaw as Record<string, unknown>).candidateId === 'string'
+            ? String((candidateDetailsRaw as Record<string, unknown>).candidateId)
+            : undefined,
+    licenseCategory:
+      String(
+        typeof data.license_category === 'string'
+          ? data.license_category
+          : typeof data.licenseCategory === 'string'
+            ? data.licenseCategory
+            : 'B',
+      ).toUpperCase() as LicenseCategory,
+    bloodType:
+      typeof data.bloodType === 'string'
+        ? data.bloodType
+        : typeof data.blood_type === 'string'
+          ? data.blood_type
+          : 'A+',
     preferredDate:
       typeof data.preferredDate === 'string'
         ? data.preferredDate
@@ -270,102 +296,179 @@ function normalizeBooking(raw: unknown): BookingRequest | null {
         ? data.preferredSession
         : typeof data.preferred_session === 'string'
           ? data.preferred_session
-          : '',
+          : 'Morning',
     additionalNotes:
       typeof data.additionalNotes === 'string'
         ? data.additionalNotes
         : typeof data.additional_notes === 'string'
           ? data.additional_notes
           : undefined,
-    candidateDetails: normalizeCandidateDetails(data.candidateDetails ?? data.candidate_details),
-    status,
+    candidateDetails: normalizeCandidateDetails(candidateDetailsRaw),
+    status: parseStatus(data.status),
     createdAt,
     updatedAt,
   };
 }
 
-function normalizeBookingCollection(value: unknown): BookingRequest[] {
-  const collection = Array.isArray(value)
-    ? value
-    : Array.isArray((value as { data?: unknown } | null)?.data)
-      ? ((value as { data: unknown[] }).data)
-      : Array.isArray((value as { bookings?: unknown } | null)?.bookings)
-        ? ((value as { bookings: unknown[] }).bookings)
-        : Array.isArray((value as { items?: unknown } | null)?.items)
-          ? ((value as { items: unknown[] }).items)
-          : [];
+function normalizeCandidateDetails(raw: unknown): BookingCandidateDetails | undefined {
+  if (!raw || typeof raw !== 'object') return undefined;
 
-  return collection.map(normalizeBooking).filter((booking): booking is BookingRequest => !!booking);
+  const candidate = raw as Record<string, unknown>;
+  const name = typeof candidate.name === 'string' ? candidate.name : '';
+  const email = typeof candidate.email === 'string' ? candidate.email : '';
+
+  if (!name && !email) {
+    return undefined;
+  }
+
+  return {
+    candidateId:
+      typeof candidate.candidateId === 'string'
+        ? candidate.candidateId
+        : typeof candidate.candidate_id === 'string'
+          ? candidate.candidate_id
+          : undefined,
+    name,
+    email,
+    phone: typeof candidate.phone === 'string' ? candidate.phone : undefined,
+    fayidaId:
+      typeof candidate.fayidaId === 'string'
+        ? candidate.fayidaId
+        : typeof candidate.fayida_id === 'string'
+          ? candidate.fayida_id
+          : undefined,
+    gender: typeof candidate.gender === 'string' ? candidate.gender : undefined,
+  };
+}
+
+function normalizeBookingCollection(value: unknown): BookingRequest[] {
+  return extractArray(value)
+    .map(normalizeBooking)
+    .filter((booking): booking is BookingRequest => booking !== null);
 }
 
 function sortBookings(bookings: BookingRequest[]): BookingRequest[] {
   return [...bookings].sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
 }
 
-function ensureStorageListener() {
-  if (typeof window === 'undefined' || storageListenerAttached) return;
+function paginateBookings(bookings: BookingRequest[], page = 1, pageSize = 10): BookingPageResult {
+  const safePage = Math.max(1, page);
+  const safePageSize = Math.max(1, pageSize);
+  const total = bookings.length;
+  const totalPages = Math.max(1, Math.ceil(total / safePageSize));
+  const start = (safePage - 1) * safePageSize;
 
-  window.addEventListener('storage', (event) => {
-    if (event.key === BOOKING_STORAGE_KEY) {
-      bookingListeners.forEach((listener) => listener());
+  return {
+    items: bookings.slice(start, start + safePageSize),
+    page: safePage,
+    pageSize: safePageSize,
+    total,
+    totalPages,
+    hasNextPage: safePage < totalPages,
+    hasPreviousPage: safePage > 1,
+  };
+}
+
+function backendParams(query: BookingQueryParams): Record<string, string | number> {
+  const params: Record<string, string | number> = {};
+
+  if (query.institutionId) {
+    params.institution_id = query.institutionId;
+  }
+
+  if (query.search) params.search = query.search;
+  if (query.status) params.status = query.status;
+  if (query.licenseCategory) params.license_category = query.licenseCategory;
+  if (query.page) params.page = query.page;
+  if (query.pageSize) {
+    params.limit = query.pageSize;
+  }
+
+  return params;
+}
+
+function buildBackendSubmissionPayload(submission: BookingSubmission) {
+  return {
+    institute_id: submission.institutionId,
+    institution_id: submission.institutionId,
+    institution_name: submission.institutionName,
+    candidate_id: submission.candidateDetails?.candidateId,
+    license_category: submission.licenseCategory,
+    bloodType: submission.bloodType,
+    blood_type: submission.bloodType,
+    preferred_exam_date: submission.preferredDate,
+    preferred_session: submission.preferredSession,
+    additional_notes: submission.additionalNotes,
+    candidate_details: submission.candidateDetails,
+    candidate_name: submission.candidateDetails?.name,
+    candidate_email: submission.candidateDetails?.email,
+    candidate_phone: submission.candidateDetails?.phone,
+  };
+}
+
+function normalizeInstitution(raw: unknown): BookingInstitution {
+  if (!raw || typeof raw !== 'object') {
+    return { id: '', name: '' };
+  }
+
+  const data = raw as Record<string, unknown>;
+
+  const id =
+    typeof data.id === 'string' ? data.id :
+    typeof data.institute_id === 'string' ? data.institute_id :
+    typeof data.institution_id === 'string' ? data.institution_id :
+    `institution-${Date.now()}`;
+  const name =
+    typeof data.name === 'string' ? data.name :
+    typeof data.institution_name === 'string' ? data.institution_name :
+    'Institute';
+
+  return { id, name };
+}
+
+function upsertCache(items: BookingRequest[]) {
+  const unique = new Map<string, BookingRequest>();
+  for (const booking of items) {
+    unique.set(booking.id, booking);
+  }
+
+  for (const existing of cachedBookings) {
+    if (!unique.has(existing.id)) {
+      unique.set(existing.id, existing);
     }
-  });
+  }
 
-  storageListenerAttached = true;
+  cachedBookings = sortBookings(Array.from(unique.values()));
 }
 
 function emitBookingStoreChange() {
   bookingListeners.forEach((listener) => listener());
 }
 
+function recordBookings(items: BookingRequest[]) {
+  upsertCache(items);
+  emitBookingStoreChange();
+}
+
 export function notifyBookingChanges() {
   emitBookingStoreChange();
 }
 
-function readStoredBookings(): BookingRequest[] {
-  if (typeof window === 'undefined') return [];
-
-  ensureStorageListener();
-
-  try {
-    const raw = localStorage.getItem(BOOKING_STORAGE_KEY) ?? localStorage.getItem(LEGACY_BOOKING_STORAGE_KEY);
-    if (!raw) return [];
-
-    const parsed = JSON.parse(raw);
-    if (Array.isArray(parsed)) {
-      const normalizedBookings = sortBookings(parsed.map(normalizeBooking).filter((booking): booking is BookingRequest => !!booking));
-      localStorage.setItem(BOOKING_STORAGE_KEY, JSON.stringify(normalizedBookings));
-      return normalizedBookings;
-    }
-
-    return [];
-  } catch {
-    return [];
-  }
+function readCachedBookings(): BookingRequest[] {
+  return cachedBookings;
 }
 
-function writeStoredBookings(bookings: BookingRequest[]): BookingRequest[] {
-  const sortedBookings = sortBookings(bookings);
-
-  if (typeof window !== 'undefined') {
-    localStorage.setItem(BOOKING_STORAGE_KEY, JSON.stringify(sortedBookings));
-  }
-
-  emitBookingStoreChange();
-  return sortedBookings;
+function slugify(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
 
-function upsertStoredBooking(booking: BookingRequest): void {
-  const bookings = readStoredBookings();
-  const index = bookings.findIndex((bookingItem) => bookingItem.id === booking.id);
-
-  if (index === -1) {
-    bookings.unshift(booking);
-  } else {
-    bookings[index] = booking;
-  }
-
-  writeStoredBookings(bookings);
+function getSubmissionCandidateEmail(submission: BookingSubmission): string {
+  const submissionEmail = String(submission.candidateDetails?.email || '').trim().toLowerCase();
+  return submissionEmail;
 }
 
 function matchesInstitution(booking: BookingRequest, institutionId?: string): boolean {
@@ -404,200 +507,38 @@ function bookingMatchesFilters(booking: BookingRequest, query: BookingQueryParam
   );
 }
 
-function paginateBookings(bookings: BookingRequest[], page = 1, pageSize = 10): BookingPageResult {
-  const safePageSize = Math.max(1, pageSize || 10);
-  const total = bookings.length;
-  const totalPages = Math.max(1, Math.ceil(total / safePageSize));
-  const safePage = Math.min(Math.max(1, page || 1), totalPages);
-  const start = (safePage - 1) * safePageSize;
+function parseSingleBooking(raw: unknown): BookingRequest | null {
+  if (!raw || typeof raw !== 'object') return null;
 
-  return {
-    items: bookings.slice(start, start + safePageSize),
-    page: safePage,
-    pageSize: safePageSize,
-    total,
-    totalPages,
-    hasNextPage: safePage < totalPages,
-    hasPreviousPage: safePage > 1,
-  };
-}
-
-function backendParams(query: BookingQueryParams): Record<string, string | number> {
-  const params: Record<string, string | number> = {};
-
-  if (query.institutionId) {
-    params.institute_id = query.institutionId;
-    params.institution_id = query.institutionId;
-  }
-
-  if (query.search) params.search = query.search;
-  if (query.status) params.status = query.status;
-  if (query.licenseCategory) params.license_category = query.licenseCategory;
-  if (query.page) params.page = query.page;
-  if (query.pageSize) {
-    params.limit = query.pageSize;
-    params.page_size = query.pageSize;
-  }
-
-  return params;
-}
-
-function buildBackendSubmissionPayload(submission: BookingSubmission) {
-  return {
-    institute_id: submission.institutionId,
-    institution_id: submission.institutionId,
-    institution_name: submission.institutionName,
-    candidate_id: submission.candidateDetails?.candidateId,
-    license_category: submission.licenseCategory,
-    bloodType: submission.bloodType,
-    blood_type: submission.bloodType,
-    preferred_exam_date: submission.preferredDate,
-    preferred_session: submission.preferredSession,
-    additional_notes: submission.additionalNotes,
-    candidate_details: submission.candidateDetails,
-    candidate_name: submission.candidateDetails?.name,
-    candidate_email: submission.candidateDetails?.email,
-    candidate_phone: submission.candidateDetails?.phone,
-  };
-}
-
-function buildLocalBooking(submission: BookingSubmission): BookingRequest {
-  const institutionDetails = resolveInstitutionDetails(submission.institutionName || submission.institutionId);
-  const now = new Date().toISOString();
-
-  return {
-    id: `booking-${Date.now()}`,
-    institutionId: submission.institutionId || institutionDetails.id,
-    institution: institutionDetails.name,
-    institutionName: institutionDetails.name,
-    candidateId: submission.candidateDetails?.candidateId,
-    licenseCategory: submission.licenseCategory,
-    bloodType: submission.bloodType,
-    preferredDate: submission.preferredDate,
-    preferredSession: submission.preferredSession,
-    additionalNotes: submission.additionalNotes,
-    candidateDetails: submission.candidateDetails,
-    status: 'Pending',
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
-function getSubmissionCandidateEmail(submission: BookingSubmission): string {
-  const submissionEmail = String(submission.candidateDetails?.email || '').trim().toLowerCase();
-  if (submissionEmail) return submissionEmail;
-
-  return String(useAuthStore.getState().user?.email || '').trim().toLowerCase();
-}
-
-function getDefaultMockBookings(): BookingRequest[] {
-  const now = Date.now();
-  return [
-    {
-      id: 'mock-booking-1',
-      institutionId: 'bole-driving-institute',
-      institution: 'Bole Driving Institute',
-      institutionName: 'Bole Driving Institute',
-      licenseCategory: 'B',
-      bloodType: 'O+',
-      preferredDate: new Date(now + 1000 * 60 * 60 * 24 * 3).toISOString().slice(0, 10),
-      preferredSession: 'Morning',
-      candidateDetails: { name: 'Abebe Kebede', email: 'abebe@example.com', phone: '+251911223344' },
-      status: 'Pending',
-      createdAt: new Date(now - 1000 * 60 * 60 * 24).toISOString(),
-      updatedAt: new Date(now - 1000 * 60 * 60 * 24).toISOString(),
-    },
-    {
-      id: 'mock-booking-2',
-      institutionId: 'bole-driving-institute',
-      institution: 'Bole Driving Institute',
-      institutionName: 'Bole Driving Institute',
-      licenseCategory: 'C',
-      bloodType: 'A+',
-      preferredDate: new Date(now + 1000 * 60 * 60 * 24 * 7).toISOString().slice(0, 10),
-      preferredSession: 'Afternoon',
-      candidateDetails: { name: 'Sara Tadesse', email: 'sara@example.com', phone: '+251922334455' },
-      status: 'Approved',
-      createdAt: new Date(now - 1000 * 60 * 60 * 48).toISOString(),
-      updatedAt: new Date(now - 1000 * 60 * 60 * 12).toISOString(),
-    },
-    {
-      id: 'mock-booking-3',
-      institutionId: 'kality-driving-school',
-      institution: 'Kality Driving School',
-      institutionName: 'Kality Driving School',
-      licenseCategory: 'A',
-      bloodType: 'B+',
-      preferredDate: new Date(now + 1000 * 60 * 60 * 24 * 5).toISOString().slice(0, 10),
-      preferredSession: 'Morning',
-      candidateDetails: { name: 'Daniel Haile', email: 'daniel@example.com' },
-      status: 'Pending',
-      createdAt: new Date(now - 1000 * 60 * 60 * 72).toISOString(),
-      updatedAt: new Date(now - 1000 * 60 * 60 * 72).toISOString(),
-    },
-  ];
-}
-
-function readBookingsWithMockFallback(): BookingRequest[] {
-  const stored = readStoredBookings();
-  return stored.length > 0 ? stored : getDefaultMockBookings();
-}
-
-export function findBookingById(id: string): BookingRequest | null {
-  const stored = readStoredBookings().find((booking) => booking.id === id);
-  if (stored) return stored;
-  return getDefaultMockBookings().find((booking) => booking.id === id) ?? null;
-}
-
-export async function getBookingById(id: string): Promise<BookingRequest | null> {
-  try {
-    const response = await api.get(`/bookings/${id}`);
-    const raw = response.data?.data ?? response.data?.booking ?? response.data;
-    const booking = normalizeBooking(raw);
+  if ('booking' in (raw as Record<string, unknown>)) {
+    const nested = (raw as Record<string, unknown>).booking;
+    const booking = normalizeBooking(nested);
     if (booking) return booking;
+  }
+
+  return normalizeBooking(raw);
+}
+
+export async function listActiveInstitutes(page = 1, limit = 20): Promise<BookingInstitution[]> {
+  try {
+    const response = await api.get('/institutes/active', {
+      params: {
+        page,
+        limit,
+      },
+    });
+
+    const list = extractArray(response.data?.data ?? response.data)
+      .map(normalizeInstitution)
+      .filter((item) => item.id && item.name);
+
+    return list;
   } catch (error) {
-    if (!ALLOW_LOCAL_FALLBACK || !shouldUseLocalFallback(error)) {
-      const status = (error as { response?: { status?: number } } | undefined)?.response?.status;
-      if (status && status !== 404) {
-        throw new Error(extractApiError(error, 'Failed to load booking.'));
-      }
-    }
+    throw new Error(extractApiError(error, 'Failed to load institutions.'));
   }
-
-  return findBookingById(id);
-}
-
-export function bookingBelongsToInstitution(booking: BookingRequest, institutionId?: string): boolean {
-  return matchesInstitution(booking, institutionId);
-}
-
-function updateLocalBookingStatus(id: string, status: BookingStatus): BookingRequest | null {
-  const bookings = readStoredBookings();
-  const index = bookings.findIndex((bookingItem) => bookingItem.id === id);
-  if (index === -1) return null;
-
-  const currentStatus = bookings[index].status;
-  if (!canTransitionBookingStatus(currentStatus, status) && !(status === 'Cancelled' && canCancelBookingStatus(currentStatus))) {
-    return null;
-  }
-
-  bookings[index] = {
-    ...bookings[index],
-    status,
-    updatedAt: new Date().toISOString(),
-  };
-
-  writeStoredBookings(bookings);
-  return bookings[index];
-}
-
-async function loadBookingsFromApi(query: BookingQueryParams): Promise<BookingRequest[]> {
-  const response = await api.get('/bookings', { params: backendParams(query) });
-  return normalizeBookingCollection(response.data);
 }
 
 export function subscribeToBookingChanges(listener: () => void): () => void {
-  ensureStorageListener();
   bookingListeners.add(listener);
 
   return () => {
@@ -605,21 +546,55 @@ export function subscribeToBookingChanges(listener: () => void): () => void {
   };
 }
 
+export async function getBookingById(id: string): Promise<BookingRequest | null> {
+  try {
+    const response = await api.get(`/bookings/${id}`);
+    const booking = parseSingleBooking(response.data?.data ?? response.data);
+    if (booking) {
+      recordBookings([booking]);
+      return booking;
+    }
+
+    throw new Error('Booking not found.');
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to load booking.'));
+  }
+}
+
+export function findBookingById(id: string): BookingRequest | null {
+  return readCachedBookings().find((booking) => booking.id === id) || null;
+}
+
+export function bookingBelongsToInstitution(booking: BookingRequest, institutionId?: string): boolean {
+  return matchesInstitution(booking, institutionId);
+}
+
 export async function getBookingPage(query: BookingQueryParams = {}): Promise<BookingPageResult> {
   const page = query.page ?? 1;
   const pageSize = query.pageSize ?? 10;
 
   try {
-    const bookings = await loadBookingsFromApi(query);
-    return paginateBookings(sortBookings(bookings).filter((booking) => bookingMatchesFilters(booking, query)), page, pageSize);
-  } catch (error) {
-    if (ALLOW_LOCAL_FALLBACK && shouldUseLocalFallback(error)) {
-      const bookings = readStoredBookings().filter((booking) => bookingMatchesFilters(booking, query));
-      return paginateBookings(bookings, page, pageSize);
-    }
+    const response = await api.get('/bookings', { params: backendParams(query) });
+    const bookings = normalizeBookingCollection(response.data?.data ?? response.data?.bookings ?? response.data);
+    const normalized = sortBookings(bookings).filter((booking) => bookingMatchesFilters(booking, query));
+    const responseMeta = extractMeta(response.data?.meta ?? response.data);
+    const result = paginateBookings(normalized, responseMeta.page || page, responseMeta.pageSize || pageSize);
+    recordBookings(normalized);
 
-    const bookings = readBookingsWithMockFallback().filter((booking) => bookingMatchesFilters(booking, query));
-    return paginateBookings(bookings, page, pageSize);
+    const total = responseMeta.total > 0 ? responseMeta.total : result.total;
+    const totalPages = Math.max(responseMeta.totalPages, result.totalPages);
+
+    return {
+      ...result,
+      page: responseMeta.page || result.page,
+      pageSize: responseMeta.pageSize || result.pageSize,
+      total: total,
+      totalPages,
+      hasNextPage: totalPages > (responseMeta.page || page),
+      hasPreviousPage: responseMeta.page ? responseMeta.page > 1 : result.hasPreviousPage,
+    };
+  } catch (error) {
+    throw new Error(extractApiError(error, 'Failed to load bookings.'));
   }
 }
 
@@ -628,163 +603,69 @@ export async function getAllBookings(institutionFilter?: string): Promise<Bookin
   return result.items;
 }
 
+export async function getActiveBookingInstitutions(page = 1, limit = 20): Promise<BookingInstitution[]> {
+  return listActiveInstitutes(page, limit);
+}
+
 export async function submitBookingRequest(submission: BookingSubmission): Promise<BookingRequest> {
   const candidateEmail = getSubmissionCandidateEmail(submission);
-  let blockedMessage: string | null = null;
+  const existingBookings = await getAllBookings();
+  const activeBooking = existingBookings.find(
+    (booking) =>
+      (booking.candidateDetails?.email?.toLowerCase() === candidateEmail || booking.candidateId === submission.candidateDetails?.candidateId) &&
+      isActiveBookingStatus(booking.status),
+  );
 
-  if (candidateEmail) {
-    try {
-      const existingBookings = await getAllBookings();
-      const activeBooking = existingBookings.find(
-        (booking) => booking.candidateDetails?.email?.toLowerCase() === candidateEmail && isActiveBookingStatus(booking.status),
-      );
-
-      if (activeBooking) {
-        blockedMessage = getBookingBlockMessage(activeBooking.status);
-      }
-    } catch {
-      // Ignore validation lookup failures and fall through to the API request.
-    }
-  }
-
-  if (blockedMessage) {
-    throw new Error(blockedMessage);
+  if (activeBooking) {
+    throw new Error(getBookingBlockMessage(activeBooking.status));
   }
 
   try {
     const response = await api.post('/bookings', buildBackendSubmissionPayload(submission));
-    const booking = normalizeBooking(response.data?.data ?? response.data?.booking ?? response.data);
-    if (booking) {
-      upsertStoredBooking(booking);
-      notifyBookingChanges();
-      return booking;
+    const booking = parseSingleBooking(response.data?.data ?? response.data);
+
+    if (!booking) {
+      throw new Error('Booking response is invalid.');
     }
 
-    const localBooking = buildLocalBooking(submission);
-    notifyBookingChanges();
-    return localBooking;
+    recordBookings([booking]);
+    return booking;
   } catch (error) {
-    const responseStatus = (error as { response?: { status?: number } } | undefined)?.response?.status;
-
-    // If the server explicitly rejected the request (authentication/authorization),
-    // surface the error to the user instead of creating local client state.
-    if (responseStatus === 401 || responseStatus === 403 || responseStatus === 409) {
-      throw new Error(extractApiError(error, 'Failed to submit booking request.'));
-    }
-
-    // Only allow local fallback for network/unavailable/endpoint-missing errors
-    // (404/405 or network errors) — `shouldUseLocalFallback` encodes this policy.
-    if (ALLOW_LOCAL_FALLBACK && shouldUseLocalFallback(error)) {
-      const bookings = readStoredBookings();
-      const booking = buildLocalBooking(submission);
-      bookings.push(booking);
-      writeStoredBookings(bookings);
-      notifyBookingChanges();
-      return booking;
-    }
-
     throw new Error(extractApiError(error, 'Failed to submit booking request.'));
   }
 }
 
 export async function updateBookingStatus(id: string, status: BookingStatus): Promise<BookingRequest | null> {
-  const currentBooking = findBookingById(id);
-  if (currentBooking && !canTransitionBookingStatus(currentBooking.status, status)) {
-    throw new Error(getBookingTransitionBlockMessage(currentBooking.status, status));
-  }
+  const payload = { action: status === 'Approved' ? 'approve' : 'reject' };
 
   try {
-    const payload = { action: status === 'Approved' ? 'approve' : 'reject' };
     const response = await api.patch(`/bookings/${id}/verify`, payload);
-    const booking = normalizeBooking(response.data?.data ?? response.data?.booking ?? response.data);
-    if (booking) {
-      upsertStoredBooking(booking);
-      notifyBookingChanges();
-      return booking;
+    const booking = parseSingleBooking(response.data?.data ?? response.data);
+    if (!booking) {
+      const current = findBookingById(id);
+      if (current) return current;
+      throw new Error('Booking update failed.');
     }
 
-    // If server responded but did not return a booking object, do not silently
-    // mutate local client state when the response indicates an auth/permission
-    // problem. Only perform local fallback for network/unavailable-type errors
-    // (handled in catch below).
-    const respStatus = (response && typeof response.status === 'number') ? response.status : undefined;
-    if (respStatus === 401 || respStatus === 403) {
-      throw new Error('Failed to update booking status.');
-    }
-
-    // Otherwise, cautiously update local cached booking if present.
-    const stored = readStoredBookings();
-    const index = stored.findIndex((bookingItem) => bookingItem.id === id);
-    if (index === -1) return null;
-
-    stored[index] = {
-      ...stored[index],
-      status,
-      updatedAt: new Date().toISOString(),
-    };
-
-    writeStoredBookings(stored);
-    notifyBookingChanges();
-    return stored[index];
+    recordBookings([booking]);
+    return booking;
   } catch (error) {
-    const responseStatus = (error as { response?: { status?: number } } | undefined)?.response?.status;
-
-    // If the error is an explicit auth/permission rejection, do not update local state.
-    if (responseStatus === 401 || responseStatus === 403) {
-      throw new Error(extractApiError(error, 'Failed to update booking status.'));
-    }
-
-    if (ALLOW_LOCAL_FALLBACK && shouldUseLocalFallback(error)) {
-      const updatedBooking = updateLocalBookingStatus(id, status);
-      notifyBookingChanges();
-      return updatedBooking;
-    }
-
     throw new Error(extractApiError(error, 'Failed to update booking status.'));
   }
 }
 
 export async function cancelBookingRequest(id: string): Promise<BookingRequest | null> {
-  const currentBooking = findBookingById(id);
-  if (currentBooking && !canCancelBookingStatus(currentBooking.status)) {
-    throw new Error(`A ${currentBooking.status.toLowerCase()} booking cannot be canceled.`);
-  }
-
   try {
     const response = await api.patch(`/bookings/${id}/cancel`);
-    const booking = normalizeBooking(response.data?.data ?? response.data?.booking ?? response.data);
-    if (booking) {
-      upsertStoredBooking(booking);
-      notifyBookingChanges();
-      return booking;
+    const booking = parseSingleBooking(response.data?.data ?? response.data);
+    if (!booking) {
+      const current = findBookingById(id);
+      return current;
     }
 
-    const stored = readStoredBookings();
-    const index = stored.findIndex((bookingItem) => bookingItem.id === id);
-    if (index === -1) return null;
-
-    stored[index] = {
-      ...stored[index],
-      status: 'Cancelled',
-      updatedAt: new Date().toISOString(),
-    };
-
-    writeStoredBookings(stored);
-    notifyBookingChanges();
-    return stored[index];
+    recordBookings([booking]);
+    return booking;
   } catch (error) {
-    const responseStatus = (error as { response?: { status?: number } } | undefined)?.response?.status;
-
-    if (responseStatus === 401 || responseStatus === 403) {
-      throw new Error(extractApiError(error, 'Failed to cancel booking request.'));
-    }
-
-    if (ALLOW_LOCAL_FALLBACK && shouldUseLocalFallback(error)) {
-      const cancelledBooking = updateLocalBookingStatus(id, 'Cancelled');
-      notifyBookingChanges();
-      return cancelledBooking;
-    }
-
     throw new Error(extractApiError(error, 'Failed to cancel booking request.'));
   }
 }
@@ -792,28 +673,14 @@ export async function cancelBookingRequest(id: string): Promise<BookingRequest |
 export async function deleteBookingRequest(id: string): Promise<boolean> {
   try {
     await api.delete(`/bookings/${id}`);
-    const remaining = readStoredBookings().filter((booking) => booking.id !== id);
-    writeStoredBookings(remaining);
-    notifyBookingChanges();
+    cachedBookings = cachedBookings.filter((booking) => booking.id !== id);
+    emitBookingStoreChange();
     return true;
   } catch (error) {
-    const responseStatus = (error as { response?: { status?: number } } | undefined)?.response?.status;
-
-    if (responseStatus === 401 || responseStatus === 403) {
-      throw new Error(extractApiError(error, 'Failed to delete booking request.'));
-    }
-
-    if (ALLOW_LOCAL_FALLBACK && shouldUseLocalFallback(error)) {
-      const stored = readStoredBookings().filter((booking) => booking.id !== id);
-      writeStoredBookings(stored);
-      notifyBookingChanges();
-      return true;
-    }
-
     throw new Error(extractApiError(error, 'Failed to delete booking request.'));
   }
 }
 
 export function getStoredBookingSnapshot(): BookingRequest[] {
-  return readStoredBookings();
+  return [...cachedBookings];
 }

@@ -3,7 +3,19 @@
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { cancelBookingRequest, getAllBookings, getBookingBlockMessage, isActiveBookingStatus, submitBookingRequest, MOCK_BOOKING_INSTITUTIONS, subscribeToBookingChanges, type BookingRequest, type LicenseCategory, type BookingStatus } from "@/services/booking.service";
+import {
+  cancelBookingRequest,
+  getActiveBookingInstitutions,
+  getAllBookings,
+  getBookingBlockMessage,
+  isActiveBookingStatus,
+  submitBookingRequest,
+  subscribeToBookingChanges,
+  type BookingInstitution,
+  type BookingRequest,
+  type LicenseCategory,
+  type BookingStatus,
+} from "@/services/booking.service";
 import PaymentBadge from '@/components/PaymentBadge';
 import PaymentHistory from '@/components/PaymentHistory';
 import { getPaymentsForBooking, type Payment } from '@/services/payment.service';
@@ -42,32 +54,68 @@ export default function CandidateBookingPage() {
   const [message, setMessage] = useState("");
   const [actionMessage, setActionMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [bookingLoadError, setBookingLoadError] = useState("");
+  const [institutionLoadError, setInstitutionLoadError] = useState("");
+  const [loadingBookings, setLoadingBookings] = useState(false);
+  const [loadingInstitutions, setLoadingInstitutions] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
+  const [institutions, setInstitutions] = useState<BookingInstitution[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const { user } = useAuthStore();
 
-  useEffect(() => {
-    async function loadBookings() {
-      try {
-        const all = await getAllBookings();
-        const currentEmail = user?.email?.toLowerCase();
-        const mine = currentEmail ? all.filter((booking) => booking.candidateDetails?.email?.toLowerCase() === currentEmail) : all;
-        setBookings(mine);
-        if (mine.length > 0) {
-          const current = mine[0];
-          setShowForm(!isActiveBookingStatus(current.status));
-          setLicenseCategory(current.licenseCategory);
-          setBloodType(current.bloodType || "A+");
-          setPreferredDate(current.preferredDate || "");
-          setPreferredSession(current.preferredSession || "Morning");
-          setAdditionalNotes(current.additionalNotes || "");
-        } else {
-          setInstitutionId("");
-        }
-      } catch (err) {
-        console.error("Failed to load bookings", err);
+  const loadBookings = async () => {
+    setLoadingBookings(true);
+    setBookingLoadError("");
+
+    try {
+      const all = await getAllBookings();
+      const currentEmail = user?.email?.toLowerCase();
+      const mine = currentEmail ? all.filter((booking) => booking.candidateDetails?.email?.toLowerCase() === currentEmail) : all;
+      setBookings(mine);
+
+      if (mine.length > 0) {
+        const current = mine[0];
+        const activeBooking = mine.find((booking) => isActiveBookingStatus(booking.status));
+        setShowForm(!activeBooking);
+        setLicenseCategory(current.licenseCategory);
+        setBloodType(current.bloodType || "A+");
+        setPreferredDate(current.preferredDate || "");
+        setPreferredSession(current.preferredSession || "Morning");
+        setAdditionalNotes(current.additionalNotes || "");
+        setInstitutionId(activeBooking?.institutionId || current.institutionId || "");
+      } else {
+        setShowForm(true);
         setInstitutionId("");
       }
+    } catch (err) {
+      console.error("Failed to load bookings", err);
+      setBookingLoadError("Unable to load your booking history.");
+      setBookings([]);
+      setShowForm(true);
+      setInstitutionId("");
+    } finally {
+      setLoadingBookings(false);
     }
+  };
+
+  const loadInstitutions = async () => {
+    setLoadingInstitutions(true);
+    setInstitutionLoadError("");
+
+    try {
+      const activeInstitutions = await getActiveBookingInstitutions();
+      setInstitutions(activeInstitutions);
+    } catch (err) {
+      console.error("Failed to load active institutes", err);
+      setInstitutionLoadError("Unable to load active institutes.");
+      setInstitutions([]);
+    } finally {
+      setLoadingInstitutions(false);
+    }
+  };
+
+  useEffect(() => {
     loadBookings();
     const unsubscribe = subscribeToBookingChanges(() => {
       void loadBookings();
@@ -76,12 +124,19 @@ export default function CandidateBookingPage() {
     return unsubscribe;
   }, [user?.email]);
 
+  useEffect(() => {
+    void loadInstitutions();
+  }, []);
+
   const selectedInstitution = useMemo(
-    () => MOCK_BOOKING_INSTITUTIONS.find((item) => item.id === institutionId) || null,
-    [institutionId]
+    () => institutions.find((item) => item.id === institutionId) || null,
+    [institutionId, institutions],
   );
 
-  const canSubmit = useMemo(() => institutionId && licenseCategory && preferredDate, [institutionId, licenseCategory, preferredDate]);
+  const canSubmit = useMemo(
+    () => institutionId && licenseCategory && preferredDate && !isSubmitting && !loadingBookings,
+    [institutionId, licenseCategory, preferredDate, isSubmitting, loadingBookings],
+  );
   const currentBooking = bookings[0] || null;
   const currentBookingId = currentBooking?.id;
   const currentBookingStatus = currentBooking?.status;
@@ -168,18 +223,21 @@ export default function CandidateBookingPage() {
 
   const handleCancelRequest = async () => {
     if (!currentBooking) return;
+    setIsCancelling(true);
 
     try {
-      const updatedBooking = await cancelBookingRequest(currentBooking.id);
-      if (updatedBooking) {
-        setBookings((current) => current.map((booking) => (booking.id === updatedBooking.id ? updatedBooking : booking)));
-      }
+      await cancelBookingRequest(currentBooking.id);
+      await loadBookings();
       setShowForm(true);
       setActionMessage("Booking request canceled.");
       setTimeout(() => setActionMessage(""), 5000);
       setShowCancelConfirm(false);
     } catch (err) {
+      setErrorMessage(err instanceof Error ? err.message : "Unable to cancel booking.");
+      setTimeout(() => setErrorMessage(""), 6000);
       console.error("Failed to cancel booking", err);
+    } finally {
+      setIsCancelling(false);
     }
   };
 
@@ -196,6 +254,7 @@ export default function CandidateBookingPage() {
 
     try {
       setErrorMessage("");
+      setIsSubmitting(true);
       const nextBooking = await submitBookingRequest({
         institutionId: selectedInstitution.id,
         institutionName: selectedInstitution.name,
@@ -214,8 +273,9 @@ export default function CandidateBookingPage() {
         }
       });
 
-      setBookings((current) => [nextBooking, ...current]);
+      await loadBookings();
       setShowForm(false);
+      setActionMessage(`Booking #${nextBooking.id} created successfully.`);
       setMessage(t("bookingSuccess"));
       setTimeout(() => setMessage(""), 5000);
     } catch (err) {
@@ -223,6 +283,8 @@ export default function CandidateBookingPage() {
       setErrorMessage(nextMessage);
       setTimeout(() => setErrorMessage(""), 6000);
       console.error("Failed to submit booking", err);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -242,26 +304,40 @@ export default function CandidateBookingPage() {
         <div className="space-y-4 lg:col-span-2">
           {(message || actionMessage) ? <Alert variant="success">{message || actionMessage}</Alert> : null}
           {errorMessage ? <Alert variant="error">{errorMessage}</Alert> : null}
+          {bookingLoadError ? <Alert variant="error">{bookingLoadError}</Alert> : null}
+          {institutionLoadError ? <Alert variant="error">{institutionLoadError}</Alert> : null}
 
           {showForm ? (
             <Card padding="lg">
               <CardHeader title={t("bookingPageTitle")} />
+              {loadingBookings ? <p className="mb-4 text-sm text-slate-500">Loading booking data...</p> : null}
               <form onSubmit={handleSubmit} className="space-y-4">
                 <Select
                   label={t("bookingInstitutionField")}
                   value={institutionId}
+                  disabled={loadingInstitutions}
                   onChange={(event) => setInstitutionId(event.target.value)}
-                  hint="Choose from the available sample institutions."
+                  hint={loadingInstitutions ? "Loading active institutions..." : "Choose from active institutes."}
                   required
                 >
                   <option value="" disabled>
                     Select institution
                   </option>
-                  {MOCK_BOOKING_INSTITUTIONS.map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
+                  {loadingInstitutions ? (
+                    <option key="loading" value="">
+                      Loading...
                     </option>
-                  ))}
+                  ) : institutions.length > 0 ? (
+                    institutions.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))
+                  ) : (
+                    <option key="empty" value="" disabled>
+                      No active institutions found
+                    </option>
+                  )}
                 </Select>
 
                 <Select
@@ -319,8 +395,13 @@ export default function CandidateBookingPage() {
                       Back
                     </Button>
                   ) : null}
-                  <Button type="submit" disabled={!canSubmit} fullWidth className={bookings.length > 0 ? "flex-1" : ""}>
-                    {t("bookingSubmit")}
+                  <Button
+                    type="submit"
+                    disabled={!canSubmit || loadingInstitutions}
+                    fullWidth
+                    className={bookings.length > 0 ? "flex-1" : ""}
+                  >
+                    {isSubmitting ? "Submitting..." : t("bookingSubmit")}
                   </Button>
                 </div>
               </form>
@@ -363,8 +444,14 @@ export default function CandidateBookingPage() {
 
               <div className="mt-5 flex flex-col gap-3 sm:flex-row">
                 {(isPendingBooking || isApprovedBooking) ? (
-                  <Button type="button" variant="danger" onClick={() => setShowCancelConfirm(true)} className="flex-1">
-                    Cancel Booking
+                  <Button
+                    type="button"
+                    variant="danger"
+                    disabled={isCancelling}
+                    onClick={() => setShowCancelConfirm(true)}
+                    className="flex-1"
+                  >
+                    {isCancelling ? "Cancelling..." : "Cancel Booking"}
                   </Button>
                 ) : null}
                 {isPendingBooking ? (
@@ -384,7 +471,9 @@ export default function CandidateBookingPage() {
 
         <Card padding="md" className="h-fit lg:col-span-1">
           <CardHeader title={t("bookingHistory") || "Booking History"} />
-          {bookings.length > 0 ? (
+          {loadingBookings ? (
+            <p className="px-4 py-6 text-sm text-slate-500">Loading booking history...</p>
+          ) : bookings.length > 0 ? (
             <div className="space-y-3">
               {bookings.map((b) => (
                 <div
@@ -416,8 +505,14 @@ export default function CandidateBookingPage() {
               <Button type="button" variant="secondary" fullWidth onClick={() => setShowCancelConfirm(false)}>
                 Keep Booking
               </Button>
-              <Button type="button" variant="danger" fullWidth onClick={() => void handleCancelRequest()}>
-                Cancel Booking
+              <Button
+                type="button"
+                variant="danger"
+                disabled={isCancelling}
+                fullWidth
+                onClick={() => void handleCancelRequest()}
+              >
+                {isCancelling ? "Cancelling..." : "Cancel Booking"}
               </Button>
             </div>
           </Card>
