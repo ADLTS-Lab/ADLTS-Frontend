@@ -178,12 +178,15 @@ function extractMeta(value: unknown): { page: number; pageSize: number; total: n
       fromData?.page_size ??
       10,
   );
+  const fromMeta = fromData && typeof fromData === "object" ? Reflect.get(fromData, "meta") : null;
+  const metaTotal = typeof fromMeta === "object" && fromMeta !== null && "total" in fromMeta ? (fromMeta as { total?: unknown }).total : undefined;
+
   const totalCandidate =
     normalized.total ??
     normalized.total_items ??
     fromData?.total ??
     fromData?.total_items ??
-    fromData?.meta?.total ??
+    metaTotal ??
     0;
   const providedTotal = Math.max(0, Number(totalCandidate));
   const totalPages = Number(

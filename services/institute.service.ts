@@ -64,7 +64,7 @@ function normalizeInstituteProfile(payload: unknown): InstituteProfile | null {
   const description = toStr(data.description ?? data.bio ?? data.about, '');
   const email = toStr(data.email ?? data.contactEmail ?? data.contact_email);
   const institutionId = toStr(data.institutionId ?? data.institution_id ?? data.id, '');
-  const logoUrl = toStr(data.logoUrl ?? data.logo_url ?? data.logo, '', '');
+  const logoUrl = toStr(data.logoUrl ?? data.logo_url ?? data.logo, '');
 
   if (!institutionName && !contactPerson && !phone && !address && !email && !institutionId) {
     return null;

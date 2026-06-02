@@ -192,7 +192,7 @@ function backendParams(query: NotificationQueryParams): Record<string, string | 
 async function loadNotificationsFromApi(query: NotificationQueryParams): Promise<CandidateNotification[]> {
   const response = await api.get('/notifications', { params: backendParams(query) });
   const data = response.data?.data ?? response.data?.notifications ?? response.data;
-  const collection = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
+  const collection: unknown[] = Array.isArray(data) ? data : Array.isArray(data?.items) ? (data.items as unknown[]) : [];
   return collection.map(normalizeNotification).filter((item): item is CandidateNotification => !!item);
 }
 

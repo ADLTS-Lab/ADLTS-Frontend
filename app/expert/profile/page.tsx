@@ -9,21 +9,36 @@ import { extractApiError } from "@/services/api-utils";
 import { uploadExpertPhoto } from "@/services/expert.service";
 import RoleProfileView from "@/components/RoleProfileView";
 
-type ProfileImageSource = Record<string, unknown> | null | undefined;
+type ProfileImageSource = {
+  photoUrl?: string | null;
+  photo?: string | null;
+  photo_url?: string | null;
+  avatar?: string | null;
+  avatar_url?: string | null;
+  profile_image?: string | null;
+  profileImage?: string | null;
+};
 
-function readProfileImage(user: ProfileImageSource): string {
-  const record = user || {};
-  const source =
-    record.photoUrl ??
-    record.photo ??
-    record.photo_url ??
-    record.avatar ??
-    record.avatar_url ??
-    record.profile_image ??
-    record.profileImage ??
-    "";
+function readStringField(source: unknown, key: keyof ProfileImageSource): string | null {
+  if (!source || typeof source !== "object") {
+    return null;
+  }
 
-  return typeof source === "string" ? source : "";
+  const value = Reflect.get(source, key);
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function readProfileImage(user: unknown): string {
+  return (
+    readStringField(user, "photoUrl") ??
+    readStringField(user, "photo") ??
+    readStringField(user, "photo_url") ??
+    readStringField(user, "avatar") ??
+    readStringField(user, "avatar_url") ??
+    readStringField(user, "profile_image") ??
+    readStringField(user, "profileImage") ??
+    ""
+  );
 }
 
 export default function ExpertProfilePage() {

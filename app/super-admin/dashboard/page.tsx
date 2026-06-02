@@ -20,8 +20,16 @@ export default function SuperAdminDashboard() {
       setError("");
       try {
         const [metricsRes, auditsRes] = await Promise.all([getSystemMetrics(), getRecentAudits()]);
-        if (metricsRes.success) setMetrics(metricsRes.data);
-        if (auditsRes.success) setAudits(auditsRes.data);
+        if (metricsRes.success) {
+          setMetrics(metricsRes.data ?? null);
+        } else {
+          setMetrics(null);
+        }
+        if (auditsRes.success) {
+          setAudits(auditsRes.data ?? []);
+        } else {
+          setAudits([]);
+        }
       } catch (err) {
         setError(extractApiError(err, "Unable to load dashboard data."));
       } finally {

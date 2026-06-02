@@ -21,8 +21,16 @@ export default function ExpertDashboard() {
       setError(null);
       try {
         const [metricsRes, reviewsRes] = await Promise.all([getReviewMetrics(), getFlaggedCandidates()]);
-        if (metricsRes.success) setMetrics(metricsRes.data);
-        if (reviewsRes.success) setReviews(reviewsRes.data);
+        if (metricsRes.success) {
+          setMetrics(metricsRes.data ?? null);
+        } else {
+          setMetrics(null);
+        }
+        if (reviewsRes.success) {
+          setReviews(reviewsRes.data ?? []);
+        } else {
+          setReviews([]);
+        }
       } catch (err) {
         setError(extractApiError(err, "Failed to load expert data"));
       } finally {

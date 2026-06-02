@@ -10,18 +10,38 @@ import { extractApiError } from "@/services/api-utils";
 import { Alert, Button, Card, CardHeader, Input, PageContainer, Select, ui } from "@/app/components/ui";
 import ProfilePhotoUpload from "@/components/ProfilePhotoUpload";
 
-function readProfileImage(user: User | null | undefined): string {
-  const userRecord = (user as Record<string, unknown>) || {};
-  const fromRecord =
-    userRecord.photoUrl ||
-    userRecord.photo_url ||
-    userRecord.avatar ||
-    userRecord.avatar_url ||
-    userRecord.profile_image ||
-    userRecord.logo ||
-    "";
+type ProfileImageSource = {
+  photo_url?: string | null;
+  photoUrl?: string | null;
+  avatar?: string | null;
+  avatar_url?: string | null;
+  profile_image?: string | null;
+  logo?: string | null;
+  image?: string | null;
+};
 
-  return typeof fromRecord === "string" ? fromRecord : "";
+function readStringField(source: unknown, key: keyof ProfileImageSource): string | null {
+  if (!source || typeof source !== "object") {
+    return null;
+  }
+
+  const value = Reflect.get(source, key);
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+function readProfileImage(user: User | null | undefined): string {
+  if (!user || typeof user !== "object") return "";
+
+  return (
+    readStringField(user, "photoUrl") ??
+    readStringField(user, "photo_url") ??
+    readStringField(user, "avatar") ??
+    readStringField(user, "avatar_url") ??
+    readStringField(user, "profile_image") ??
+    readStringField(user, "logo") ??
+    readStringField(user, "image") ??
+    ""
+  );
 }
 
 export default function CandidateProfile() {

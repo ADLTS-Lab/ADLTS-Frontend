@@ -221,9 +221,16 @@ function normalizeActiveExam(raw: unknown): ActiveExam | null {
           ? 'Warning'
           : 'Stable';
 
+  const nestedCandidate = candidate.candidate;
+  const nestedCandidateName = typeof nestedCandidate === 'object' && nestedCandidate !== null
+    ? (nestedCandidate as Record<string, unknown>).name
+    : undefined;
+
   return {
     id,
-    candidateName: coerceString(candidate.candidateName ?? candidate.candidate_name ?? candidate.candidate?.name ?? candidate.name ?? 'Candidate'),
+    candidateName: coerceString(
+      candidate.candidateName ?? candidate.candidate_name ?? nestedCandidateName ?? candidate.name ?? 'Candidate',
+    ),
     center: coerceString(candidate.center ?? candidate.center_name ?? candidate.location ?? 'Test Center'),
     progress,
     liveScore,
@@ -368,7 +375,7 @@ export async function listActiveExams(): Promise<ActiveExam[]> {
     },
   });
 
-  const meta = mapMeta(response.data?.meta);
+  const meta = mapMeta(response.data?.meta) || { page: 1, limit: 20, total: 0, totalPages: 0 };
   if (meta.total === 0 && meta.page === 1 && extractListCandidateData(response.data).length === 0) {
     return [];
   }

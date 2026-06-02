@@ -194,12 +194,13 @@ export async function completePaymentCheckout(bookingId: string, payment: Paymen
 export async function getPaymentsForBooking(bookingId: string): Promise<Payment[]> {
   try {
     const response = await api.get(`/bookings/${bookingId}/payments`);
-    const collection = Array.isArray(response.data?.data)
-      ? response.data.data
-      : Array.isArray(response.data?.payments)
-      ? response.data.payments
-      : Array.isArray(response.data)
-      ? response.data
+    const rawData = response.data;
+    const collection: unknown[] = Array.isArray(rawData?.data)
+      ? (rawData.data as unknown[])
+      : Array.isArray(rawData?.payments)
+      ? (rawData.payments as unknown[])
+      : Array.isArray(rawData)
+      ? (rawData as unknown[])
       : [];
 
     return collection.map(normalizePayment).filter((p): p is Payment => !!p);

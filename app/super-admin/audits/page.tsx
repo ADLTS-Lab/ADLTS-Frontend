@@ -24,8 +24,9 @@ export default function SuperAdminAuditsPage() {
         const response = await getRecentAudits();
         if (!alive) return;
         if (response.success) {
-          setAudits(response.data);
+          setAudits(response.data ?? []);
         } else {
+          setAudits([]);
           setError("Unable to load audit logs.");
         }
       } catch (err) {

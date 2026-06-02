@@ -40,7 +40,11 @@ export default function InstituteDashboard() {
       setError(null);
       try {
         const overviewRes = await getInstituteOverview();
-        if (overviewRes.success) setOverview(overviewRes.data);
+        if (overviewRes.success) {
+          setOverview(overviewRes.data ?? null);
+        } else {
+          setOverview(null);
+        }
       } catch (err) {
         setError(extractApiError(err, "Failed to load institute overview"));
       }
@@ -112,7 +116,11 @@ export default function InstituteDashboard() {
   const loadAndRefresh = async () => {
     try {
       const overviewRes = await getInstituteOverview();
-      if (overviewRes.success) setOverview(overviewRes.data);
+      if (overviewRes.success) {
+        setOverview(overviewRes.data ?? null);
+      } else {
+        setOverview(null);
+      }
       const requestsRes = await getRecentInstitutionRequests(5);
       setRequests(requestsRes);
     } catch (err) {

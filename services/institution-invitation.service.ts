@@ -246,7 +246,7 @@ export async function inviteInstitution(data: InviteInstitutionRequest): Promise
       last_name: 'Institution',
     });
 
-    const invitation = response.data.data;
+    const invitation: BackendInvitationRecord = response.data.data || {};
     const token = invitation.token ?? createMockToken();
     const institution = toInstitutionFromInvitation({ ...invitation, email, name, institution_name: name });
     return {
@@ -314,7 +314,7 @@ export async function resendInstitutionInvitation(institutionId: string): Promis
   if (current.invitationId && !current.invitationId.startsWith('mock-inv-')) {
     try {
       const response = await api.post<ApiSuccess<BackendInvitationRecord>>(`/invitations/${current.invitationId}/resend`);
-      const invitation = response.data.data;
+      const invitation: BackendInvitationRecord = response.data.data || {};
       const token = invitation.token ?? current.invitationToken ?? createMockToken();
       const institution = { ...current, ...toInstitutionFromInvitation(invitation), invitationToken: token };
       return {
@@ -422,7 +422,8 @@ export async function acceptInstitutionInvitation(
       name: institutionName,
     });
 
-    const institution = toInstitutionFromInstitute(response.data.data);
+    const institutionRecord: BackendInstituteRecord = response.data.data || {};
+    const institution = toInstitutionFromInstitute(institutionRecord);
     return {
       success: true,
       message: response.data.message ?? 'Institution account activated.',

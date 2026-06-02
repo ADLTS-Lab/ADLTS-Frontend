@@ -44,10 +44,12 @@ function normalizeReview(raw: unknown): ExamReview | null {
     : statusRaw.includes('progress')
       ? 'In Progress'
       : 'Pending';
+  const candidate = data.candidate;
+  const nestedCandidateName = typeof candidate === 'object' && candidate !== null ? (candidate as Record<string, unknown>).name : undefined;
 
   return {
     id: toStr(data.id ?? data.appeal_id ?? data.review_id, ''),
-    candidateName: toStr(data.candidateName ?? data.candidate_name ?? data.candidate?.name ?? data.name, 'Candidate'),
+    candidateName: toStr(data.candidateName ?? data.candidate_name ?? nestedCandidateName ?? data.name, 'Candidate'),
     examDate: toDate(data.examDate ?? data.exam_date ?? data.created_at ?? data.createdAt),
     issueType: toStr(data.issueType ?? data.issue_type ?? data.reason ?? data.description, 'Potential Integrity Issue'),
     status,

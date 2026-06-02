@@ -342,7 +342,7 @@ function backendParams(query: NotificationQueryParams): Record<string, string | 
 async function loadNotificationsFromApi(query: NotificationQueryParams): Promise<AppNotification[]> {
   const response = await api.get('/notifications', { params: backendParams(query) });
   const data = response.data?.data ?? response.data?.notifications ?? response.data;
-  const collection = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
+  const collection: unknown[] = Array.isArray(data) ? data : Array.isArray(data?.items) ? (data.items as unknown[]) : [];
   return collection.map(normalizeNotification).filter((item): item is AppNotification => !!item);
 }
 
@@ -404,7 +404,7 @@ export async function markAllNotificationsAsRead(): Promise<AppNotification[]> {
   try {
     const response = await api.patch('/notifications/read-all');
     const data = response.data?.data ?? response.data?.notifications ?? response.data;
-    const collection = Array.isArray(data) ? data : Array.isArray(data?.items) ? data.items : [];
+    const collection: unknown[] = Array.isArray(data) ? data : Array.isArray(data?.items) ? (data.items as unknown[]) : [];
     return collection.map(normalizeNotification).filter((item): item is AppNotification => !!item);
   } catch (error) {
     if (ALLOW_LOCAL_FALLBACK && shouldUseLocalFallback(error)) {
