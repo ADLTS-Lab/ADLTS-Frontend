@@ -333,8 +333,8 @@ export async function getDashboardPastExams(): Promise<DashboardPastExam[]> {
   }
 }
 
-/** Upcoming exam card fallback */
-export async function getCandidateUpcomingExam(): Promise<UpcomingExam> {
+/** Upcoming exam card - returns null when no scheduled exam exists. */
+export async function getCandidateUpcomingExam(): Promise<UpcomingExam | null> {
   try {
     const response = await api.get<ApiListResponse<unknown>>('/tests/my', {
       params: { status: 'scheduled', page: 1, limit: 1 },
@@ -355,13 +355,7 @@ export async function getCandidateUpcomingExam(): Promise<UpcomingExam> {
     // ignore
   }
 
-  return {
-    id: 'upcoming-001',
-    date: 'TBD',
-    title: 'Upcoming Exam',
-    center: 'Test Center',
-    status: 'Pending',
-  };
+  return null;
 }
 
 /** Admin live monitor — GET /tests?status=running&page=1&limit=20 */
