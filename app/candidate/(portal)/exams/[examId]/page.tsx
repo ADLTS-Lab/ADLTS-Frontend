@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { fetchCandidateExamById } from "@/services/exams.service";
 import { useI18n } from "@/i18n/useI18n";
+import { Card, PageContainer, PageHeader, ui } from "@/app/components/ui";
 
 export default async function CandidateExamDetailPage({ params }: { params: Promise<{ examId: string }> }) {
   const { examId } = await params;
@@ -14,56 +15,65 @@ export default async function CandidateExamDetailPage({ params }: { params: Prom
 
   if (exam.visible === false) {
     return (
-      <main className="space-y-6">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">{t("exams_portal_label")}</p>
-            <h1 className="text-2xl font-bold text-slate-900">{exam.title} {t("exam_breakdown_suffix")}</h1>
-            <p className="text-sm text-slate-500 mt-1">{t("resultUnavailable") || "Result is not available yet."}</p>
+      <PageContainer width="wide">
+        <div className="space-y-6">
+          <PageHeader
+            eyebrow={t("exams_portal_label")}
+            title={`${exam.title} ${t("exam_breakdown_suffix")}`}
+            description={t("resultUnavailable") || "Result is not available yet."}
+          />
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <p className={ui.statLabel}>Current status</p>
+            <span className="rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] px-3 py-1 text-xs font-medium uppercase tracking-wide text-[var(--adlts-ink-600)]">
+              {exam.result}
+            </span>
           </div>
-          <Link href="/candidate/exams" className="text-blue-700 font-semibold hover:underline">
-            {t("backToHistory")}
-          </Link>
+          <Card padding="lg">
+            <p className="text-sm text-[var(--adlts-ink-600)]">
+              This result is being reviewed and will be published once approved.
+            </p>
+          </Card>
+          <div>
+            <Link href="/candidate/exams" className="text-[var(--adlts-blue-700)] font-medium hover:text-[var(--adlts-blue-800)]">
+              ← {t("backToHistory")}
+            </Link>
+          </div>
         </div>
-
-        <div className="rounded-3xl border border-slate-100 bg-white p-6">
-          <p className="text-sm text-slate-600">This result is being reviewed and will be published once approved.</p>
-        </div>
-      </main>
+      </PageContainer>
     );
   }
 
   return (
-    <main className="space-y-6">
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">{t("exams_portal_label")}</p>
-          <h1 className="text-2xl font-bold text-slate-900">{exam.title} {t("exam_breakdown_suffix")}</h1>
-          <p className="text-sm text-slate-500 mt-1">{exam.date} · {t("exams_score")} {exam.score}% · {exam.result === 'Pass' ? t("result_pass") : t("result_fail")}</p>
-        </div>
-        <Link href="/candidate/exams" className="text-blue-700 font-semibold hover:underline">
-          {t("backToHistory")}
-        </Link>
-      </div>
+    <PageContainer width="wide">
+      <PageHeader
+        eyebrow={t("exams_portal_label")}
+        title={`${exam.title} ${t("exam_breakdown_suffix")}`}
+        description={`${exam.date} · ${t("exams_score")} ${exam.score}% · ${exam.result === "Pass" ? t("result_pass") : t("result_fail")}`}
+      />
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <DetailCard label={t("detail_speed")} value={exam.speed} />
         <DetailCard label={t("detail_lane")} value={exam.lane} />
         <DetailCard label={t("detail_braking")} value={exam.braking} />
         <DetailCard label={t("detail_trafficSigns")} value={exam.trafficSigns} />
-      </div>
+      </section>
 
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
-        <h2 className="text-lg font-bold text-slate-900 mb-3">{t("notesTitle")}</h2>
-        <p className="text-slate-600 leading-relaxed max-w-3xl">{exam.notes}</p>
-      </div>
-    </main>
+      <Card padding="lg">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <h2 className="text-lg font-semibold text-[var(--adlts-ink-950)]">{t("notesTitle")}</h2>
+          <Link href="/candidate/exams" className="text-sm font-medium text-[var(--adlts-blue-700)] hover:text-[var(--adlts-blue-800)]">
+            {t("backToHistory")}
+          </Link>
+        </div>
+        <p className="mt-4 text-sm leading-relaxed text-[var(--adlts-ink-600)]">{exam.notes}</p>
+      </Card>
+    </PageContainer>
   );
 }
 
 const DetailCard = ({ label, value }: { label: string; value: string }) => (
-  <div className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6">
-    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-2">{label}</p>
-    <p className="text-2xl font-bold text-slate-900">{value}</p>
-  </div>
+  <Card>
+    <p className="text-[12px] font-medium uppercase tracking-widest text-[var(--adlts-ink-500)] mb-2">{label}</p>
+    <p className="text-xl font-semibold text-[var(--adlts-ink-950)]">{value}</p>
+  </Card>
 );

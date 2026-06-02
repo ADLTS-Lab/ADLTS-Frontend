@@ -21,18 +21,28 @@ import PaymentHistory from '@/components/PaymentHistory';
 import { getPaymentsForBooking, type Payment } from '@/services/payment.service';
 import { useI18n } from "@/i18n/useI18n";
 import { useAuthStore } from "@/store/authStore";
-import { Alert, Button, ButtonLink, Card, CardHeader, EmptyState, Input, PageContainer, PageHeader, Select, Textarea, ui } from "@/app/components/ui";
+import { Alert, Button, ButtonLink, Card, CardHeader, EmptyState, Input, PageContainer, PageHeader, Select, StatusBadge, Textarea, ui } from "@/app/components/ui";
 
-const getStatusBadge = (status: BookingStatus) => {
+const getStatusTone = (status?: BookingStatus | null) => {
   switch (status) {
-    case "Payment Pending": return <span className="bg-sky-100 text-sky-700 px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-sky-500"></span>Payment Pending</span>;
-    case "Scheduled": return <span className="bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>Scheduled</span>;
-    case "Completed": return <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>Completed</span>;
-    case "Expired": return <span className="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span>Expired</span>;
-    case "Cancelled": return <span className="bg-slate-100 text-slate-700 px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-slate-500"></span>Cancelled</span>;
-    case "Approved": return <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>Approved</span>;
-    case "Rejected": return <span className="bg-red-100 text-red-700 px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-red-500"></span>Rejected</span>;
-    default: return <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-yellow-500"></span>Pending</span>;
+    case "Pending":
+      return "pending";
+    case "Payment Pending":
+      return "warning";
+    case "Approved":
+      return "completed";
+    case "Scheduled":
+      return "info";
+    case "Completed":
+      return "completed";
+    case "Rejected":
+      return "error";
+    case "Cancelled":
+      return "aborted";
+    case "Expired":
+      return "inactive";
+    default:
+      return "warning";
   }
 };
 
@@ -155,13 +165,6 @@ export default function CandidateBookingPage() {
       : currentBooking?.status === 'Rejected'
         ? 'Unavailable'
         : 'Not available';
-  const paymentStatusBadgeClass = latestPayment?.status === 'Succeeded'
-    ? 'bg-emerald-100 text-emerald-700'
-    : latestPayment?.status === 'Failed' || latestPayment?.status === 'Cancelled'
-      ? 'bg-rose-100 text-rose-700'
-      : currentBooking?.status === 'Approved'
-        ? 'bg-amber-100 text-amber-700'
-        : 'bg-slate-100 text-slate-700';
 
   useEffect(() => {
     if (paymentSuccess) {
@@ -298,6 +301,11 @@ export default function CandidateBookingPage() {
         eyebrow={t("bookingPageTitle")}
         title={t("bookingPageTitle")}
         description={t("bookingPageSubtitle")}
+        action={
+          <ButtonLink href="/candidate/exams" variant="outline">
+            My exams
+          </ButtonLink>
+        }
       />
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -309,8 +317,18 @@ export default function CandidateBookingPage() {
 
           {showForm ? (
             <Card padding="lg">
-              <CardHeader title={t("bookingPageTitle")} />
-              {loadingBookings ? <p className="mb-4 text-sm text-slate-500">Loading booking data...</p> : null}
+              <CardHeader
+                title={bookings.length > 0 ? (t("currentBooking") || "Current Booking") : (t("bookingPageTitle") || "Book a Test")}
+                description="Complete the form to submit a new request."
+              />
+
+              <div className="mb-4 rounded-lg border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-4">
+                <p className="text-sm text-[var(--adlts-ink-700)]">
+                  If you already have an active request, update details through your current booking from this dashboard.
+                </p>
+              </div>
+
+              {loadingBookings ? <p className="mb-4 text-sm text-[var(--adlts-ink-600)]">Loading booking data...</p> : null}
               <form onSubmit={handleSubmit} className="space-y-4">
                 <Select
                   label={t("bookingInstitutionField")}
@@ -340,28 +358,29 @@ export default function CandidateBookingPage() {
                   )}
                 </Select>
 
-                <Select
-                  label={t("bookingCategoryField")}
-                  value={licenseCategory}
-                  onChange={(event) => setLicenseCategory(event.target.value as LicenseCategory)}
-                >
-                  {LICENSE_CATEGORIES.map((item) => (
-                    <option key={item} value={item}>
-                      {item}
-                    </option>
-                  ))}
-                </Select>
-
-                <Select label={t("bloodTypeLabel")} value={bloodType} onChange={(event) => setBloodType(event.target.value)}>
-                  <option value="A+">A+</option>
-                  <option value="A-">A-</option>
-                  <option value="B+">B+</option>
-                  <option value="B-">B-</option>
-                  <option value="O+">O+</option>
-                  <option value="O-">O-</option>
-                  <option value="AB+">AB+</option>
-                  <option value="AB-">AB-</option>
-                </Select>
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <Select
+                    label={t("bookingCategoryField")}
+                    value={licenseCategory}
+                    onChange={(event) => setLicenseCategory(event.target.value as LicenseCategory)}
+                  >
+                    {LICENSE_CATEGORIES.map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </Select>
+                  <Select label={t("bloodTypeLabel")} value={bloodType} onChange={(event) => setBloodType(event.target.value)}>
+                    <option value="A+">A+</option>
+                    <option value="A-">A-</option>
+                    <option value="B+">B+</option>
+                    <option value="B-">B-</option>
+                    <option value="O+">O+</option>
+                    <option value="O-">O-</option>
+                    <option value="AB+">AB+</option>
+                    <option value="AB-">AB-</option>
+                  </Select>
+                </div>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                   <Input
@@ -386,10 +405,10 @@ export default function CandidateBookingPage() {
                   value={additionalNotes}
                   onChange={(event) => setAdditionalNotes(event.target.value)}
                   placeholder={t("additionalNotesPlaceholder")}
-                  rows={3}
+                  rows={4}
                 />
 
-                <div className="flex gap-3 border-t border-slate-100 pt-4">
+                <div className="flex gap-3 border-t border-[var(--adlts-divider)] pt-4">
                   {bookings.length > 0 ? (
                     <Button type="button" variant="secondary" onClick={() => setShowForm(false)} className="w-1/3">
                       Back
@@ -410,7 +429,7 @@ export default function CandidateBookingPage() {
             <Card padding="lg">
               <CardHeader
                 title={t("currentBooking") || "Current Booking"}
-                action={getStatusBadge(bookings[0].status)}
+                action={<StatusBadge status={bookings[0].status} tone={getStatusTone(bookings[0].status)} />}
               />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <BookingSummaryRow label={t("bookingInstitutionLabel")} value={bookings[0].institutionName || bookings[0].institution} />
@@ -418,17 +437,15 @@ export default function CandidateBookingPage() {
                 <BookingSummaryRow label={t("preferredDateLabel")} value={bookings[0].preferredDate} />
                 <BookingSummaryRow label={t("preferredSessionLabel")} value={bookings[0].preferredSession} />
               </div>
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+              <div className="rounded-lg border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-4">
                 <p className={ui.statLabel}>Payment status</p>
                 <div className="mt-2 flex items-center justify-between gap-3">
-                  <p className="text-sm font-medium text-slate-800">{paymentStatusLabel}</p>
-                  <span className={["inline-flex rounded-full px-2.5 py-1 text-xs font-medium", paymentStatusBadgeClass].join(" ")}>
-                    {paymentStatusLabel}
-                  </span>
+                  <p className="text-sm font-medium text-[var(--adlts-ink-800)]">{paymentStatusLabel}</p>
+                  <StatusBadge status={latestPayment?.status || "required"} tone={latestPayment?.status === "Succeeded" ? "succeeded" : "warning"} />
                 </div>
               </div>
               <div className="mt-4">
-                <h3 className="mb-3 text-sm font-semibold text-slate-800">Payment</h3>
+                <h3 className="mb-3 text-sm font-semibold text-[var(--adlts-ink-800)]">Payment</h3>
                 <div className="mb-3">
                   <PaymentBadge bookingId={bookings[0].id} required={bookings[0].status === "Approved"} />
                 </div>
@@ -469,36 +486,75 @@ export default function CandidateBookingPage() {
           ) : null}
         </div>
 
-        <Card padding="md" className="h-fit lg:col-span-1">
-          <CardHeader title={t("bookingHistory") || "Booking History"} />
-          {loadingBookings ? (
-            <p className="px-4 py-6 text-sm text-slate-500">Loading booking history...</p>
-          ) : bookings.length > 0 ? (
-            <div className="space-y-3">
-              {bookings.map((b) => (
-                <div
-                  key={b.id}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3 transition-colors hover:border-slate-300"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-slate-900">{b.institutionName || b.institution}</p>
-                    <p className="mt-0.5 text-xs text-slate-500">{new Date(b.createdAt).toLocaleDateString()}</p>
+        <div className="space-y-6 lg:col-span-1">
+          <Card padding="md">
+            <CardHeader title="Process guide" />
+            <ol className="space-y-3 text-sm">
+              <li className="rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-3">
+                <p className="text-[12px] font-medium uppercase tracking-wide text-[var(--adlts-ink-500)]">Step 1</p>
+                <p className="mt-1 font-medium text-[var(--adlts-ink-900)]">Submit booking request</p>
+              </li>
+              <li className="rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-3">
+                <p className="text-[12px] font-medium uppercase tracking-wide text-[var(--adlts-ink-500)]">Step 2</p>
+                <p className="mt-1 font-medium text-[var(--adlts-ink-900)]">Institution review and approval</p>
+              </li>
+              <li className="rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-3">
+                <p className="text-[12px] font-medium uppercase tracking-wide text-[var(--adlts-ink-500)]">Step 3</p>
+                <p className="mt-1 font-medium text-[var(--adlts-ink-900)]">Payment and scheduling</p>
+              </li>
+              <li className="rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-3">
+                <p className="text-[12px] font-medium uppercase tracking-wide text-[var(--adlts-ink-500)]">Step 4</p>
+                <p className="mt-1 font-medium text-[var(--adlts-ink-900)]">Take test and review result</p>
+              </li>
+            </ol>
+          </Card>
+
+          <Card padding="md">
+            <CardHeader title={selectedInstitution ? "Selected institution" : (t("bookingHistory") || "Selected institution")} />
+            {selectedInstitution ? (
+              <div className="space-y-2">
+                <p className="font-medium text-[var(--adlts-ink-900)]">{selectedInstitution.name}</p>
+                <p className="text-sm text-[var(--adlts-ink-600)]">Address not provided.</p>
+                <p className="text-xs text-[var(--adlts-ink-500)]">Reference id: {selectedInstitution.id}</p>
+              </div>
+            ) : (
+              <p className="text-sm text-[var(--adlts-ink-600)]">
+                Choose an institution in the form to see selected office details.
+              </p>
+            )}
+          </Card>
+
+          <Card padding="md" className="h-fit">
+            <CardHeader title={t("bookingHistory") || "Booking History"} />
+            {loadingBookings ? (
+              <p className="px-4 py-6 text-sm text-[var(--adlts-ink-600)]">Loading booking history...</p>
+            ) : bookings.length > 0 ? (
+              <div className="space-y-3">
+                {bookings.map((b) => (
+                  <div
+                    key={b.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-3 transition-colors hover:border-[var(--adlts-border-strong)]"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-[var(--adlts-ink-900)]">{b.institutionName || b.institution}</p>
+                      <p className="mt-0.5 text-xs text-[var(--adlts-ink-500)]">{new Date(b.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <StatusBadge status={b.status} tone={getStatusTone(b.status)} />
                   </div>
-                  {getStatusBadge(b.status)}
-                </div>
-              ))}
-            </div>
-          ) : (
-            <EmptyState title="No bookings yet" description="Submitted requests will appear here." className="!py-8" />
-          )}
-        </Card>
+                ))}
+              </div>
+            ) : (
+              <EmptyState title="No bookings yet" description="Submitted requests will appear here." className="!py-8" />
+            )}
+          </Card>
+        </div>
       </div>
 
       {showCancelConfirm && currentBooking ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--adlts-ink-950)]/40 p-4">
           <Card padding="md" className="w-full max-w-md shadow-lg">
-            <h3 className="text-lg font-semibold text-blue-950">Cancel booking?</h3>
-            <p className="mt-2 text-sm text-slate-600">
+            <h3 className="text-lg font-semibold text-[var(--adlts-ink-950)]">Cancel booking?</h3>
+            <p className="mt-2 text-sm text-[var(--adlts-ink-600)]">
               Your current booking will be marked as Cancelled. You can create a new booking after this.
             </p>
             <div className="mt-6 flex gap-3">
@@ -523,8 +579,8 @@ export default function CandidateBookingPage() {
 }
 
 const BookingSummaryRow = ({ label, value }: { label: string; value: string }) => (
-  <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+  <div className="rounded-lg border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-4">
     <p className={ui.statLabel}>{label}</p>
-    <p className="mt-1 text-sm font-medium text-slate-900">{value}</p>
+    <p className="mt-1 text-sm font-medium text-[var(--adlts-ink-900)]">{value}</p>
   </div>
 );

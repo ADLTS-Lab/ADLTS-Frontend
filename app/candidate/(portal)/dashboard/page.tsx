@@ -7,7 +7,7 @@ import { getCurrentUser, type User } from "@/services/auth.service";
 import { extractApiError } from "@/services/api-utils";
 import { getAllBookings, getStoredBookingSnapshot, isActiveBookingStatus, subscribeToBookingChanges, type BookingRequest, type BookingStatus } from "@/services/booking.service";
 import { DEFAULT_PAYMENT_AMOUNT_CENTS, DEFAULT_PAYMENT_CURRENCY, getPaymentsForBooking, type Payment } from "@/services/payment.service";
-import { Alert, ButtonLink, Card, CardHeader, EmptyState, PageContainer, PageHeader, ui } from "@/app/components/ui";
+import { Alert, ButtonLink, Card, CardHeader, EmptyState, PageContainer, PageHeader, StatusBadge, ui } from "@/app/components/ui";
 
 const LICENSE_CATEGORIES = [
   { code: "A", name: "Motorcycle", description: "For two-wheel motorbikes and light motorcycle test candidates." },
@@ -108,7 +108,7 @@ export default function CandidateDashboard() {
         }
       } catch (err) {
         if (isMounted) {
-          setError(extractApiError(err, 'Unable to load candidate profile and exam data right now.'));
+          setError(extractApiError(err, "Unable to load candidate profile and exam data right now."));
         }
       } finally {
         if (isMounted) {
@@ -174,13 +174,13 @@ export default function CandidateDashboard() {
   if ((!isAuthenticated && typeof window === 'undefined') || isProfileLoading) {
     return (
       <PageContainer width="wide">
-        <Card padding="lg" className="animate-pulse">
-          <div className="mb-6 h-4 w-44 rounded bg-slate-100" />
-          <div className="mb-4 h-8 w-72 max-w-full rounded bg-slate-100" />
+        <Card padding="lg" className="animate-pulse rounded-md">
+          <div className="mb-6 h-4 w-44 rounded bg-[var(--adlts-surface-soft)]" />
+          <div className="mb-4 h-8 w-72 max-w-full rounded bg-[var(--adlts-surface-soft)]" />
           <div className="grid gap-3 sm:grid-cols-3">
-            <div className="h-20 rounded-lg bg-slate-100" />
-            <div className="h-20 rounded-lg bg-slate-100" />
-            <div className="h-20 rounded-lg bg-slate-100" />
+            <div className="h-20 rounded-md bg-[var(--adlts-surface-soft)]" />
+            <div className="h-20 rounded-md bg-[var(--adlts-surface-soft)]" />
+            <div className="h-20 rounded-md bg-[var(--adlts-surface-soft)]" />
           </div>
         </Card>
       </PageContainer>
@@ -191,34 +191,43 @@ export default function CandidateDashboard() {
     <PageContainer width="wide">
       {error ? <Alert variant="error">{error}</Alert> : null}
 
-      <Card padding="lg">
+      <Card padding="lg" variant="surface">
         <PageHeader
-          eyebrow="Candidate Status"
-          title={candidateName}
-          className="!mb-0"
+          eyebrow="Candidate portal"
+          title={`Welcome, ${candidateName}`}
+          description="Track your booking lifecycle, payments, and exam progress in one place."
         />
 
-        <div className="mt-6">
+        <div className="mt-6 space-y-5">
           {!hasBooking ? (
             <EmptyState
-              title="Welcome back, Candidate"
-              description="You do not currently have an active booking. Select a license category and submit a booking request to begin your application."
+              title="No active booking"
+              description="Submit a booking request to begin your application journey. You can track each stage from approval to result publication."
               action={
                 <ButtonLink href="/candidate/booking" variant="primary">
-                  Book a Test
+                  Start booking request
                 </ButtonLink>
               }
               className="!items-start !text-left"
             />
           ) : (
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-              <StatCell label="Booking Status" value={bookingStatusLabel} />
+              <div className="rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-4">
+                <p className={ui.statLabel}>Booking status</p>
+                <div className="mt-2">
+                  <StatusBadge status={booking?.status ?? undefined} />
+                </div>
+              </div>
               <StatCell label="Institution" value={booking?.institutionName || booking?.institution || "—"} />
-              <StatCell label="Booking Reference" value={booking?.id || "—"} />
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                <p className={ui.statLabel}>Next Action</p>
+              <StatCell label="Booking reference" value={<span className={ui.mono}>{booking?.id || "—"}</span>} />
+              <div className="rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-4">
+                <p className={ui.statLabel}>Next action</p>
                 <p className={`${ui.statValue} mt-1`}>{nextAction.label}</p>
-                <Link href={nextAction.href} className="mt-2 inline-flex text-sm font-medium text-blue-800 hover:text-blue-900">
+                <p className="mt-1 text-sm text-[var(--adlts-ink-600)]">{nextAction.description}</p>
+                <Link
+                  href={nextAction.href}
+                  className="mt-2 inline-flex text-sm font-medium text-[var(--adlts-blue-700)] transition-colors hover:text-[var(--adlts-blue-800)]"
+                >
                   {nextAction.buttonLabel} →
                 </Link>
               </div>
@@ -229,22 +238,22 @@ export default function CandidateDashboard() {
 
       {hasBooking ? (
         <Card padding="lg">
-          <CardHeader title="Where you are in the process" description="Booking progress" />
+          <CardHeader title="Where you are in the journey" description="Live status across this application cycle." />
           <div className="flex flex-wrap gap-2">
             {progressSteps.map((step) => (
               <span
                 key={step.label}
                 className={[
-                  "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-medium",
+                  "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold transition-colors",
                   step.state === "complete"
                     ? "border-emerald-200 bg-emerald-50 text-emerald-800"
                     : step.state === "current"
                       ? "border-blue-200 bg-blue-50 text-blue-800"
-                      : "border-slate-200 bg-white text-slate-500",
+                      : "border-[var(--adlts-border)] bg-[var(--adlts-surface)] text-[var(--adlts-ink-500)]",
                 ].join(" ")}
               >
-                <span className="text-xs leading-none">{step.symbol}</span>
-                {step.label}
+                <span className="text-xs leading-none" aria-hidden="true">{step.symbol}</span>
+                <span>{step.label}</span>
               </span>
             ))}
           </div>
@@ -255,22 +264,28 @@ export default function CandidateDashboard() {
         <PageHeader
           eyebrow="Available License Categories"
           title="Choose the category that matches your test"
+          description="Choose from existing categories and begin your booking from a single place."
           className="!flex-col !items-start"
         />
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {LICENSE_CATEGORIES.map((category) => (
-            <Card key={category.code} padding="md" className="flex h-full flex-col">
+            <Card
+              key={category.code}
+              padding="md"
+              variant="soft"
+              className="flex h-full flex-col transition-colors hover:border-[var(--adlts-blue-300)]"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className={ui.eyebrow}>Category {category.code}</p>
-                  <h3 className="mt-2 text-base font-semibold text-blue-950">{category.name}</h3>
+                  <h3 className="mt-2 text-base font-semibold text-[var(--adlts-ink-950)]">{category.name}</h3>
                 </div>
-                <span className="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-medium text-slate-700">
+                <span className="rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface)] px-2 py-0.5 text-xs font-medium text-[var(--adlts-ink-700)]">
                   {category.code}
                 </span>
               </div>
-              <p className="mt-3 flex-1 text-sm leading-relaxed text-slate-600">{category.description}</p>
+              <p className="mt-3 flex-1 text-sm leading-relaxed text-[var(--adlts-ink-600)]">{category.description}</p>
               <ButtonLink href="/candidate/booking" variant="secondary" fullWidth className="mt-5">
                 Book This Test
               </ButtonLink>
@@ -278,13 +293,31 @@ export default function CandidateDashboard() {
           ))}
         </div>
       </section>
+
+      <Card padding="md">
+        <CardHeader
+          title="Quick actions"
+          description="Use these links to move between major steps quickly."
+        />
+        <div className="grid gap-3 sm:grid-cols-3">
+          <ButtonLink href="/candidate/booking" variant="outline" className="justify-start">
+            Review booking
+          </ButtonLink>
+          <ButtonLink href="/candidate/exams" variant="outline" className="justify-start">
+            View exam results
+          </ButtonLink>
+          <ButtonLink href="/candidate/profile" variant="outline" className="justify-start">
+            Update profile
+          </ButtonLink>
+        </div>
+      </Card>
     </PageContainer>
   );
 }
 
 function StatCell({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+    <div className="rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-4">
       <p className={ui.statLabel}>{label}</p>
       <p className={`${ui.statValue} mt-1`}>{value}</p>
     </div>
@@ -326,19 +359,17 @@ function getPrimaryNextAction(status?: BookingStatus | null, paymentSuccessful =
       description: 'Start a fresh booking request to continue with your application.',
       buttonLabel: 'Book a New Test',
       href: '/candidate/booking',
-      badgeClass: 'bg-blue-100 text-blue-700',
     };
   }
 
   switch (status) {
     case 'Pending':
-      return {
-        label: 'Waiting for institution approval',
-        description: 'The institution must review your request before payment becomes available.',
-        buttonLabel: 'View Booking',
-        href: '/candidate/booking',
-        badgeClass: 'bg-amber-100 text-amber-700',
-      };
+        return {
+          label: 'Waiting for institution approval',
+          description: 'The institution must review your request before payment becomes available.',
+          buttonLabel: 'View Booking',
+          href: '/candidate/booking',
+        };
     case 'Approved':
       return paymentSuccessful
         ? {
@@ -353,7 +384,6 @@ function getPrimaryNextAction(status?: BookingStatus | null, paymentSuccessful =
             description: `You owe ${formatPaymentAmount(DEFAULT_PAYMENT_AMOUNT_CENTS, DEFAULT_PAYMENT_CURRENCY)} for this booking.`,
             buttonLabel: 'Pay Now',
             href: paymentPageHref(bookingId),
-            badgeClass: 'bg-amber-100 text-amber-700',
           };
     case 'Payment Pending':
       return {
@@ -361,7 +391,6 @@ function getPrimaryNextAction(status?: BookingStatus | null, paymentSuccessful =
         description: `You owe ${formatPaymentAmount(DEFAULT_PAYMENT_AMOUNT_CENTS, DEFAULT_PAYMENT_CURRENCY)} for this booking.`,
         buttonLabel: 'Pay Now',
         href: paymentPageHref(bookingId),
-        badgeClass: 'bg-amber-100 text-amber-700',
       };
     case 'Scheduled':
       return {
@@ -369,7 +398,6 @@ function getPrimaryNextAction(status?: BookingStatus | null, paymentSuccessful =
         description: 'Review your booking details while you wait for the test date.',
         buttonLabel: 'View Booking',
         href: '/candidate/booking',
-        badgeClass: 'bg-indigo-100 text-indigo-700',
       };
     case 'Completed':
     case 'Rejected':
@@ -381,7 +409,6 @@ function getPrimaryNextAction(status?: BookingStatus | null, paymentSuccessful =
         description: 'Your last booking is closed. Start a new request when you are ready.',
         buttonLabel: 'Book a New Test',
         href: '/candidate/booking',
-        badgeClass: 'bg-slate-100 text-slate-700',
       };
   }
 }
