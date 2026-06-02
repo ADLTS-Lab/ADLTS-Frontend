@@ -11,6 +11,8 @@ type TextareaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & {
 export function Textarea({ label, error, hint, className = "", id, ...props }: TextareaProps) {
   const generatedId = useId();
   const textareaId = id ?? generatedId;
+  const errorId = `${textareaId}-error`;
+  const hintId = `${textareaId}-hint`;
 
   return (
     <div className="space-y-1.5">
@@ -21,15 +23,19 @@ export function Textarea({ label, error, hint, className = "", id, ...props }: T
       ) : null}
       <textarea
         id={textareaId}
-        className={`${ui.textarea} ${error ? "border-rose-300 focus:border-rose-500 focus:ring-rose-500/20" : ""} ${className}`}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? errorId : hint ? hintId : undefined}
+        className={`${ui.textarea} ${error ? "border-[var(--adlts-error-600)] focus:border-[var(--adlts-error-600)] focus:ring-[color:rgba(220,38,38,0.2)]" : ""} ${className}`}
         {...props}
       />
       {error ? (
-        <p role="alert" className="text-xs text-rose-600">
+        <p id={errorId} role="alert" className={ui.errorText}>
           {error}
         </p>
       ) : hint ? (
-        <p className={ui.hint}>{hint}</p>
+        <p id={hintId} className={ui.hint}>
+          {hint}
+        </p>
       ) : null}
     </div>
   );

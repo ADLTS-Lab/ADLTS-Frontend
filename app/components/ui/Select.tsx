@@ -12,27 +12,29 @@ type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & {
 export function Select({ label, error, hint, className = "", id, children, ...props }: SelectProps) {
   const generatedId = useId();
   const selectId = id ?? generatedId;
+  const errorId = `${selectId}-error`;
+  const hintId = `${selectId}-hint`;
 
   return (
     <div className="space-y-1.5">
-      {label ? (
-        <label htmlFor={selectId} className={ui.label}>
-          {label}
-        </label>
-      ) : null}
+      {label ? <label htmlFor={selectId} className={ui.label}>{label}</label> : null}
       <select
         id={selectId}
-        className={`${ui.select} ${error ? "border-rose-300 focus:border-rose-500 focus:ring-rose-500/20" : ""} ${className}`}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? errorId : hint ? hintId : undefined}
+        className={`${ui.select} ${error ? "border-[var(--adlts-error-600)] focus:border-[var(--adlts-error-600)] focus:ring-[color:rgba(220,38,38,0.2)]" : ""} ${className}`}
         {...props}
       >
         {children}
       </select>
       {error ? (
-        <p role="alert" className="text-xs text-rose-600">
+        <p id={errorId} role="alert" className={ui.errorText}>
           {error}
         </p>
       ) : hint ? (
-        <p className={ui.hint}>{hint}</p>
+        <p id={hintId} className={ui.hint}>
+          {hint}
+        </p>
       ) : null}
     </div>
   );
