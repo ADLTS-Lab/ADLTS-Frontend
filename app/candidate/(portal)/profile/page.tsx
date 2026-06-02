@@ -4,10 +4,25 @@ import { useEffect, useRef, useState } from "react";
 import { Mail, Save, RefreshCw } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { getCurrentUser, changePassword, type User } from "@/services/auth.service";
-import { updateMyCandidateProfile } from "@/services/candidates.service";
+import { updateMyCandidateProfile, uploadMyCandidatePhoto } from "@/services/candidates.service";
 import { useI18n } from "@/i18n/useI18n";
 import { extractApiError } from "@/services/api-utils";
 import { Alert, Button, Card, CardHeader, Input, PageContainer, Select, ui } from "@/app/components/ui";
+import ProfilePhotoUpload from "@/components/ProfilePhotoUpload";
+
+function readProfileImage(user: User | null | undefined): string {
+  const userRecord = (user as Record<string, unknown>) || {};
+  const fromRecord =
+    userRecord.photoUrl ||
+    userRecord.photo_url ||
+    userRecord.avatar ||
+    userRecord.avatar_url ||
+    userRecord.profile_image ||
+    userRecord.logo ||
+    "";
+
+  return typeof fromRecord === "string" ? fromRecord : "";
+}
 
 export default function CandidateProfile() {
   const { user: storedUser, token: storedToken, role: storedRole, isAuthenticated, setUser } = useAuthStore();
@@ -23,7 +38,7 @@ export default function CandidateProfile() {
   const [birthDate, setBirthDate] = useState("");
   const [gender, setGender] = useState("");
   const [address, setAddress] = useState("");
-  
+
   // Password State
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -31,11 +46,12 @@ export default function CandidateProfile() {
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [passwordSuccess, setPasswordSuccess] = useState("");
   const [passwordError, setPasswordError] = useState("");
-  
+
   // UI feedback states
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
+  const [photoUrl, setPhotoUrl] = useState(readProfileImage(storedUser));
 
   const { t, lang } = useI18n();
 
@@ -55,6 +71,7 @@ export default function CandidateProfile() {
         setBirthDate(storedUser.birth_date || "");
         setGender(storedUser.gender || "");
         setAddress(storedUser.address || "");
+        setPhotoUrl(readProfileImage(storedUser));
         setIsProfileLoading(false);
         return;
       }
@@ -74,6 +91,7 @@ export default function CandidateProfile() {
           setBirthDate(currentUser.birth_date || "");
           setGender(currentUser.gender || "");
           setAddress(currentUser.address || "");
+          setPhotoUrl(readProfileImage(currentUser));
         }
       } catch (err) {
         if (isMounted) {
@@ -91,7 +109,7 @@ export default function CandidateProfile() {
     return () => {
       isMounted = false;
     };
-  }, [storedUser, setUser]);
+  }, [storedUser, setUser, t]);
 
   // Sync state if storedUser updates from outside
   useEffect(() => {
@@ -104,6 +122,7 @@ export default function CandidateProfile() {
       setBirthDate(storedUser.birth_date || "");
       setGender(storedUser.gender || "");
       setAddress(storedUser.address || "");
+      setPhotoUrl(readProfileImage(storedUser));
     }
   }, [storedUser, isSaving]);
 
@@ -140,7 +159,7 @@ export default function CandidateProfile() {
         setProfile(updatedUser);
         setUser(updatedUser, storedToken || undefined, storedRole || undefined);
         setSuccessMessage(t("profileUpdatedSuccess"));
-        
+
         // Auto clear success message after 5 seconds
         setTimeout(() => {
           setSuccessMessage("");
@@ -190,7 +209,29 @@ export default function CandidateProfile() {
       setAddress(profile.address || "");
       setSuccessMessage("");
       setErrorMessage("");
+      setPhotoUrl(readProfileImage(profile));
     }
+  };
+
+  const handlePhotoUpload = async (file: File) => {
+    const upload = await uploadMyCandidatePhoto(file);
+    const nextPhotoUrl = upload.data?.photoUrl;
+
+    if (nextPhotoUrl && storedUser) {
+      const nextUser: User = {
+        ...storedUser,
+        photo: nextPhotoUrl,
+        photoUrl: nextPhotoUrl,
+      } as User;
+
+      setUser(nextUser, storedToken || undefined, storedRole || undefined);
+      setProfile(nextUser);
+      setPhotoUrl(nextPhotoUrl);
+      setSuccessMessage("Profile image uploaded successfully.");
+      setTimeout(() => setSuccessMessage(""), 3000);
+    }
+
+    return upload.data || {};
   };
 
   if ((!isAuthenticated && typeof window === "undefined") || isProfileLoading) {
@@ -237,6 +278,15 @@ export default function CandidateProfile() {
             </p>
           </div>
         </div>
+      </Card>
+
+      <Card padding="lg">
+        <CardHeader title={t("profilePhoto") || "Profile Photo"} />
+        <ProfilePhotoUpload
+          imageUrl={photoUrl}
+          onUpload={handlePhotoUpload}
+          onUploadError={(message) => setErrorMessage(message)}
+        />
       </Card>
 
       {successMessage ? <Alert variant="success">{successMessage}</Alert> : null}

@@ -1,6 +1,6 @@
 import api from '@/lib/api';
 
-import { extractApiError } from './api-utils';
+import { ApiResponse, extractApiError } from './api-utils';
 
 /** Postman: GET /candidates, PATCH /candidates/:id/status, GET|PATCH /candidates/me */
 export type CandidateStatus = 'active' | 'suspended';
@@ -31,6 +31,21 @@ export interface ListCandidatesParams {
 export interface UpdateCandidateStatusResult {
   candidate: CandidateRecord;
   message: string;
+}
+
+function extractPhotoUrl(payload: unknown): string {
+  if (!payload || typeof payload !== 'object') return '';
+  const data = payload as Record<string, unknown>;
+  const rawUrl =
+    data.photoUrl ??
+    data.photo_url ??
+    data.profile_photo ??
+    data.avatar ??
+    data.avatarUrl ??
+    data.avatar_url ??
+    data.url ??
+    data.image_url;
+  return typeof rawUrl === 'string' ? rawUrl : '';
 }
 
 /** Admin · SuperAdmin — GET /candidates */
@@ -85,5 +100,28 @@ export async function updateMyCandidateProfile(
     return response.data?.data ?? null;
   } catch (err) {
     throw new Error(extractApiError(err, 'Unable to update profile.'));
+  }
+}
+
+export async function uploadMyCandidatePhoto(file: File): Promise<ApiResponse<{ photoUrl: string }>> {
+  try {
+    const form = new FormData();
+    form.append('file', file);
+
+    const response = await api.patch<ApiResponse<unknown>>('/candidates/me/photo', form);
+    const payload = response.data?.data ?? response.data;
+    const photoUrl = extractPhotoUrl(payload);
+
+    if (!photoUrl) {
+      throw new Error('Upload response did not include an image URL.');
+    }
+
+    return {
+      success: !!response.data?.success,
+      data: { photoUrl },
+      message: response.data?.message,
+    };
+  } catch (err) {
+    throw new Error(extractApiError(err, 'Unable to upload profile photo.'));
   }
 }
