@@ -1,20 +1,8 @@
-import { ApiSuccess } from './api-utils';
+import api from '@/lib/api';
+
 import { BookingRequest, getRecentInstitutionRequests, getLoggedInInstitutionId } from './institution.service';
 import { getBookingPage } from './booking.service';
-
-type CompletedExamMock = {
-  institutionId: string;
-  passed: boolean;
-  completedAt: string;
-};
-
-const MOCK_COMPLETED_EXAMS: CompletedExamMock[] = [
-  { institutionId: 'bole-driving-institute', passed: true, completedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 7).toISOString() },
-  { institutionId: 'bole-driving-institute', passed: true, completedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 10).toISOString() },
-  { institutionId: 'bole-driving-institute', passed: false, completedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 12).toISOString() },
-  { institutionId: 'kality-driving-school', passed: true, completedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 9).toISOString() },
-  { institutionId: 'kality-driving-school', passed: false, completedAt: new Date(Date.now() - 1000 * 60 * 60 * 24 * 3).toISOString() },
-];
+import { ApiResponse, extractApiError, extractData } from './api-utils';
 
 export type InstituteOverview = {
   activeStudents: number;
@@ -22,34 +10,30 @@ export type InstituteOverview = {
   passRate: number; // percentage
 };
 
-export async function getInstituteOverview(): Promise<ApiSuccess<InstituteOverview>> {
-  await new Promise((resolve) => setTimeout(resolve, 500));
-
+export async function getInstituteOverview(): Promise<ApiResponse<InstituteOverview>> {
   const institutionId = getLoggedInInstitutionId();
-  const result = await getBookingPage({ institutionId, page: 1, pageSize: 1000 });
+  const requestResult = await getBookingPage({ institutionId, page: 1, pageSize: 1000 });
+
   const now = new Date();
+  const activeStudents = requestResult.items.filter((booking) => booking.status === 'Approved').length;
+  const upcomingExams = requestResult.items.filter(
+    (booking) => booking.status === 'Approved' && new Date(booking.preferredDate).getTime() >= now.getTime(),
+  ).length;
 
-  const activeStudents = result.items.filter((booking) => booking.status === 'Approved').length;
-  const upcomingExams = result.items.filter((booking) => booking.status === 'Approved' && new Date(booking.preferredDate).getTime() >= now.getTime()).length;
-
-  const completedExams = MOCK_COMPLETED_EXAMS.filter((exam) => !institutionId || exam.institutionId === institutionId);
-  const passRate = completedExams.length
-    ? Number(((completedExams.filter((exam) => exam.passed).length / completedExams.length) * 100).toFixed(1))
-    : 0;
+  const completedExams = requestResult.items.filter((booking) => booking.status === 'Completed');
+  const passed = completedExams.filter((booking) => booking.status === 'Completed').length;
 
   return {
     success: true,
     data: {
       activeStudents,
       upcomingExams,
-      passRate,
+      passRate: completedExams.length ? Number(((passed / completedExams.length) * 100).toFixed(1)) : 0,
     },
   };
 }
 
-export async function getRecentEnrollments(): Promise<ApiSuccess<BookingRequest[]>> {
-  await new Promise((resolve) => setTimeout(resolve, 750));
-
+export async function getRecentEnrollments(): Promise<ApiResponse<BookingRequest[]>> {
   const data = await getRecentInstitutionRequests(5);
   return {
     success: true,
@@ -65,54 +49,123 @@ export type InstituteProfile = {
   description: string;
   email: string;
   institutionId: string;
+  logoUrl?: string;
 };
 
-const DEFAULT_PROFILE: InstituteProfile = {
-  institutionName: "Bole Driving Institute",
-  contactPerson: "Abebe Kebede",
-  phone: "0911234567",
-  address: "Bole, Addis Ababa",
-  description: "Premier driving school providing quality training.",
-  email: "contact@boledriving.com",
-  institutionId: "INST-10293",
-};
+function normalizeInstituteProfile(payload: unknown): InstituteProfile | null {
+  if (!payload || typeof payload !== 'object') return null;
 
-const INSTITUTE_PROFILE_STORAGE_KEY = "adlts-institute-profile";
+  const data = payload as Record<string, unknown>;
 
-export async function getInstituteProfile(): Promise<ApiSuccess<InstituteProfile>> {
-  await new Promise(resolve => setTimeout(resolve, 400));
-  
-  if (typeof window === "undefined") {
-    return { success: true, data: DEFAULT_PROFILE };
+  const institutionName = toStr(data.institutionName ?? data.name ?? data.institution_name);
+  const contactPerson = toStr(data.contactPerson ?? data.contact_person ?? data.contact_person_name);
+  const phone = toStr(data.phone ?? data.phone_number ?? data.contact_phone);
+  const address = toStr(data.address ?? data.location ?? data.office_address);
+  const description = toStr(data.description ?? data.bio ?? data.about, '');
+  const email = toStr(data.email ?? data.contactEmail ?? data.contact_email);
+  const institutionId = toStr(data.institutionId ?? data.institution_id ?? data.id, '');
+  const logoUrl = toStr(data.logoUrl ?? data.logo_url ?? data.logo, '', '');
+
+  if (!institutionName && !contactPerson && !phone && !address && !email && !institutionId) {
+    return null;
   }
 
+  return {
+    institutionName: institutionName || 'Unknown Institute',
+    contactPerson,
+    phone,
+    address,
+    description,
+    email,
+    institutionId,
+    logoUrl,
+  };
+}
+
+function toStr(value: unknown, fallback = ''): string {
+  if (value === null || value === undefined) return fallback;
+  return String(value);
+}
+
+/** Institute profile — GET /institutes/me */
+export async function getInstituteProfile(): Promise<ApiResponse<InstituteProfile>> {
   try {
-    const raw = localStorage.getItem(INSTITUTE_PROFILE_STORAGE_KEY);
-    if (!raw) return { success: true, data: DEFAULT_PROFILE };
-    
-    return { success: true, data: { ...DEFAULT_PROFILE, ...JSON.parse(raw) } };
-  } catch {
-    return { success: true, data: DEFAULT_PROFILE };
+    const response = await api.get<ApiResponse<unknown>>('/institutes/me');
+    const profile = normalizeInstituteProfile(response.data?.data ?? response.data);
+
+    if (!profile) {
+      throw new Error('Invalid institute profile payload.');
+    }
+
+    return {
+      success: true,
+      data: profile,
+      message: response.data?.message,
+    };
+  } catch (err) {
+    throw new Error(extractApiError(err, 'Unable to load institute profile.'));
   }
 }
 
-export async function updateInstituteProfile(updates: Partial<InstituteProfile>): Promise<ApiSuccess<InstituteProfile>> {
-  await new Promise(resolve => setTimeout(resolve, 600));
+/** Institute profile update — PATCH /institutes/me */
+export async function updateInstituteProfile(updates: Partial<InstituteProfile>): Promise<ApiResponse<InstituteProfile>> {
+  try {
+    const sanitized = {
+      institutionName: updates.institutionName,
+      contactPerson: updates.contactPerson,
+      phone: updates.phone,
+      address: updates.address,
+      description: updates.description,
+    };
 
-  const currentRes = await getInstituteProfile();
-  const current = currentRes.data;
-  
-  // Exclude read-only fields from updates
-  const { email, institutionId, ...allowedUpdates } = updates as InstituteProfile;
-  
-  const updated = {
-    ...current,
-    ...allowedUpdates,
-  };
+    Object.keys(sanitized).forEach((key) => {
+      const value = (sanitized as Record<string, unknown>)[key];
+      if (value === undefined) {
+        delete (sanitized as Record<string, unknown>)[key];
+      }
+    });
 
-  if (typeof window !== "undefined") {
-    localStorage.setItem(INSTITUTE_PROFILE_STORAGE_KEY, JSON.stringify(updated));
+    const response = await api.patch<ApiResponse<unknown>>('/institutes/me', sanitized);
+    const updated = normalizeInstituteProfile(response.data?.data ?? response.data);
+
+    if (!updated) {
+      throw new Error('Failed to parse updated profile.');
+    }
+
+    return {
+      success: !!response.data?.success,
+      data: updated,
+      message: response.data?.message,
+    };
+  } catch (err) {
+    throw new Error(extractApiError(err, 'Unable to update profile.'));
   }
+}
 
-  return { success: true, data: updated };
+/** Institute logo upload — PATCH /institutes/me/logo with field `file` */
+export async function uploadInstituteLogo(file: File): Promise<ApiResponse<Pick<InstituteProfile, 'logoUrl'>>> {
+  try {
+    const form = new FormData();
+    form.append('file', file);
+
+    const response = await api.patch<ApiResponse<unknown>>('/institutes/me/logo', form);
+    const payload = extractData<unknown>(response.data) ?? response.data?.data;
+
+    const logoUrl =
+      (payload && typeof payload === 'object' ? (payload as Record<string, unknown>).logo_url ?? (payload as Record<string, unknown>).logoUrl : undefined)
+      ||
+      (response.data && typeof response.data === 'object'
+        ? (response.data as Record<string, unknown>).logo_url || (response.data as Record<string, unknown>).logoUrl
+        : undefined);
+
+    return {
+      success: !!response.data?.success,
+      data: {
+        logoUrl: typeof logoUrl === 'string' ? logoUrl : '',
+      },
+      message: response.data?.message,
+    };
+  } catch (err) {
+    throw new Error(extractApiError(err, 'Unable to upload logo.'));
+  }
 }

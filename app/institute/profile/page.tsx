@@ -4,7 +4,9 @@ import React, { useEffect, useState } from "react";
 import { User as UserIcon, Mail, Phone, MapPin, Save, RefreshCw, CheckCircle, AlertCircle, Building, Lock, FileText } from "lucide-react";
 import { useI18n } from "@/i18n/useI18n";
 import { changePassword } from "@/services/auth.service";
-import { getInstituteProfile, updateInstituteProfile, type InstituteProfile } from "@/services/institute.service";
+import { getInstituteProfile, updateInstituteProfile, uploadInstituteLogo, type InstituteProfile } from "@/services/institute.service";
+import { extractApiError } from "@/services/api-utils";
+import ProfilePhotoUpload from "@/components/ProfilePhotoUpload";
 
 export default function InstituteProfilePage() {
   const { t } = useI18n();
@@ -19,6 +21,7 @@ export default function InstituteProfilePage() {
   const [description, setDescription] = useState("");
   const [email, setEmail] = useState("");
   const [institutionId, setInstitutionId] = useState("");
+  const [logoUrl, setLogoUrl] = useState("");
 
   // Password State
   const [currentPassword, setCurrentPassword] = useState("");
@@ -35,25 +38,40 @@ export default function InstituteProfilePage() {
 
   useEffect(() => {
     let isMounted = true;
-    
-    getInstituteProfile().then((res) => {
-      if (!isMounted) return;
-      if (res.success && res.data) {
-        setProfile(res.data);
-        setInstitutionName(res.data.institutionName);
-        setContactPerson(res.data.contactPerson);
-        setPhone(res.data.phone);
-        setAddress(res.data.address);
-        setDescription(res.data.description);
-        setEmail(res.data.email);
-        setInstitutionId(res.data.institutionId);
-      }
-      setIsLoading(false);
-    }).catch(() => {
-      if (isMounted) setIsLoading(false);
-    });
 
-    return () => { isMounted = false; };
+    const loadProfile = async () => {
+      try {
+        const res = await getInstituteProfile();
+        if (!isMounted) return;
+
+        if (res.success && res.data) {
+          setProfile(res.data);
+          setInstitutionName(res.data.institutionName);
+          setContactPerson(res.data.contactPerson);
+          setPhone(res.data.phone);
+          setAddress(res.data.address);
+          setDescription(res.data.description);
+          setEmail(res.data.email);
+          setInstitutionId(res.data.institutionId);
+          setLogoUrl(res.data.logoUrl || "");
+          setErrorMessage("");
+        } else {
+          setErrorMessage("Failed to load institute profile.");
+        }
+      } catch (err) {
+        if (isMounted) {
+          setErrorMessage(extractApiError(err, "Unable to load institute profile."));
+        }
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    void loadProfile();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const handleUpdate = async (e: React.FormEvent) => {
@@ -110,6 +128,37 @@ export default function InstituteProfilePage() {
     }
   };
 
+  const handleLogoUpload = async (file: File) => {
+    setSuccessMessage("");
+    setErrorMessage("");
+
+    try {
+      const res = await uploadInstituteLogo(file);
+      const nextLogoUrl = res.data?.logoUrl;
+
+      if (!nextLogoUrl) {
+        throw new Error("Upload response did not include a logo URL.");
+      }
+
+      setLogoUrl(nextLogoUrl);
+      setProfile((nextProfile) => {
+        if (!nextProfile) return nextProfile;
+        return {
+          ...nextProfile,
+          logoUrl: nextLogoUrl,
+        };
+      });
+      setSuccessMessage("Institute logo uploaded successfully.");
+      setTimeout(() => setSuccessMessage(""), 5000);
+
+      return { photoUrl: nextLogoUrl };
+    } catch (err) {
+      const nextMessage = err instanceof Error ? err.message : extractApiError(err, "Unable to upload logo.");
+      setErrorMessage(nextMessage);
+      throw err;
+    }
+  };
+
   if (isLoading) {
     return (
       <main className="max-w-4xl mx-auto space-y-6">
@@ -146,8 +195,12 @@ export default function InstituteProfilePage() {
         <div className="absolute left-0 bottom-0 -translate-x-10 translate-y-10 w-40 h-40 bg-white/5 rounded-full blur-2xl" />
 
         <div className="flex flex-col sm:flex-row items-center gap-6 z-10 relative">
-          <div className="w-24 h-24 rounded-full bg-white text-blue-900 flex items-center justify-center text-3xl font-black shadow-inner border-4 border-white/20 shrink-0">
-            {initials}
+          <div className="w-24 h-24 rounded-full bg-white text-blue-900 flex items-center justify-center text-3xl font-black shadow-inner border-4 border-white/20 shrink-0 overflow-hidden">
+            {logoUrl ? (
+              <img src={logoUrl} alt={institutionName || "Institute logo"} className="h-full w-full object-cover" />
+            ) : (
+              <span>{initials}</span>
+            )}
           </div>
           <div className="text-center sm:text-left flex-1">
             <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 mb-2">
@@ -168,6 +221,15 @@ export default function InstituteProfilePage() {
             </p>
           </div>
         </div>
+      </div>
+
+      <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-slate-100">
+        <ProfilePhotoUpload
+          title="Institute Logo"
+          imageUrl={logoUrl}
+          onUpload={handleLogoUpload}
+          onUploadError={(message) => setErrorMessage(message)}
+        />
       </div>
 
       {successMessage && (
