@@ -71,6 +71,10 @@ export default function AdminDeviceDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {isLoading ? (
           <p className="text-sm text-slate-500 col-span-full">Loading devices…</p>
+        ) : devices.length === 0 ? (
+          <div className="col-span-full rounded-xl border border-slate-200 bg-slate-50 px-6 py-12 text-center text-sm text-slate-500">
+            No devices found.
+          </div>
         ) : (
           devices.map((device) => (
             <DeviceNode key={device.name} {...device} />
