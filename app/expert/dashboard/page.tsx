@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getReviewMetrics, getFlaggedCandidates, ReviewMetrics, ExamReview } from "@/services/expert.service";
+import { getReviewMetrics, getFlaggedCandidates, resolveAppeal, ReviewMetrics, ExamReview } from "@/services/expert.service";
 import { extractApiError } from "@/services/api-utils";
 import { Card } from "@/app/components/ui/Card";
 import { Button } from "@/app/components/ui/Button";
@@ -13,6 +13,7 @@ export default function ExpertDashboard() {
   const [reviews, setReviews] = useState<ExamReview[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -111,7 +112,25 @@ export default function ExpertDashboard() {
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <Button variant="primary" className="py-1 px-3 text-xs">Review Video</Button>
+                      <Button
+                        variant="primary"
+                        className="py-1 px-3 text-xs"
+                        disabled={resolvingId === review.id}
+                        onClick={async () => {
+                          setError(null);
+                          setResolvingId(review.id);
+                          try {
+                            await resolveAppeal(review.id);
+                            setReviews((current) => current.filter((item) => item.id !== review.id));
+                          } catch (resolveError) {
+                            setError(extractApiError(resolveError, "Failed to resolve review."));
+                          } finally {
+                            setResolvingId(null);
+                          }
+                        }}
+                      >
+                        {resolvingId === review.id ? "Resolving..." : "Resolve"}
+                      </Button>
                     </td>
                   </tr>
                 ))
