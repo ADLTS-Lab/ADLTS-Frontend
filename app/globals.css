@@ -1,12 +1,157 @@
 @import "tailwindcss";
 
 :root {
-  --background: #F5F7FA;   /* force light background */
-  --foreground: #1F2937;   /* dark text */
+  --font-ui: "Camera Plain Variable", ui-sans-serif, system-ui, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  --cream: #f7f4ed;
+  --charcoal: #1c1c1c;
+  --off-white: #fcfbf8;
+  --muted-gray: #5f5f5d;
+  --border-light: #eceae4;
+  --border-strong: rgba(28, 28, 28, 0.4);
+  --tone-83: rgba(28, 28, 28, 0.83);
+  --tone-82: rgba(28, 28, 28, 0.82);
+  --tone-4: rgba(28, 28, 28, 0.04);
+  --tone-3: rgba(28, 28, 28, 0.03);
+
+  --focus-ring: rgba(59, 130, 246, 0.5);
+  --focus-shadow: rgba(0, 0, 0, 0.1) 0px 4px 12px;
+  --button-inset: rgba(255, 255, 255, 0.2) 0px 0.5px 0px 0px inset,
+    rgba(0, 0, 0, 0.2) 0px 0px 0px 0.5px inset,
+    rgba(0, 0, 0, 0.05) 0px 1px 2px 0px;
+
+  --background: var(--cream);
+  --foreground: var(--charcoal);
+  --surface: var(--cream);
+  --surface-muted: var(--cream);
+  --surface-overlay: var(--cream);
+  --border-color: var(--border-light);
+  --muted-text: var(--muted-gray);
+}
+
+html,
+body {
+  background-color: var(--background);
+  color: var(--foreground);
 }
 
 body {
-  background: var(--background);
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--font-ui);
+  color: var(--charcoal);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+  font-weight: 600;
+}
+
+h1 {
+  letter-spacing: -0.045em;
+}
+
+a,
+button,
+input,
+select,
+textarea,
+label,
+summary,
+th,
+td {
+  font-family: var(--font-ui);
+}
+
+main,
+section,
+article,
+form,
+aside,
+nav,
+header,
+footer {
+  color: var(--charcoal);
+}
+
+.bg-white,
+[class~="bg-white/90"],
+[class~="bg-[#F8FAFC]"],
+[class~="bg-[#F5F7FA]"],
+[class~="bg-[#F9FAFB]"],
+[class~="bg-[#E5E7EB]"],
+.bg-slate-50,
+.bg-slate-100,
+.bg-slate-200,
+[class~="bg-slate-50/50"] {
+  background-color: var(--surface) !important;
   color: var(--foreground);
-  font-family: Inter, Noto Sans Ethiopic, sans-serif;
+}
+
+.border,
+.border-slate-50,
+.border-slate-100,
+.border-slate-200,
+[class*="border-[#"] {
+  border-color: var(--border-light) !important;
+}
+
+.text-slate-900,
+.text-slate-800,
+.text-slate-700,
+.text-slate-600,
+[class~="text-[#1F2937]"],
+[class~="text-[#4B5563]"] {
+  color: var(--charcoal) !important;
+}
+
+.text-slate-500,
+.text-slate-400,
+[class~="text-[#6B7280]"] {
+  color: var(--muted-gray) !important;
+}
+
+.text-blue-950,
+.text-blue-900,
+.text-blue-700,
+.text-blue-600,
+.text-indigo-600,
+[class~="text-[#1E3A8A]"] {
+  color: var(--charcoal) !important;
+}
+
+.bg-blue-900,
+.bg-blue-950,
+[class~="bg-[#1E3A8A]"] {
+  background-color: var(--charcoal) !important;
+  color: var(--off-white) !important;
+  box-shadow: var(--button-inset);
+}
+
+.hover\:bg-blue-800:hover,
+.hover\:bg-blue-700:hover,
+[class~="hover:bg-[#1E40AF]"]:hover {
+  background-color: var(--charcoal) !important;
+  opacity: 0.8;
+}
+
+.rounded-full {
+  border-radius: 9999px;
+}
+
+input:focus,
+select:focus,
+textarea:focus,
+button:focus-visible,
+a:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-shadow);
+  --tw-ring-color: var(--focus-ring);
 }

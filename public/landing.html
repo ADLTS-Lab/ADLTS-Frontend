@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ADLTS — Automated Driving License Testing System</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:ital,wght@0,400;0,700;1,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<style>
+
+  :root {
+    --white: #fcfbf8;
+    --light-bg: #f7f4ed;
+    --light-surface: #f7f4ed;
+    --dark-text: #1c1c1c;
+    --medium-text: rgba(28, 28, 28, 0.83);
+    --light-text: #5f5f5d;
+    --line-color: #eceae4;
+    --accent: #1c1c1c;
+    --accent2: rgba(28, 28, 28, 0.83);
+    --accent3: rgba(28, 28, 28, 0.82);
+    --ink: #1c1c1c;
+    --font-display: 'Bebas Neue', sans-serif;
+    --font-mono: 'Space Mono', monospace;
+    --font-body: 'DM Sans', sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--light-bg);
+    color: var(--dark-text);
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.6;
+    overflow-x: hidden;
+  }
+
+  /* ─── CURSOR ─── */
+  .cursor {
+    position: fixed;
+    width: 10px; height: 10px;
+    background: var(--accent);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 10000;
+    transform: translate(-50%,-50%);
+    transition: width 0.2s, height 0.2s, background 0.2s;
+    mix-blend-mode: multiply;
+    display: none;
+  }
+  .cursor-ring {
+    position: fixed;
+    width: 36px; height: 36px;
+    border: 1px solid var(--accent);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%,-50%);
+    transition: transform 0.12s ease, width 0.3s, height 0.3s, border-color 0.3s;
+    opacity: 0;
+    display: none;
+  }
+
+  /* ─── HERO ─── */
+  .hero {
+    position: relative;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    padding: 0 3rem 5rem;
+    overflow: hidden;
+    background: linear-gradient(135deg, #f7f4ed 0%, #f3efe6 100%);
+  }
+
+  .hero-grid-bg {
+    position: absolute;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--line-color) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line-color) 1px, transparent 1px);
+    background-size: 80px 80px;
+    opacity: 0.3;
+  }
+  .hero-grid-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 80% 60% at 50% 100%, transparent 0%, var(--white) 70%);
+  }
+
+  .hero-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .hero-eyebrow::before {
+    content: '';
+    display: block;
+    width: 40px; height: 1px;
+    background: var(--accent);
+  }
+
+  .hero-headline {
+    font-family: var(--font-display);
+    font-size: clamp(5rem, 12vw, 12rem);
+    line-height: 0.9;
+    letter-spacing: 0.01em;
+    overflow: hidden;
+    margin-bottom: 2.5rem;
+    color: var(--dark-text);
+  }
+  .hero-headline .line { display: block; overflow: hidden; }
+  .hero-headline .accent { color: var(--accent); }
+
+  .hero-bottom {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+  .hero-desc {
+    max-width: 420px;
+    font-size: 1.05rem;
+    color: var(--light-text);
+    font-weight: 300;
+    line-height: 1.7;
+  }
+  .hero-desc strong { color: var(--dark-text); font-weight: 400; }
+
+  .hero-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1rem;
+  }
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: var(--accent);
+    color: var(--white);
+    border: none;
+    padding: 1rem 2rem;
+    cursor: pointer;
+    font-weight: 700;
+    transition: all 0.15s;
+    text-decoration: none;
+    border-radius: 4px;
+  }
+  .btn-primary:hover { 
+    background: var(--accent3);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 52, 204, 0.2);
+  }
+  .btn-secondary {
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1.5px solid var(--accent);
+    background: transparent;
+    padding: 1rem 2rem;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+    border-radius: 4px;
+  }
+  .btn-secondary:hover { 
+    color: var(--white);
+    background: var(--accent);
+  }
+
+  .hero-scroll-hint {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    color: var(--light-text);
+    text-transform: uppercase;
+  }
+  .scroll-line {
+    width: 1px;
+    height: 60px;
+    background: linear-gradient(to bottom, var(--light-text), transparent);
+    animation: scrollDrop 1.8s ease-in-out infinite;
+  }
+  @keyframes scrollDrop {
+    0% { transform: scaleY(0); transform-origin: top; opacity: 1; }
+    50% { transform: scaleY(1); transform-origin: top; opacity: 1; }
+    100% { transform: scaleY(1); transform-origin: bottom; opacity: 0; }
+  }
+
+  /* ─── MARQUEE ─── */
+  .marquee-wrap {
+    border-top: 1px solid var(--line-color);
+    border-bottom: 1px solid var(--line-color);
+    padding: 1.2rem 0;
+    overflow: hidden;
+    background: var(--light-surface);
+  }
+  .marquee-track {
+    display: flex;
+    gap: 3rem;
+    animation: marquee 20s linear infinite;
+    width: max-content;
+  }
+  .marquee-item {
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    letter-spacing: 0.15em;
+    color: var(--light-text);
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 3rem;
+  }
+  .marquee-item .dot {
+    width: 5px; height: 5px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+  @keyframes marquee {
+    from { transform: translateX(0); }
+    to { transform: translateX(-50%); }
+  }
+
+  /* ─── STATS BAR ─── */
+  .stats-bar {
+    padding: 5rem 3rem;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--line-color);
+    border-top: 1px solid var(--line-color);
+    border-bottom: 1px solid var(--line-color);
+  }
+  .stat-item {
+    background: var(--white);
+    padding: 2.5rem;
+  }
+  .stat-num {
+    font-family: var(--font-display);
+    font-size: 4rem;
+    line-height: 1;
+    color: var(--dark-text);
+    margin-bottom: 0.5rem;
+  }
+  .stat-num span { color: var(--accent); }
+  .stat-label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--light-text);
+  }
+
+  /* ─── SECTION SHARED ─── */
+  section { position: relative; }
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .section-label::before {
+    content: '';
+    display: block;
+    width: 24px; height: 1px;
+    background: var(--accent);
+  }
+  .section-title {
+    font-family: var(--font-display);
+    font-size: clamp(3rem, 6vw, 5.5rem);
+    line-height: 0.95;
+    letter-spacing: 0.02em;
+    margin-bottom: 1.5rem;
+    color: var(--dark-text);
+  }
+  .section-body {
+    font-size: 1rem;
+    color: var(--light-text);
+    max-width: 500px;
+    font-weight: 300;
+    line-height: 1.8;
+  }
+
+  /* ─── PROBLEM SECTION ─── */
+  .problem {
+    padding: 8rem 3rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6rem;
+    align-items: center;
+    overflow: hidden;
+    background: var(--white);
+  }
+  .problem-visual {
+    position: relative;
+    height: 500px;
+  }
+  .chaos-item {
+    position: absolute;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.05em;
+    padding: 0.75rem 1.25rem;
+    border: 1px solid;
+    opacity: 0.7;
+    border-radius: 4px;
+  }
+  .chaos-item.red { border-color: #d32f2f; color: #d32f2f; background: rgba(211, 47, 47, 0.05); }
+  .chaos-item.amber { border-color: #f57c00; color: #f57c00; background: rgba(245, 124, 0, 0.05); }
+  .chaos-item.muted { border-color: var(--line-color); color: var(--light-text); background: rgba(0,0,0,0.02); }
+
+  /* ─── LIFECYCLE SECTION ─── */
+  .lifecycle {
+    padding: 8rem 3rem;
+    background: var(--light-surface);
+    border-top: 1px solid var(--line-color);
+    border-bottom: 1px solid var(--line-color);
+    overflow: hidden;
+  }
+  .lifecycle-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    margin-bottom: 5rem;
+    align-items: end;
+  }
+  .lifecycle-steps {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 1px;
+    background: var(--line-color);
+    border: 1px solid var(--line-color);
+  }
+  .step-item {
+    background: var(--white);
+    padding: 2rem 1.5rem;
+    position: relative;
+    overflow: hidden;
+    cursor: default;
+    transition: background 0.3s;
+    border-radius: 0;
+  }
+  .step-item:hover { background: var(--light-surface); }
+  .step-item::before {
+    content: attr(data-num);
+    position: absolute;
+    top: -0.5rem;
+    right: 0.75rem;
+    font-family: var(--font-display);
+    font-size: 5rem;
+    color: rgba(0,0,0,0.04);
+    line-height: 1;
+  }
+  .step-icon {
+    width: 40px; height: 40px;
+    background: rgba(0, 82, 204, 0.08);
+    border: 1px solid rgba(0, 82, 204, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1.25rem;
+    font-size: 1.1rem;
+    border-radius: 4px;
+  }
+  .step-name {
+    font-family: var(--font-display);
+    font-size: 1.3rem;
+    letter-spacing: 0.04em;
+    color: var(--dark-text);
+    margin-bottom: 0.5rem;
+  }
+  .step-desc {
+    font-size: 0.8rem;
+    color: var(--light-text);
+    line-height: 1.5;
+    font-weight: 300;
+  }
+  .step-connector {
+    position: absolute;
+    top: 50%;
+    right: -1px;
+    width: 1px;
+    height: 30px;
+    background: var(--accent);
+    transform: translateY(-50%);
+    opacity: 0.4;
+  }
+
+  /* ─── FEATURES GRID ─── */
+  .features {
+    padding: 8rem 3rem;
+    background: var(--white);
+  }
+  .features-header {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 4rem;
+    margin-bottom: 5rem;
+    align-items: end;
+  }
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--line-color);
+    border: 1px solid var(--line-color);
+  }
+  .feature-card {
+    background: var(--white);
+    padding: 2.5rem 2rem;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.3s;
+  }
+  .feature-card:hover { background: var(--light-surface); }
+  .feature-card:hover .feature-glow { opacity: 1; }
+  .feature-glow {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent);
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .feature-card.accent-teal:hover .feature-glow { background: #0066ff; }
+  .feature-card.accent-pink:hover .feature-glow { background: #004499; }
+  .feature-num {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    color: var(--light-text);
+    margin-bottom: 1.5rem;
+  }
+  .feature-icon-wrap {
+    width: 48px; height: 48px;
+    margin-bottom: 1.5rem;
+    position: relative;
+  }
+  .feature-icon-svg {
+    width: 100%; height: 100%;
+  }
+  .feature-title {
+    font-family: var(--font-display);
+    font-size: 1.6rem;
+    letter-spacing: 0.03em;
+    color: var(--dark-text);
+    margin-bottom: 0.75rem;
+    line-height: 1.1;
+  }
+  .feature-desc {
+    font-size: 0.875rem;
+    color: var(--light-text);
+    line-height: 1.65;
+    font-weight: 300;
+  }
+  .feature-tag {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid rgba(0, 82, 204, 0.25);
+    padding: 0.25rem 0.6rem;
+    margin-top: 1.5rem;
+    border-radius: 2px;
+  }
+  .feature-tag.teal { color: #0066ff; border-color: rgba(0, 102, 255, 0.25); }
+  .feature-tag.pink { color: #004499; border-color: rgba(0, 68, 153, 0.25); }
+
+  /* ─── STATUS MACHINE ─── */
+  .status-section {
+    padding: 8rem 3rem;
+    background: var(--light-surface);
+    border-top: 1px solid var(--line-color);
+    border-bottom: 1px solid var(--line-color);
+    overflow: hidden;
+  }
+  .status-layout {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 5rem;
+    margin-top: 4rem;
+    align-items: start;
+  }
+  .status-chain {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+  .status-node {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 1rem 0;
+    position: relative;
+    cursor: pointer;
+  }
+  .status-node::after {
+    content: '';
+    position: absolute;
+    left: 11px;
+    top: calc(50% + 10px);
+    width: 1px;
+    height: calc(100% - 20px + 1rem);
+    background: var(--line-color);
+  }
+  .status-node:last-child::after { display: none; }
+  .status-dot {
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    border: 1.5px solid var(--line-color);
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+    transition: all 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .status-dot::after {
+    content: '';
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--light-text);
+    transition: background 0.3s;
+  }
+  .status-node.active .status-dot {
+    border-color: var(--accent);
+    background: rgba(0, 82, 204, 0.1);
+  }
+  .status-node.active .status-dot::after { background: var(--accent); }
+  .status-node.error .status-dot { border-color: #d32f2f; }
+  .status-node.error .status-dot::after { background: #d32f2f; }
+  .status-node.done .status-dot { border-color: #388e3c; }
+  .status-node.done .status-dot::after { background: #388e3c; }
+  .status-name {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    color: var(--light-text);
+    transition: color 0.3s;
+  }
+  .status-node.active .status-name { color: var(--accent); }
+  .status-node.error .status-name { color: #d32f2f; }
+  .status-node.done .status-name { color: #388e3c; }
+  .status-detail {
+    background: var(--white);
+    border: 1px solid var(--line-color);
+    padding: 2.5rem;
+    border-radius: 4px;
+  }
+  .status-detail-title {
+    font-family: var(--font-display);
+    font-size: 2rem;
+    letter-spacing: 0.04em;
+    color: var(--accent);
+    margin-bottom: 1rem;
+  }
+  .status-detail-text {
+    font-size: 0.9rem;
+    color: var(--light-text);
+    line-height: 1.7;
+    font-weight: 300;
+    margin-bottom: 2rem;
+  }
+  .status-actions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .action-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    letter-spacing: 0.05em;
+    color: var(--light-text);
+  }
+  .action-item::before {
+    content: '→';
+    color: var(--accent);
+    font-size: 0.9rem;
+  }
+
+  /* ─── TRUST SECTION ─── */
+  .trust {
+    padding: 8rem 3rem;
+    background: var(--white);
+  }
+  .trust-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr;
+    gap: 3rem;
+    margin-top: 4rem;
+    align-items: start;
+  }
+  .trust-main {
+    padding: 3rem;
+    border: 1px solid var(--line-color);
+    background: var(--light-surface);
+    position: relative;
+    overflow: hidden;
+    border-radius: 4px;
+  }
+  .trust-main::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--accent), #0066ff);
+  }
+  .trust-main-title {
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    letter-spacing: 0.03em;
+    line-height: 1.05;
+    margin-bottom: 1.25rem;
+    color: var(--dark-text);
+  }
+  .trust-main-body {
+    font-size: 0.9rem;
+    color: var(--light-text);
+    line-height: 1.7;
+    font-weight: 300;
+  }
+  .trust-point {
+    padding: 2rem;
+    border: 1px solid var(--line-color);
+    position: relative;
+    background: var(--white);
+    border-radius: 4px;
+  }
+  .trust-point-icon {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .trust-point-title {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    letter-spacing: 0.03em;
+    margin-bottom: 0.5rem;
+    color: var(--dark-text);
+  }
+  .trust-point-body {
+    font-size: 0.8rem;
+    color: var(--light-text);
+    line-height: 1.6;
+    font-weight: 300;
+  }
+  .trust-points-col {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  /* ─── REPORT SECTION ─── */
+  .report-section {
+    padding: 8rem 3rem;
+    background: var(--light-surface);
+    border-top: 1px solid var(--line-color);
+    border-bottom: 1px solid var(--line-color);
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6rem;
+    align-items: center;
+    overflow: hidden;
+  }
+  .report-mockup {
+    background: var(--white);
+    border: 1px solid var(--line-color);
+    padding: 2rem;
+    position: relative;
+    border-radius: 4px;
+  }
+  .report-mockup::before {
+    content: 'OFFICIAL REPORT';
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    color: var(--accent);
+    display: block;
+    margin-bottom: 1.5rem;
+  }
+  .report-bar { height: 6px; margin-bottom: 0.75rem; border-radius: 2px; }
+  .report-bar.w100 { width: 100%; background: rgba(0,0,0,0.06); }
+  .report-bar.w80 { width: 80%; background: rgba(0,0,0,0.04); }
+  .report-bar.w60 { width: 60%; background: rgba(0,0,0,0.04); }
+  .report-score-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--line-color);
+  }
+  .report-score-label { font-size: 0.75rem; color: var(--light-text); font-family: var(--font-mono); }
+  .report-score-val {
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    color: var(--accent);
+  }
+  .report-status-badge {
+    display: inline-block;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: rgba(56, 142, 60, 0.1);
+    color: #388e3c;
+    padding: 0.3rem 0.75rem;
+    border: 1px solid rgba(56, 142, 60, 0.2);
+    margin-top: 1.5rem;
+    border-radius: 2px;
+  }
+
+  /* ─── CTA SECTION ─── */
+  .cta-section {
+    padding: 10rem 3rem;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    background: var(--white);
+  }
+  .cta-section::before {
+    content: 'ADLTS';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+    font-family: var(--font-display);
+    font-size: 25vw;
+    color: rgba(0,0,0,0.02);
+    letter-spacing: 0.05em;
+    white-space: nowrap;
+  }
+  .cta-title {
+    font-family: var(--font-display);
+    font-size: clamp(3.5rem, 8vw, 8rem);
+    line-height: 0.95;
+    letter-spacing: 0.02em;
+    margin-bottom: 1.5rem;
+    position: relative;
+    color: var(--dark-text);
+  }
+  .cta-title .accent { color: var(--accent); }
+  .cta-subtitle {
+    font-size: 1rem;
+    color: var(--light-text);
+    max-width: 480px;
+    margin: 0 auto 3rem;
+    line-height: 1.7;
+    font-weight: 300;
+  }
+  .cta-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  /* ─── FOOTER ─── */
+  footer {
+    border-top: 1px solid var(--line-color);
+    padding: 2.5rem 3rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--light-surface);
+  }
+  .footer-logo {
+    font-family: var(--font-display);
+    font-size: 1.2rem;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+  }
+  .footer-copy {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    color: var(--light-text);
+    text-transform: uppercase;
+  }
+  .footer-links {
+    display: flex;
+    gap: 1.5rem;
+    list-style: none;
+  }
+  .footer-links a {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--light-text);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+  .footer-links a:hover { color: var(--dark-text); }
+
+  /* GSAP hidden state */
+  .reveal { opacity: 0; transform: translateY(40px); }
+  .reveal-left { opacity: 0; transform: translateX(-50px); }
+  .reveal-right { opacity: 0; transform: translateX(50px); }
+  .reveal-scale { opacity: 0; transform: scale(0.9); }
+
+/* ─── THREE.JS INTRO SECTION ─── */
+#threejs-intro {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  overflow: hidden;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+}
+#threeCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100% !important;
+  height: 100% !important;
+}
+.intro-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+.intro-hud {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+}
+.intro-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 1.5rem;
+  opacity: 0;
+}
+.intro-title {
+  font-family: var(--font-display);
+  font-size: clamp(4rem, 10vw, 9rem);
+  line-height: 0.9;
+  letter-spacing: 0.04em;
+  color: var(--dark-text);
+  opacity: 0;
+  text-shadow: 0 0 30px rgba(0, 82, 204, 0.1);
+}
+.intro-title .acc { color: var(--accent); }
+.intro-subtitle {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--light-text);
+  margin-top: 1.5rem;
+  opacity: 0;
+}
+.intro-scroll-cue {
+  position: absolute;
+  bottom: 2.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--light-text);
+  opacity: 0;
+}
+.intro-scroll-line {
+  width: 1px; height: 50px;
+  background: linear-gradient(to bottom, var(--light-text), transparent);
+  animation: scrollDrop 1.8s ease-in-out infinite;
+}
+</style>
+</head>
+<body>
+
+<!-- Custom cursor -->
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- THREE.JS INTRO: CAR ON TEST TRACK          -->
+<!-- ═══════════════════════════════════════════ -->
+<section id="threejs-intro">
+  <canvas id="threeCanvas"></canvas>
+  <div class="intro-overlay">
+    <div class="intro-hud">
+      <div class="intro-eyebrow" id="introEyebrow">Automated Driving License Testing System</div>
+      <div class="intro-title" id="introTitle">
+        THE TEST<br>
+        <span class="acc">DOESN'T LIE.</span>
+      </div>
+      <div class="intro-subtitle" id="introSub">Scroll to explore the platform</div>
+    </div>
+    <div class="intro-scroll-cue" id="scrollCue">
+      <div class="intro-scroll-line"></div>
+      Scroll
+    </div>
+  </div>
+</section>
+
+<!-- HERO -->
+<section class="hero" id="hero">
+  <div class="hero-grid-bg"></div>
+
+  <div class="hero-eyebrow reveal">Ethiopia Transport Authority — Core Engine v2.0</div>
+
+  <h1 class="hero-headline">
+    <span class="line"><span class="word">DRIVE</span></span>
+    <span class="line"><span class="word accent">TESTING</span></span>
+    <span class="line"><span class="word">REDEFINED.</span></span>
+  </h1>
+
+  <div class="hero-bottom">
+    <p class="hero-desc reveal">
+      The infrastructure behind <strong>fair, auditable, and scalable</strong> driving license examinations — from identity to outcome, fully automated.
+    </p>
+    <div class="hero-actions reveal">
+      <a href="#lifecycle" class="btn-primary">Explore the System →</a>
+      <a href="#features" class="btn-secondary">View Features</a>
+    </div>
+  </div>
+
+  <div class="hero-scroll-hint">
+    <div class="scroll-line"></div>
+    Scroll
+  </div>
+</section>
+
+<!-- MARQUEE -->
+<div class="marquee-wrap">
+  <div class="marquee-track" id="marqueeTrack">
+    <div class="marquee-item">Booking & Scheduling <span class="dot"></span></div>
+    <div class="marquee-item">Chapa Payments <span class="dot"></span></div>
+    <div class="marquee-item">Recording & Playback <span class="dot"></span></div>
+    <div class="marquee-item">Appeal Management <span class="dot"></span></div>
+    <div class="marquee-item">AI-Assisted Reports <span class="dot"></span></div>
+    <div class="marquee-item">JWT Authentication <span class="dot"></span></div>
+    <div class="marquee-item">Role-Based Access <span class="dot"></span></div>
+    <div class="marquee-item">PDF Generation <span class="dot"></span></div>
+    <div class="marquee-item">Booking & Scheduling <span class="dot"></span></div>
+    <div class="marquee-item">Chapa Payments <span class="dot"></span></div>
+    <div class="marquee-item">Recording & Playback <span class="dot"></span></div>
+    <div class="marquee-item">Appeal Management <span class="dot"></span></div>
+    <div class="marquee-item">AI-Assisted Reports <span class="dot"></span></div>
+    <div class="marquee-item">JWT Authentication <span class="dot"></span></div>
+    <div class="marquee-item">Role-Based Access <span class="dot"></span></div>
+    <div class="marquee-item">PDF Generation <span class="dot"></span></div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stat-item reveal">
+    <div class="stat-num"><span class="counter" data-target="6">0</span><span>+</span></div>
+    <div class="stat-label">User Roles Supported</div>
+  </div>
+  <div class="stat-item reveal">
+    <div class="stat-num"><span class="counter" data-target="100">0</span><span>%</span></div>
+    <div class="stat-label">Auditable Sessions</div>
+  </div>
+  <div class="stat-item reveal">
+    <div class="stat-num"><span class="counter" data-target="9">0</span></div>
+    <div class="stat-label">Booking States Tracked</div>
+  </div>
+  <div class="stat-item reveal">
+    <div class="stat-num"><span class="counter" data-target="3">0</span><span>×</span></div>
+    <div class="stat-label">Payment Retry Safety</div>
+  </div>
+</div>
+
+<!-- PROBLEM SECTION -->
+<section class="problem" id="problem">
+  <div>
+    <div class="section-label">The Problem</div>
+    <h2 class="section-title reveal">Manual Testing is Broken.</h2>
+    <p class="section-body reveal">Corruption, inconsistency, scheduling chaos — the traditional driving test pipeline is a liability. ADLTS replaces every fragile link with accountable, automated infrastructure.</p>
+  </div>
+  <div class="problem-visual reveal-right">
+    <div class="chaos-item red" style="top:5%;left:10%;transform:rotate(-2deg)">❌ Scoring Inconsistency</div>
+    <div class="chaos-item amber" style="top:18%;left:45%;transform:rotate(1.5deg)">⚠ No Audit Trail</div>
+    <div class="chaos-item muted" style="top:32%;left:5%;transform:rotate(-1deg)">Schedule Conflicts</div>
+    <div class="chaos-item red" style="top:42%;left:40%;transform:rotate(2deg)">❌ Payment Ambiguity</div>
+    <div class="chaos-item muted" style="top:55%;left:15%;transform:rotate(-1.5deg)">Manual ID Checks</div>
+    <div class="chaos-item amber" style="top:65%;left:50%;transform:rotate(1deg)">⚠ Unresolved Appeals</div>
+    <div class="chaos-item red" style="top:75%;left:8%;transform:rotate(-0.5deg)">❌ No Recordings</div>
+    <div class="chaos-item muted" style="top:82%;left:45%;transform:rotate(1.5deg)">Paper Reports</div>
+  </div>
+</section>
+
+<!-- LIFECYCLE SECTION -->
+<section class="lifecycle" id="lifecycle">
+  <div class="lifecycle-header">
+    <div>
+      <div class="section-label">How It Works</div>
+      <h2 class="section-title reveal">Six Steps.<br>Zero Gaps.</h2>
+    </div>
+    <p class="section-body reveal">Every driving test follows a state-machine lifecycle. Each transition is governed, logged, and reversible only through explicit workflows.</p>
+  </div>
+
+  <div class="lifecycle-steps">
+    <div class="step-item reveal" data-num="01">
+      <div class="step-icon">🪪</div>
+      <div class="step-name">Identity</div>
+      <div class="step-desc">OTP-verified registration, invitation-based staff onboarding, JWT sessions.</div>
+    </div>
+    <div class="step-item reveal" data-num="02">
+      <div class="step-icon">📋</div>
+      <div class="step-name">Booking</div>
+      <div class="step-desc">Candidate submits booking. Institutes verify readiness before scheduling.</div>
+    </div>
+    <div class="step-item reveal" data-num="03">
+      <div class="step-icon">🗓</div>
+      <div class="step-name">Schedule</div>
+      <div class="step-desc">Admin assigns time slot with capacity controls. Reschedule rules enforced.</div>
+    </div>
+    <div class="step-item reveal" data-num="04">
+      <div class="step-icon">💳</div>
+      <div class="step-name">Payment</div>
+      <div class="step-desc">Chapa checkout with audit trail. 3× retry max. Webhook verification.</div>
+    </div>
+    <div class="step-item reveal" data-num="05">
+      <div class="step-icon">🎥</div>
+      <div class="step-name">Testing</div>
+      <div class="step-desc">Session recorded. Score & metadata stored. MJPEG playback available.</div>
+    </div>
+    <div class="step-item reveal" data-num="06">
+      <div class="step-icon">📄</div>
+      <div class="step-name">Outcome</div>
+      <div class="step-desc">Report generated. Appeals resolved. PDF archived for compliance.</div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES GRID -->
+<section class="features" id="features">
+  <div class="features-header">
+    <div>
+      <div class="section-label">Platform Features</div>
+      <h2 class="section-title reveal">Built for Scale.<br>Built for Trust.</h2>
+    </div>
+    <p class="section-body reveal">Every module is purpose-designed for institutional accountability. Not a tool — a system of record.</p>
+  </div>
+
+  <div class="features-grid">
+    <div class="feature-card reveal">
+      <div class="feature-glow"></div>
+      <div class="feature-num">01</div>
+      <div class="feature-icon-wrap">
+        <svg class="feature-icon-svg" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="8" y="8" width="32" height="32" rx="4" stroke="rgba(0,82,204,0.4)" stroke-width="1"/>
+          <path d="M16 24h16M16 18h10M16 30h8" stroke="rgba(0,82,204,0.7)" stroke-width="1.5"/>
+          <circle cx="36" cy="14" r="4" fill="rgba(0,82,204,0.2)" stroke="rgba(0,82,204,0.5)" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="feature-title">Access Control</div>
+      <div class="feature-desc">Role- and entity-based authorization. Candidates, admins, experts, institutes, and regulators each operate in isolated permission scopes.</div>
+      <span class="feature-tag">Identity & Auth</span>
+    </div>
+
+    <div class="feature-card reveal accent-teal">
+      <div class="feature-glow"></div>
+      <div class="feature-num">02</div>
+      <div class="feature-icon-wrap">
+        <svg class="feature-icon-svg" viewBox="0 0 48 48" fill="none">
+          <rect x="6" y="12" width="36" height="26" rx="3" stroke="rgba(0,102,255,0.4)" stroke-width="1"/>
+          <path d="M14 8v8M34 8v8M6 22h36" stroke="rgba(0,102,255,0.6)" stroke-width="1.5"/>
+          <rect x="12" y="28" width="8" height="6" rx="1" fill="rgba(0,102,255,0.15)" stroke="rgba(0,102,255,0.4)" stroke-width="1"/>
+          <rect x="28" y="28" width="8" height="6" rx="1" fill="rgba(0,102,255,0.15)" stroke="rgba(0,102,255,0.4)" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="feature-title">Smart Booking</div>
+      <div class="feature-desc">End-to-end booking lifecycle with capacity controls, verification gates, and state-machine status transitions. Nothing slips through.</div>
+      <span class="feature-tag teal">Scheduling</span>
+    </div>
+
+    <div class="feature-card reveal accent-pink">
+      <div class="feature-glow"></div>
+      <div class="feature-num">03</div>
+      <div class="feature-icon-wrap">
+        <svg class="feature-icon-svg" viewBox="0 0 48 48" fill="none">
+          <path d="M24 8C15.2 8 8 15.2 8 24s7.2 16 16 16 16-7.2 16-16S32.8 8 24 8z" stroke="rgba(0,68,153,0.4)" stroke-width="1"/>
+          <path d="M24 16v8l5 5" stroke="rgba(0,68,153,0.7)" stroke-width="1.5" stroke-linecap="round"/>
+          <path d="M10 24h4M34 24h4M24 10v4M24 34v4" stroke="rgba(0,68,153,0.3)" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="feature-title">Payment Pipeline</div>
+      <div class="feature-desc">Chapa-integrated checkout with full audit trail. Controlled retry limits prevent ambiguous payment states. Webhook-verified outcomes.</div>
+      <span class="feature-tag pink">Payments</span>
+    </div>
+
+    <div class="feature-card reveal">
+      <div class="feature-glow"></div>
+      <div class="feature-num">04</div>
+      <div class="feature-icon-wrap">
+        <svg class="feature-icon-svg" viewBox="0 0 48 48" fill="none">
+          <circle cx="24" cy="24" r="14" stroke="rgba(0,82,204,0.3)" stroke-width="1"/>
+          <circle cx="24" cy="24" r="6" stroke="rgba(0,82,204,0.6)" stroke-width="1"/>
+          <path d="M24 10v4M24 34v4M10 24h4M34 24h4" stroke="rgba(0,82,204,0.35)" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="feature-title">Session Recording</div>
+      <div class="feature-desc">Frame-level recording stored in MinIO-compatible object storage. MJPEG streaming and presigned URLs for secure playback access.</div>
+      <span class="feature-tag">Evidence</span>
+    </div>
+
+    <div class="feature-card reveal accent-teal">
+      <div class="feature-glow"></div>
+      <div class="feature-num">05</div>
+      <div class="feature-icon-wrap">
+        <svg class="feature-icon-svg" viewBox="0 0 48 48" fill="none">
+          <path d="M14 38l7-10 6 8 4-6 7 8" stroke="rgba(0,102,255,0.6)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="8" y="8" width="32" height="30" rx="3" stroke="rgba(0,102,255,0.3)" stroke-width="1"/>
+          <path d="M8 16h32" stroke="rgba(0,102,255,0.2)" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="feature-title">Appeals System</div>
+      <div class="feature-desc">Time-windowed appeal submission. Expert resolution workflow with written decisions. Evidence snapshots preserved at submission time.</div>
+      <span class="feature-tag teal">Fairness</span>
+    </div>
+
+    <div class="feature-card reveal accent-pink">
+      <div class="feature-glow"></div>
+      <div class="feature-num">06</div>
+      <div class="feature-icon-wrap">
+        <svg class="feature-icon-svg" viewBox="0 0 48 48" fill="none">
+          <rect x="10" y="6" width="28" height="36" rx="3" stroke="rgba(0,68,153,0.4)" stroke-width="1"/>
+          <path d="M16 16h16M16 22h12M16 28h8M16 34h10" stroke="rgba(0,68,153,0.5)" stroke-width="1.2" stroke-linecap="round"/>
+          <circle cx="34" cy="34" r="6" fill="rgba(0,68,153,0.1)" stroke="rgba(0,68,153,0.4)" stroke-width="1"/>
+          <path d="M31 34l2 2 4-4" stroke="rgba(0,68,153,0.7)" stroke-width="1.2"/>
+        </svg>
+      </div>
+      <div class="feature-title">AI Reports</div>
+      <div class="feature-desc">Deterministic analytics as truth source. AI-generated narrative for readability. HTML rendering + PDF export. Cached for reproducibility.</div>
+      <span class="feature-tag pink">Reporting</span>
+    </div>
+  </div>
+</section>
+
+<!-- STATUS MACHINE -->
+<section class="status-section" id="statuses">
+  <div class="section-label">State Machine</div>
+  <h2 class="section-title reveal">Every Booking<br>Has a State.</h2>
+
+  <div class="status-layout">
+    <div class="status-chain" id="statusChain">
+      <div class="status-node done" data-state="drafted" onclick="showStatus(this,'DRAFTED','The initial state. Candidate has submitted a booking request. No slot has been assigned yet.', ['Edit booking details','Cancel booking','Await verification'])">
+        <div class="status-dot"></div>
+        <span class="status-name">DRAFTED</span>
+      </div>
+      <div class="status-node done" data-state="pending_verification" onclick="showStatus(this,'PENDING VERIFICATION','Booking sent to institute for candidate readiness check. Admin action required.', ['Institute reviews candidate','Admin approves verification','System notifies candidate'])">
+        <div class="status-dot"></div>
+        <span class="status-name">PENDING_VERIFICATION</span>
+      </div>
+      <div class="status-node done" data-state="verified" onclick="showStatus(this,'VERIFIED','Institute has approved. Candidate is eligible for slot assignment.', ['Admin assigns time slot','Candidate receives notification','Capacity checked'])">
+        <div class="status-dot"></div>
+        <span class="status-name">VERIFIED</span>
+      </div>
+      <div class="status-node active" data-state="scheduled" onclick="showStatus(this,'SCHEDULED','Time slot assigned. Candidate can proceed to payment or request reschedule.', ['Candidate pays via Chapa','Candidate requests reschedule','Admin reassigns slot'])">
+        <div class="status-dot"></div>
+        <span class="status-name">SCHEDULED ← current</span>
+      </div>
+      <div class="status-node" data-state="payment_pending" onclick="showStatus(this,'PAYMENT PENDING','Checkout initiated. Awaiting Chapa webhook verification.', ['Webhook confirms payment','Payment fails → retry','Session expires → retry'])">
+        <div class="status-dot"></div>
+        <span class="status-name">PAYMENT_PENDING</span>
+      </div>
+      <div class="status-node error" data-state="payment_failed" onclick="showStatus(this,'PAYMENT FAILED','Payment verification failed. Up to 3 retry attempts allowed.', ['Candidate retries payment','Max retries reached → cancel','Support intervention'])">
+        <div class="status-dot"></div>
+        <span class="status-name">PAYMENT_FAILED</span>
+      </div>
+      <div class="status-node" data-state="confirmed" onclick="showStatus(this,'CONFIRMED','Payment verified. Test session is locked in. No further rescheduling.', ['Session record created','Candidate receives confirmation','Test date is finalized'])">
+        <div class="status-dot"></div>
+        <span class="status-name">CONFIRMED</span>
+      </div>
+      <div class="status-node" data-state="archived" onclick="showStatus(this,'COMPLETED / ARCHIVED','Test conducted. Session record with score and recording created.', ['Report can be generated','Appeal window opens','Booking archived'])">
+        <div class="status-dot"></div>
+        <span class="status-name">ARCHIVED / COMPLETED</span>
+      </div>
+    </div>
+
+    <div class="status-detail" id="statusDetail">
+      <div class="status-detail-title" id="sdTitle">SCHEDULED</div>
+      <div class="status-detail-text" id="sdText">Time slot assigned. Candidate can proceed to payment or request reschedule within the allowed window.</div>
+      <div class="status-actions-list" id="sdActions">
+        <div class="action-item">Candidate pays via Chapa</div>
+        <div class="action-item">Candidate requests reschedule</div>
+        <div class="action-item">Admin reassigns slot</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST SECTION -->
+<section class="trust" id="trust">
+  <div class="section-label">Accountability</div>
+  <h2 class="section-title reveal">Trust Built In,<br>Not Bolted On.</h2>
+
+  <div class="trust-grid">
+    <div class="trust-main reveal-left">
+      <div class="trust-main-title">Defensible by Design</div>
+      <div class="trust-main-body">ADLTS is not just convenient — it's <em>credible</em>. Every decision in the system is traceable to evidence: a recording, a score, a resolution. Regulators and transport authorities can audit any test, any time, with full chain-of-custody data.</div>
+    </div>
+    <div class="trust-points-col">
+      <div class="trust-point reveal">
+        <div class="trust-point-icon">🔒</div>
+        <div class="trust-point-title">Deterministic Scoring</div>
+        <div class="trust-point-body">AI assists with narrative, never with scoring. All pass/fail decisions are algorithmic and reproducible.</div>
+      </div>
+      <div class="trust-point reveal">
+        <div class="trust-point-icon">📹</div>
+        <div class="trust-point-title">Frame-Level Evidence</div>
+        <div class="trust-point-body">Every session records frame artifacts. Presigned URLs grant authorized access without exposing storage buckets.</div>
+      </div>
+    </div>
+    <div class="trust-points-col">
+      <div class="trust-point reveal">
+        <div class="trust-point-icon">⚖️</div>
+        <div class="trust-point-title">Expert-Resolved Appeals</div>
+        <div class="trust-point-body">Appeals trigger an expert review with written resolution. If accepted, test result status updates automatically.</div>
+      </div>
+      <div class="trust-point reveal">
+        <div class="trust-point-icon">🗂</div>
+        <div class="trust-point-title">Cached Reports</div>
+        <div class="trust-point-body">Reports are deterministic and disk-cached. The same inputs always produce the same output — forever reproducible.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- REPORT SECTION -->
+<section class="report-section" id="reports">
+  <div>
+    <div class="section-label">Reporting</div>
+    <h2 class="section-title reveal">Reports That<br>Mean Something.</h2>
+    <p class="section-body reveal">ADLTS generates professional PDF reports combining deterministic analytics with AI-assisted narrative — readable by humans, defensible in court.</p>
+    <ul style="margin-top:2rem;list-style:none;display:flex;flex-direction:column;gap:0.75rem">
+      <li class="reveal" style="font-size:0.875rem;color:var(--light-text);display:flex;gap:1rem;align-items:center"><span style="color:var(--accent);font-family:var(--font-mono);font-size:0.7rem">01</span> Deterministic score analytics</li>
+      <li class="reveal" style="font-size:0.875rem;color:var(--light-text);display:flex;gap:1rem;align-items:center"><span style="color:var(--accent);font-family:var(--font-mono);font-size:0.7rem">02</span> AI-generated readable narrative</li>
+      <li class="reveal" style="font-size:0.875rem;color:var(--light-text);display:flex;gap:1rem;align-items:center"><span style="color:var(--accent);font-family:var(--font-mono);font-size:0.7rem">03</span> HTML → PDF pipeline with caching</li>
+      <li class="reveal" style="font-size:0.875rem;color:var(--light-text);display:flex;gap:1rem;align-items:center"><span style="color:var(--accent);font-family:var(--font-mono);font-size:0.7rem">04</span> Regulator-ready format</li>
+    </ul>
+  </div>
+  <div class="report-mockup reveal-right">
+    <div class="report-bar w100"></div>
+    <div class="report-bar w80"></div>
+    <div class="report-bar w60"></div>
+    <div style="margin:1.5rem 0;border-top:1px solid var(--line-color)"></div>
+    <div class="report-score-row">
+      <span class="report-score-label">OVERALL SCORE</span>
+      <span class="report-score-val">87.4</span>
+    </div>
+    <div class="report-score-row">
+      <span class="report-score-label">DECISION</span>
+      <span style="font-family:var(--font-mono);font-size:0.75rem;color:#388e3c">PASS</span>
+    </div>
+    <div class="report-score-row">
+      <span class="report-score-label">CANDIDATE ID</span>
+      <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--light-text)">#CDT-2041-ETH</span>
+    </div>
+    <div class="report-score-row">
+      <span class="report-score-label">SESSION DATE</span>
+      <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--light-text)">14 May 2026</span>
+    </div>
+    <div class="report-score-row">
+      <span class="report-score-label">INSTITUTE</span>
+      <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--light-text)">Addis Central DTC</span>
+    </div>
+    <div class="report-bar w100" style="margin-top:1.5rem"></div>
+    <div class="report-bar w80"></div>
+    <div class="report-bar w60"></div>
+    <div class="report-bar w80"></div>
+    <div class="report-status-badge">✓ PDF Generated &amp; Cached</div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <h2 class="cta-title reveal">
+    Ready to<br><span class="accent">Transform</span><br>Testing?
+  </h2>
+  <p class="cta-subtitle reveal">Request access for your institution, integrate via API, or schedule a live walkthrough of the Core Engine.</p>
+  <div class="cta-buttons reveal">
+    <a href="#" class="btn-primary">Get Institutional Access →</a>
+    <a href="#" class="btn-secondary">API Documentation</a>
+    <a href="#" class="btn-secondary">Request Demo</a>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">ADLTS</div>
+  <div class="footer-copy">© 2026 ADLTS Core Engine — Automated Driving License Testing System</div>
+  <ul class="footer-links">
+    <li><a href="#">Privacy</a></li>
+    <li><a href="#">Terms</a></li>
+    <li><a href="#">API Docs</a></li>
+  </ul>
+</footer>
+
+<script>
+  gsap.registerPlugin(ScrollTrigger);
+
+  // ─── CURSOR
+  const cursor = document.getElementById('cursor');
+  const ring = document.getElementById('cursorRing');
+  let mx = 0, my = 0, rx = 0, ry = 0;
+  document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+  function animCursor() {
+    cursor.style.left = mx + 'px';
+    cursor.style.top = my + 'px';
+    rx += (mx - rx) * 0.12;
+    ry += (my - ry) * 0.12;
+    ring.style.left = rx + 'px';
+    ring.style.top = ry + 'px';
+    requestAnimationFrame(animCursor);
+  }
+  animCursor();
+
+  // ─── HERO LINES ANIMATION
+  gsap.fromTo('.hero-headline .word', {
+    yPercent: 110, opacity: 0
+  }, {
+    yPercent: 0, opacity: 1, stagger: 0.12, duration: 1.1, ease: 'power4.out', delay: 0.3
+  });
+
+  // ─── SCROLL REVEALS
+  document.querySelectorAll('.reveal').forEach(el => {
+    gsap.fromTo(el,
+      { opacity: 0, y: 40 },
+      {
+        opacity: 1, y: 0, duration: 0.9, ease: 'power3.out',
+        scrollTrigger: { trigger: el, start: 'top 88%', toggleActions: 'play none none none' }
+      }
+    );
+  });
+
+  document.querySelectorAll('.reveal-left').forEach(el => {
+    gsap.fromTo(el,
+      { opacity: 0, x: -50 },
+      {
+        opacity: 1, x: 0, duration: 1, ease: 'power3.out',
+        scrollTrigger: { trigger: el, start: 'top 85%', toggleActions: 'play none none none' }
+      }
+    );
+  });
+
+  document.querySelectorAll('.reveal-right').forEach(el => {
+    gsap.fromTo(el,
+      { opacity: 0, x: 50 },
+      {
+        opacity: 1, x: 0, duration: 1, ease: 'power3.out',
+        scrollTrigger: { trigger: el, start: 'top 85%', toggleActions: 'play none none none' }
+      }
+    );
+  });
+
+  // ─── STAGGER LIFECYCLE STEPS
+  gsap.fromTo('.step-item',
+    { opacity: 0, y: 30 },
+    {
+      opacity: 1, y: 0, stagger: 0.1, duration: 0.7, ease: 'power2.out',
+      scrollTrigger: { trigger: '.lifecycle-steps', start: 'top 80%' }
+    }
+  );
+
+  // ─── STAGGER FEATURE CARDS
+  gsap.fromTo('.feature-card',
+    { opacity: 0, y: 35 },
+    {
+      opacity: 1, y: 0, stagger: 0.1, duration: 0.75, ease: 'power2.out',
+      scrollTrigger: { trigger: '.features-grid', start: 'top 80%' }
+    }
+  );
+
+  // ─── STATS COUNTER
+  document.querySelectorAll('.counter').forEach(counter => {
+    const target = +counter.dataset.target;
+    gsap.fromTo(counter, { innerText: 0 }, {
+      innerText: target,
+      duration: 1.5,
+      ease: 'power2.out',
+      snap: { innerText: 1 },
+      scrollTrigger: { trigger: counter, start: 'top 90%' }
+    });
+  });
+
+  // ─── CHAOS ITEMS SCATTER ANIMATION
+  gsap.fromTo('.chaos-item',
+    { opacity: 0, scale: 0.8 },
+    {
+      opacity: 0.7, scale: 1, stagger: 0.07, duration: 0.5, ease: 'back.out(1.5)',
+      scrollTrigger: { trigger: '.problem-visual', start: 'top 80%' }
+    }
+  );
+
+  // ─── HERO GRID PARALLAX
+  gsap.to('.hero-grid-bg', {
+    yPercent: -15,
+    ease: 'none',
+    scrollTrigger: { trigger: '.hero', start: 'top top', end: 'bottom top', scrub: true }
+  });
+
+  // ─── STATUS CHAIN ANIMATION
+  gsap.fromTo('.status-node',
+    { opacity: 0, x: -20 },
+    {
+      opacity: 1, x: 0, stagger: 0.08, duration: 0.5, ease: 'power2.out',
+      scrollTrigger: { trigger: '.status-chain', start: 'top 80%' }
+    }
+  );
+
+  // ─── STATUS DETAIL INTERACTION
+  function showStatus(node, title, text, actions) {
+    document.querySelectorAll('.status-node').forEach(n => {
+      n.classList.remove('active');
+      if (n.classList.contains('error') || n.classList.contains('done')) return;
+    });
+    node.classList.add('active');
+    document.getElementById('sdTitle').textContent = title;
+    document.getElementById('sdText').textContent = text;
+    const list = document.getElementById('sdActions');
+    list.innerHTML = actions.map(a => `<div class="action-item">${a}</div>`).join('');
+    gsap.fromTo('#statusDetail', { opacity: 0, x: 15 }, { opacity: 1, x: 0, duration: 0.35, ease: 'power2.out' });
+  }
+
+  // ─── REPORT MOCKUP BARS ANIMATION
+  gsap.fromTo('.report-bar',
+    { scaleX: 0, transformOrigin: 'left' },
+    {
+      scaleX: 1, stagger: 0.07, duration: 0.6, ease: 'power3.out',
+      scrollTrigger: { trigger: '.report-mockup', start: 'top 80%' }
+    }
+  );
+</script>
+
+<script>
+// ═══════════════════════════════════
+// THREE.JS — INTRO SCENE (LIGHT THEME)
+// ═══════════════════════════════════
+(function() {
+  const canvas = document.getElementById('threeCanvas');
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: false });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.setClearColor(0xf8f9fa, 1);
+
+  const scene = new THREE.Scene();
+  scene.fog = new THREE.FogExp2(0xf8f9fa, 0.035);
+
+  const W = canvas.parentElement.clientWidth;
+  const H = canvas.parentElement.clientHeight;
+  renderer.setSize(W, H);
+
+  // Camera — surveillance POV, slightly elevated looking down
+  const camera = new THREE.PerspectiveCamera(55, W / H, 0.1, 200);
+  camera.position.set(0, 14, 16);
+  camera.lookAt(0, 0, 0);
+
+  // ─── LIGHTS (adjusted for light theme)
+  const ambient = new THREE.AmbientLight(0xffffff, 1.2);
+  scene.add(ambient);
+
+  const sun = new THREE.DirectionalLight(0xffffff, 0.7);
+  sun.position.set(10, 20, 10);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048);
+  scene.add(sun);
+
+  const fillLight = new THREE.PointLight(0x0052cc, 0.8, 40);
+  fillLight.position.set(-10, 8, -5);
+  scene.add(fillLight);
+
+  const carLight = new THREE.PointLight(0x0052cc, 1.5, 12);
+  scene.add(carLight);
+
+  // ─── GROUND PLANE
+  const groundGeo = new THREE.PlaneGeometry(80, 80);
+  const groundMat = new THREE.MeshStandardMaterial({ color: 0xf0f2f5, roughness: 0.9 });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  ground.receiveShadow = true;
+  scene.add(ground);
+
+  // ─── TEST TRACK
+  function makeTrackSegment(path, width, color) {
+    const geo = new THREE.TubeGeometry(path, 80, width / 2, 6, false);
+    const mat = new THREE.MeshStandardMaterial({ color, roughness: 0.7, metalness: 0.1 });
+    return new THREE.Mesh(geo, mat);
+  }
+
+  // Build oval track path
+  const trackPoints = [];
+  const TRACK_R_X = 12, TRACK_R_Z = 8;
+  const NUM_TRACK_PTS = 120;
+  for (let i = 0; i <= NUM_TRACK_PTS; i++) {
+    const t = (i / NUM_TRACK_PTS) * Math.PI * 2;
+    trackPoints.push(new THREE.Vector3(
+      Math.cos(t) * TRACK_R_X,
+      0.01,
+      Math.sin(t) * TRACK_R_Z
+    ));
+  }
+  const trackCurve = new THREE.CatmullRomCurve3(trackPoints, true);
+
+  // Road surface
+  const roadGeo = new THREE.TubeGeometry(trackCurve, 200, 1.6, 8, true);
+  const roadMat = new THREE.MeshStandardMaterial({ color: 0xe8e8e8, roughness: 0.85 });
+  const road = new THREE.Mesh(roadGeo, roadMat);
+  road.receiveShadow = true;
+  scene.add(road);
+
+  // Road edge lines
+  const edgeGeo1 = new THREE.TubeGeometry(trackCurve, 200, 1.68, 4, true);
+  const edgeMat = new THREE.MeshBasicMaterial({ color: 0xcccccc, wireframe: false, side: THREE.BackSide });
+  scene.add(new THREE.Mesh(edgeGeo1, edgeMat));
+
+  // Center dashed line
+  const dashMat = new THREE.MeshBasicMaterial({ color: 0xb3d9ff });
+  for (let i = 0; i < 40; i++) {
+    const t0 = i / 40;
+    const t1 = (i + 0.4) / 40;
+    const dashPts = [];
+    for (let j = 0; j <= 10; j++) {
+      const t = t0 + (t1 - t0) * j / 10;
+      const p = trackCurve.getPointAt(t);
+      dashPts.push(new THREE.Vector3(p.x, 0.05, p.z));
+    }
+    const dashCurve = new THREE.CatmullRomCurve3(dashPts);
+    const dashGeo = new THREE.TubeGeometry(dashCurve, 8, 0.06, 4, false);
+    scene.add(new THREE.Mesh(dashGeo, dashMat));
+  }
+
+  // ─── CONES
+  const coneMat = new THREE.MeshStandardMaterial({ color: 0xff6600, roughness: 0.6 });
+  const conePositions = [0.05, 0.15, 0.28, 0.38, 0.52, 0.65, 0.78, 0.91];
+  const cones = [];
+  conePositions.forEach(t => {
+    const p = trackCurve.getPointAt(t);
+    const tangent = trackCurve.getTangentAt(t);
+    const side = new THREE.Vector3(-tangent.z, 0, tangent.x).normalize();
+    [-1.2, 1.2].forEach(offset => {
+      const coneGeo = new THREE.ConeGeometry(0.18, 0.55, 6);
+      const cone = new THREE.Mesh(coneGeo, coneMat);
+      cone.position.set(p.x + side.x * offset, 0.275, p.z + side.z * offset);
+      cone.castShadow = true;
+      scene.add(cone);
+      cones.push(cone);
+    });
+  });
+
+  // ─── CHECKERED START/FINISH LINE
+  const startP = trackCurve.getPointAt(0);
+  const startT = trackCurve.getTangentAt(0);
+  const startSide = new THREE.Vector3(-startT.z, 0, startT.x).normalize();
+  for (let i = 0; i < 8; i++) {
+    for (let j = 0; j < 2; j++) {
+      const checker = new THREE.Mesh(
+        new THREE.BoxGeometry(0.4, 0.01, 0.4),
+        new THREE.MeshBasicMaterial({ color: (i + j) % 2 === 0 ? 0xffffff : 0x000000 })
+      );
+      checker.position.set(
+        startP.x + startSide.x * (i * 0.4 - 1.4) + startT.x * j * 0.4,
+        0.02,
+        startP.z + startSide.z * (i * 0.4 - 1.4) + startT.z * j * 0.4
+      );
+      scene.add(checker);
+    }
+  }
+
+  // ─── CAR
+  const carGroup = new THREE.Group();
+
+  // Body
+  const bodyGeo = new THREE.BoxGeometry(1.6, 0.45, 0.9);
+  const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0052cc, roughness: 0.3, metalness: 0.6 });
+  const body = new THREE.Mesh(bodyGeo, bodyMat);
+  body.position.y = 0.22;
+  body.castShadow = true;
+  carGroup.add(body);
+
+  // Cabin
+  const cabinGeo = new THREE.BoxGeometry(0.9, 0.32, 0.8);
+  const cabinMat = new THREE.MeshStandardMaterial({ color: 0x003d99, roughness: 0.2, metalness: 0.8 });
+  const cabin = new THREE.Mesh(cabinGeo, cabinMat);
+  cabin.position.set(-0.1, 0.57, 0);
+  cabin.castShadow = true;
+  carGroup.add(cabin);
+
+  // Wheels
+  const wheelGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.15, 16);
+  const wheelMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.9 });
+  const rimMat = new THREE.MeshStandardMaterial({ color: 0x999999, metalness: 0.8, roughness: 0.2 });
+  [[-0.55, -0.4], [-0.55, 0.4], [0.55, -0.4], [0.55, 0.4]].forEach(([dx, dz]) => {
+    const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+    wheel.rotation.z = Math.PI / 2;
+    wheel.position.set(dx, 0.06, dz);
+    carGroup.add(wheel);
+    const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.16, 8), rimMat);
+    rim.rotation.z = Math.PI / 2;
+    rim.position.set(dx, 0.06, dz);
+    carGroup.add(rim);
+  });
+
+  // Headlights
+  const headlightMat = new THREE.MeshBasicMaterial({ color: 0xffff99 });
+  [-0.25, 0.25].forEach(z => {
+    const hl = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 0.06), headlightMat);
+    hl.position.set(0.82, 0.25, z);
+    carGroup.add(hl);
+  });
+
+  scene.add(carGroup);
+
+  // ─── CAMERA TOWER
+  const towerGroup = new THREE.Group();
+  towerGroup.position.set(0, 0, -10);
+
+  const pole = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.08, 0.1, 6, 8),
+    new THREE.MeshStandardMaterial({ color: 0x999999, roughness: 0.7 })
+  );
+  pole.position.y = 3;
+  pole.castShadow = true;
+  towerGroup.add(pole);
+
+  const arm = new THREE.Mesh(
+    new THREE.BoxGeometry(1.5, 0.08, 0.08),
+    new THREE.MeshStandardMaterial({ color: 0x999999 })
+  );
+  arm.position.set(0.75, 6.1, 0);
+  towerGroup.add(arm);
+
+  // Camera housing
+  const camHousing = new THREE.Group();
+  const camBody2 = new THREE.Mesh(
+    new THREE.BoxGeometry(0.4, 0.25, 0.25),
+    new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.4, metalness: 0.6 })
+  );
+  const camLens = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.08, 0.1, 0.2, 12),
+    new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.1, metalness: 0.9 })
+  );
+  camLens.rotation.z = Math.PI / 2;
+  camLens.position.x = 0.28;
+  const camLensGlass = new THREE.Mesh(
+    new THREE.CircleGeometry(0.07, 12),
+    new THREE.MeshBasicMaterial({ color: 0x0066ff, opacity: 0.6, transparent: true })
+  );
+  camLensGlass.rotation.y = Math.PI / 2;
+  camLensGlass.position.x = 0.38;
+  camHousing.add(camBody2);
+  camHousing.add(camLens);
+  camHousing.add(camLensGlass);
+  camHousing.position.set(1.5, 6.05, 0);
+  camHousing.rotation.y = -0.3;
+  towerGroup.add(camHousing);
+
+  // Red recording light
+  const recLight = new THREE.PointLight(0xff2244, 3, 3);
+  recLight.position.set(1.5, 6.2, 0);
+  towerGroup.add(recLight);
+
+  const recDot = new THREE.Mesh(
+    new THREE.SphereGeometry(0.06, 8, 8),
+    new THREE.MeshBasicMaterial({ color: 0xff2244 })
+  );
+  recDot.position.set(1.5, 6.2, 0);
+  towerGroup.add(recDot);
+
+  scene.add(towerGroup);
+
+  // ─── SURVEILLANCE LIGHT CONE
+  const coneLight = new THREE.SpotLight(0x0066ff, 0.6, 30, Math.PI / 8, 0.5);
+  coneLight.position.set(1.5, 6.05, -10);
+  coneLight.target.position.set(0, 0, 0);
+  scene.add(coneLight);
+  scene.add(coneLight.target);
+
+  // ─── GRID MARKERS
+  const markerMat = new THREE.MeshBasicMaterial({ color: 0xe0e0e0 });
+  for (let x = -20; x <= 20; x += 4) {
+    for (let z = -15; z <= 15; z += 4) {
+      const dist = Math.sqrt(x * x + z * z);
+      if (dist < 6 || dist > 18) continue;
+      const m = new THREE.Mesh(new THREE.PlaneGeometry(0.15, 0.15), markerMat);
+      m.rotation.x = -Math.PI / 2;
+      m.position.set(x, 0.005, z);
+      scene.add(m);
+    }
+  }
+
+  // ─── STARS / PARTICLES
+  const starGeo = new THREE.BufferGeometry();
+  const starCount = 600;
+  const starPos = new Float32Array(starCount * 3);
+  for (let i = 0; i < starCount; i++) {
+    starPos[i * 3] = (Math.random() - 0.5) * 150;
+    starPos[i * 3 + 1] = Math.random() * 50 + 5;
+    starPos[i * 3 + 2] = (Math.random() - 0.5) * 150;
+  }
+  starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+  const starMat = new THREE.PointsMaterial({ color: 0xdddddd, size: 0.08 });
+  scene.add(new THREE.Points(starGeo, starMat));
+
+  // ─── RESIZE
+  window.addEventListener('resize', () => {
+    const w = canvas.parentElement.clientWidth;
+    const h = canvas.parentElement.clientHeight;
+    renderer.setSize(w, h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  });
+
+  // ─── CAR ANIMATION
+  let carT = 0;
+  const CAR_SPEED = 0.0008;
+  let recLightTime = 0;
+
+  // ─── ANIMATE
+  let frame = 0;
+  function animate() {
+    requestAnimationFrame(animate);
+    frame++;
+
+    // Move car
+    carT = (carT + CAR_SPEED) % 1;
+    const carPos = trackCurve.getPointAt(carT);
+    const carTangent = trackCurve.getTangentAt(carT);
+    carGroup.position.set(carPos.x, 0.06, carPos.z);
+    carGroup.rotation.y = Math.atan2(carTangent.x, carTangent.z);
+
+    carGroup.rotation.z = Math.sin(frame * 0.05) * 0.03;
+
+    // Wheel spin
+    carGroup.children.forEach((c, i) => {
+      if (i >= 2 && i <= 5) c.rotation.x += 0.18;
+    });
+
+    // Car glow
+    carLight.position.copy(carGroup.position).add(new THREE.Vector3(0, 1, 0));
+
+    // Camera tracking
+    const carAngle = Math.atan2(carPos.x - 0, carPos.z - (-10));
+    camHousing.rotation.y = carAngle - 0.3;
+
+    // Recording light blink
+    recLightTime += 0.05;
+    recLight.intensity = 2 + Math.sin(recLightTime * 3) * 1.5;
+
+    // Scan cone tracks car
+    coneLight.target.position.lerp(carGroup.position, 0.04);
+
+    // Camera slowly orbit
+    const camAngle2 = frame * 0.0008;
+    camera.position.x = Math.sin(camAngle2) * 2;
+    camera.position.z = 16 + Math.cos(camAngle2) * 2;
+    camera.lookAt(0, 1, 0);
+
+    // Cone pulsate
+    cones.forEach((c, i) => {
+      c.position.y = 0.275 + Math.sin(frame * 0.03 + i) * 0.02;
+    });
+
+    renderer.render(scene, camera);
+  }
+  animate();
+
+  // ─── INTRO HUD FADE IN
+  setTimeout(() => {
+    gsap.to('#introEyebrow', { opacity: 1, y: 0, duration: 0.8, ease: 'power3.out' });
+    gsap.to('#introTitle', { opacity: 1, y: 0, duration: 1, ease: 'power3.out', delay: 0.3 });
+    gsap.to('#introSub', { opacity: 1, duration: 0.8, delay: 0.8 });
+    gsap.to('#scrollCue', { opacity: 1, duration: 0.8, delay: 1.2 });
+  }, 400);
+
+})();
+</script>
+</body>
+</html>

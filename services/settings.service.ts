@@ -1,128 +1,64 @@
-export interface CandidateSettings {
-  language: "en" | "am";
-  theme: "light" | "dark" | "system";
-  notifications: {
-    email: boolean;
-    sms: boolean;
-    examReminders: boolean;
+import {
+  AppSettings as SharedSettings,
+  usePreferencesStore,
+} from "@/store/preferencesStore";
+
+export type CandidateSettings = SharedSettings;
+export type InstituteSettings = SharedSettings;
+
+export async function getAppSettings(): Promise<SharedSettings> {
+  await new Promise((resolve) => setTimeout(resolve, 150));
+  const state = usePreferencesStore.getState();
+  return {
+    language: state.language,
+    theme: state.theme,
+    notifications: state.notifications,
   };
 }
 
-const DEFAULT_SETTINGS: CandidateSettings = {
-  language: "en",
-  theme: "system",
-  notifications: {
-    email: true,
-    sms: false,
-    examReminders: true,
-  },
-};
+export async function updateAppSettings(
+  settings: Partial<SharedSettings>
+): Promise<SharedSettings> {
+  await new Promise((resolve) => setTimeout(resolve, 250));
+  const current = usePreferencesStore.getState();
 
-const SETTINGS_STORAGE_KEY = "adlts-candidate-settings";
+  if (settings.language) {
+    current.setLanguage(settings.language);
+  }
 
-function emitLanguagePreferenceChange() {
-  if (typeof window === "undefined") return;
-  window.dispatchEvent(new Event("adlts-lang-change"));
+  if (settings.theme) {
+    current.setTheme(settings.theme);
+  }
+
+  if (settings.notifications) {
+    current.setNotifications(settings.notifications);
+  }
+
+  const updated = usePreferencesStore.getState();
+
+  return {
+    language: updated.language,
+    theme: updated.theme,
+    notifications: updated.notifications,
+  };
 }
 
 export async function getCandidateSettings(): Promise<CandidateSettings> {
-  // Mock API delay
-  await new Promise(resolve => setTimeout(resolve, 300));
-  
-  if (typeof window === "undefined") return DEFAULT_SETTINGS;
-
-  try {
-    const raw = localStorage.getItem(SETTINGS_STORAGE_KEY);
-    if (!raw) return DEFAULT_SETTINGS;
-    
-    const parsed = JSON.parse(raw);
-    return { ...DEFAULT_SETTINGS, ...parsed };
-  } catch {
-    return DEFAULT_SETTINGS;
-  }
+  return getAppSettings();
 }
 
-export async function updateCandidateSettings(settings: Partial<CandidateSettings>): Promise<CandidateSettings> {
-  // Mock API delay
-  await new Promise(resolve => setTimeout(resolve, 500));
-
-  const current = await getCandidateSettings();
-  const updated = {
-    ...current,
-    ...settings,
-    notifications: {
-      ...current.notifications,
-      ...(settings.notifications || {})
-    }
-  };
-
-  if (typeof window !== "undefined") {
-    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(updated));
-    if (settings.language && settings.language !== current.language) {
-      emitLanguagePreferenceChange();
-    }
-  }
-
-  return updated;
+export async function updateCandidateSettings(
+  settings: Partial<CandidateSettings>
+): Promise<CandidateSettings> {
+  return updateAppSettings(settings);
 }
-
-export interface InstituteSettings {
-  language: "en" | "am";
-  theme: "light" | "dark" | "system";
-  notifications: {
-    bookingUpdates: boolean;
-    examResults: boolean;
-    institutionMessages: boolean;
-  };
-}
-
-const DEFAULT_INSTITUTE_SETTINGS: InstituteSettings = {
-  language: "en",
-  theme: "system",
-  notifications: {
-    bookingUpdates: true,
-    examResults: true,
-    institutionMessages: true,
-  },
-};
-
-const INSTITUTE_SETTINGS_STORAGE_KEY = "adlts-institute-settings";
 
 export async function getInstituteSettings(): Promise<InstituteSettings> {
-  await new Promise(resolve => setTimeout(resolve, 300));
-  
-  if (typeof window === "undefined") return DEFAULT_INSTITUTE_SETTINGS;
-
-  try {
-    const raw = localStorage.getItem(INSTITUTE_SETTINGS_STORAGE_KEY);
-    if (!raw) return DEFAULT_INSTITUTE_SETTINGS;
-    
-    const parsed = JSON.parse(raw);
-    return { ...DEFAULT_INSTITUTE_SETTINGS, ...parsed };
-  } catch {
-    return DEFAULT_INSTITUTE_SETTINGS;
-  }
+  return getAppSettings();
 }
 
-export async function updateInstituteSettings(settings: Partial<InstituteSettings>): Promise<InstituteSettings> {
-  await new Promise(resolve => setTimeout(resolve, 500));
-
-  const current = await getInstituteSettings();
-  const updated = {
-    ...current,
-    ...settings,
-    notifications: {
-      ...current.notifications,
-      ...(settings.notifications || {})
-    }
-  };
-
-  if (typeof window !== "undefined") {
-    localStorage.setItem(INSTITUTE_SETTINGS_STORAGE_KEY, JSON.stringify(updated));
-    if (settings.language && settings.language !== current.language) {
-      emitLanguagePreferenceChange();
-    }
-  }
-
-  return updated;
+export async function updateInstituteSettings(
+  settings: Partial<InstituteSettings>
+): Promise<InstituteSettings> {
+  return updateAppSettings(settings);
 }

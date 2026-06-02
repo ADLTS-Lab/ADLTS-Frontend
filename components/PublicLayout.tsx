@@ -1,13 +1,12 @@
 "use client";
 
-import React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { LogOut } from "lucide-react";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import { logout as logoutService } from "@/services/auth.service";
 import { useI18n } from "@/i18n/useI18n";
 import { getHomeRouteForRole } from "@/config/routes";
+import UserMenu from "@/components/UserMenu";
 
 type PublicLayoutProps = {
   children: React.ReactNode;
@@ -26,91 +25,64 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
   const showAuthed = hasHydrated && isAuthenticated && !!user;
 
   const dashboardHref = getHomeRouteForRole(user?.role);
+  const rolePrefix = user?.role ? `/${user.role.replace("_", "-")}` : "";
+  const profileHref = `${rolePrefix}/profile`;
+  const settingsHref = `${rolePrefix}/settings`;
 
   const displayName =
     user?.name || `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || user?.email;
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="z-40 w-full border-b border-slate-200 bg-white">
-        <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6">
-          <div className="flex items-center gap-2 font-semibold text-blue-900">
+      <header className="w-full bg-white/90 backdrop-blur-sm border-b border-slate-100 z-40">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3 font-bold text-blue-900">
             <Link href="/" className="flex items-center gap-2">
-              <span className="text-xl leading-none">🏛️</span>
+              <span className="text-2xl">🏛️</span>
               <span className="hidden sm:inline">ADLTS</span>
             </Link>
           </div>
 
           {!showAuthed ? (
-            <nav className="hidden items-center gap-1 md:flex">
-              <Link
-                href="/"
-                className="rounded-md px-3 py-1.5 text-sm text-slate-600 transition-colors hover:bg-slate-50 hover:text-blue-900"
-              >
+            <nav className="hidden md:flex items-center gap-6 text-sm text-slate-600">
+              <Link href="/" className="hover:text-blue-700">
                 {t("home")}
               </Link>
-              <Link
-                href="/guidelines"
-                className="rounded-md px-3 py-1.5 text-sm text-slate-600 transition-colors hover:bg-slate-50 hover:text-blue-900"
-              >
+              <Link href="/guidelines" className="hover:text-blue-700">
                 {t("guidelines")}
               </Link>
-              <Link
-                href="/about"
-                className="rounded-md px-3 py-1.5 text-sm text-slate-600 transition-colors hover:bg-slate-50 hover:text-blue-900"
-              >
+              <Link href="/about" className="hover:text-blue-700">
                 {t("aboutUs")}
               </Link>
-              <Link
-                href="/login"
-                className="rounded-md px-3 py-1.5 text-sm font-medium text-blue-900 transition-colors hover:bg-slate-50"
-              >
+              <Link href="/login" className="hover:text-blue-700 font-semibold">
                 {t("login")}
               </Link>
             </nav>
           ) : (
-            <div className="hidden items-center md:flex">
-              <Link
-                href={dashboardHref}
-                className="rounded-md px-3 py-1.5 text-sm font-medium text-blue-900 transition-colors hover:bg-slate-50"
-              >
+            <div className="hidden md:flex items-center gap-6 text-sm text-slate-600">
+              <Link href={dashboardHref} className="hover:text-blue-700 font-semibold">
                 {t("dashboard")}
               </Link>
             </div>
           )}
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-4">
             <button
               onClick={() => setLang(lang === "en" ? "am" : "en")}
-              className="rounded-md border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-medium text-slate-700 transition-colors hover:bg-slate-50 sm:text-sm"
+              className="flex items-center gap-2 bg-white border border-slate-200 px-2.5 py-1 rounded-lg text-slate-800 hover:bg-slate-50 transition text-xs md:text-sm font-semibold"
               aria-label="Toggle language"
             >
               {lang === "en" ? "አማ" : "EN"}
             </button>
             {showAuthed ? (
-              <div className="flex items-center gap-2">
-                <div className="hidden items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1.5 sm:flex">
-                  <span className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-900 text-xs font-semibold text-white">
-                    {(displayName || "U").charAt(0).toUpperCase()}
-                  </span>
-                  <div className="leading-tight">
-                    <div className="text-xs font-medium text-slate-800">{displayName}</div>
-                    <div className="text-[10px] capitalize text-slate-500">{user?.role?.replace("_", " ") || "user"}</div>
-                  </div>
-                </div>
-                <button
-                  onClick={handleLogout}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-blue-900 px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-800"
-                >
-                  <LogOut size={15} />
-                  <span className="hidden sm:inline">{t("logout")}</span>
-                </button>
-              </div>
+              <UserMenu
+                displayName={displayName || "User"}
+                profileHref={profileHref}
+                settingsHref={settingsHref}
+                onSignOut={handleLogout}
+              />
             ) : (
-              <Link
-                href="/login"
-                className="rounded-lg bg-blue-900 px-3.5 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-800"
-              >
+              <Link href="/login" className="bg-blue-900 text-white px-4 py-2 rounded-lg hover:bg-blue-800 transition">
                 {t("login")}
               </Link>
             )}
@@ -118,23 +90,23 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
         </div>
       </header>
 
-      <div className="flex flex-1 flex-col bg-white">
-        <main className="min-w-0 flex-1">
-          <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 md:py-10">{children}</div>
+      <div className="flex flex-1 bg-white">
+        <main className="flex-1 min-w-0">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 md:py-10">{children}</div>
         </main>
       </div>
 
-      <footer className="mt-auto border-t border-slate-200 bg-slate-50">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 py-8 text-sm text-slate-500 sm:flex-row sm:px-6">
+      <footer className="bg-slate-50 border-t mt-auto">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 text-sm text-slate-500 flex flex-col md:flex-row justify-between items-center">
           <div>© 2024 ADLTS Ethiopia. All rights reserved.</div>
-          <div className="flex flex-wrap justify-center gap-x-5 gap-y-1">
-            <Link href="/about" className="transition-colors hover:text-blue-800">
+          <div className="flex gap-4 mt-4 md:mt-0">
+            <Link href="/about" className="hover:text-blue-700">
               {t("about")}
             </Link>
-            <Link href="/contact" className="transition-colors hover:text-blue-800">
+            <Link href="/contact" className="hover:text-blue-700">
               {t("contact")}
             </Link>
-            <Link href="/privacy-policy" className="transition-colors hover:text-blue-800">
+            <Link href="/privacy-policy" className="hover:text-blue-700">
               {t("privacy")}
             </Link>
           </div>
