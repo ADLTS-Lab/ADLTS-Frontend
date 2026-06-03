@@ -22,7 +22,7 @@ const storedData = [
   ["Booking data", "Institution, license category, blood type, preferred date, preferred session, notes, candidate details, status, and timestamps."],
   ["Payment data", "Booking ID, amount, currency, provider, provider reference, checkout URL when returned, status, metadata, and timestamps."],
   ["Exam data", "Exam ID, date, type, score, result, center, performance breakdown, notes, and result visibility."],
-  ["Operational data", "Device status, active exam status, reports, staff invitations, institution accounts, audit logs, review queues, compliance alerts, and notifications."],
+  ["Operational data", "Device status, active exam status, reports, staff invitations, institution accounts, review queues, and compliance planning data."],
 ];
 
 const dataUses = [
@@ -33,19 +33,18 @@ const dataUses = [
   "Show exam history and result details.",
   "Help administrators monitor operational readiness.",
   "Help experts review flagged cases.",
-  "Help transport authorities monitor compliance.",
-  "Help super admins govern institutions and audit activity.",
-  "Send notifications and status updates.",
+  "Keep transport authority profile access available while authority workflows remain future scope.",
+  "Help super admins govern institutions, candidates, experts, invitations, and reports.",
   "Support troubleshooting and security review.",
 ];
 
 const roleAccess = [
-  ["Candidate", "Own profile, own bookings, own payments, own exams, own notifications and settings."],
-  ["Institute", "Booking requests assigned to the institute, candidate details needed for review, institute profile, and related notifications."],
-  ["Admin", "Operational device data, active exam monitor, candidates, invitations, reports, and notifications."],
+  ["Candidate", "Own profile, own bookings, own payments, own exams, and settings."],
+  ["Institute", "Booking requests assigned to the institute, candidate details needed for review, institute profile, and reports."],
+  ["Admin", "Operational device data, active exam monitor, candidates, invitations, and reports."],
   ["Expert", "Flagged review cases and profile/settings data for the expert account."],
-  ["Super admin", "System-level metrics, institution accounts, audit logs, invitations, profile, notifications, and settings."],
-  ["Transport authority", "Regional analytics, compliance alerts, profile, notifications, and settings."],
+  ["Super admin", "System-level metrics, institution accounts, candidates, experts, invitations, reports, profile, and settings."],
+  ["Transport authority", "Profile and settings until backend authority workflows are added."],
 ];
 
 const securityPractices = [
@@ -56,7 +55,7 @@ const securityPractices = [
   "Password changes require current and new password fields.",
   "Payment actions are tied to a booking ID.",
   "Result visibility can be restricted while under review.",
-  "Audit logs support oversight of system events.",
+  "Role-based access supports oversight of sensitive portal workflows.",
 ];
 
 const userResponsibilities = [

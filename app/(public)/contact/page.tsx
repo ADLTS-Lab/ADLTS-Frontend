@@ -64,7 +64,7 @@ const issueTypes = [
   {
     icon: MonitorCog,
     title: "Operational support",
-    body: "Admin device data, active exam monitor, reports, invitations, compliance alerts, or audit visibility.",
+    body: "Admin device data, active exam monitor, reports, invitations, or role-supported operational visibility.",
   },
 ];
 

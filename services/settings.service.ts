@@ -12,7 +12,6 @@ export async function getAppSettings(): Promise<SharedSettings> {
   return {
     language: state.language,
     theme: state.theme,
-    notifications: state.notifications,
   };
 }
 
@@ -30,16 +29,11 @@ export async function updateAppSettings(
     current.setTheme(settings.theme);
   }
 
-  if (settings.notifications) {
-    current.setNotifications(settings.notifications);
-  }
-
   const updated = usePreferencesStore.getState();
 
   return {
     language: updated.language,
     theme: updated.theme,
-    notifications: updated.notifications,
   };
 }
 

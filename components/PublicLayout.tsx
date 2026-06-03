@@ -180,7 +180,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
             <div>
               <div className="font-mono text-sm font-bold text-[var(--surface)]">ADLTS</div>
               <p className="mt-3 max-w-[15rem] text-sm leading-6 text-[var(--text-tertiary)]">
-                Automated Driving License Testing System. Official digital workflow for candidate registration, booking, institution review, payment, examination, results, and oversight.
+                Automated Driving License Testing System. Candidate registration, booking, payment, examination, and result access in one digital workflow.
               </p>
             </div>
 
@@ -195,21 +195,21 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
                 ],
               },
               {
-                heading: "Institutions",
+                heading: "Staff Access",
                 links: [
-                  { label: "Institute login", href: "/login" },
-                  { label: "Admin login", href: "/login" },
-                  { label: "Request access", href: "/contact" },
-                  { label: "Review guidelines", href: "/guidelines" },
+                  { label: "Staff login", href: "/login" },
+                  { label: "Institution support", href: "/contact" },
+                  { label: "Access help", href: "/contact" },
+                  { label: "Candidate guidelines", href: "/guidelines" },
                 ],
               },
               {
-                heading: "Oversight",
+                heading: "Support",
                 links: [
-                  { label: "Expert review", href: "/login" },
-                  { label: "Transport authority", href: "/login" },
-                  { label: "Super admin", href: "/login" },
-                  { label: "Compliance support", href: "/contact" },
+                  { label: "Booking help", href: "/contact" },
+                  { label: "Payment help", href: "/contact" },
+                  { label: "Result help", href: "/contact" },
+                  { label: "Contact support", href: "/contact" },
                 ],
               },
               {
