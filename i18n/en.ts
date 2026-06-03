@@ -11,6 +11,8 @@ const en = {
   adminPortal: 'Admin Portal',
   dashboard: 'Dashboard',
   activeExams: 'Active Exams',
+  testPlans: 'Test Plans',
+  slots: 'Slots',
   candidates: 'Candidates',
   institutions: 'Institutions',
   invitations: 'Invitations',

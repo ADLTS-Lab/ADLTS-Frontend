@@ -10,6 +10,7 @@ import {
   FileText,
   Mail,
   Building2,
+  ClipboardList,
   ScrollText,
   Settings,
   User as UserIcon,
@@ -39,6 +40,8 @@ export const CANDIDATE_NAV: NavItem[] = [
 export const ADMIN_NAV: NavItem[] = [
   { href: '/admin/devices', labelKey: 'dashboard', icon: Laptop },
   { href: '/admin/active-exams', labelKey: 'activeExams', icon: Activity },
+  { href: '/admin/test-plans', labelKey: 'testPlans', icon: ClipboardList },
+  { href: '/admin/slots', labelKey: 'slots', icon: Calendar },
   { href: '/admin/candidates', labelKey: 'candidates', icon: Users },
   { href: '/admin/invitations', labelKey: 'invitations', icon: Mail },
   { href: '/admin/notifications', labelKey: 'notifications', icon: Bell },

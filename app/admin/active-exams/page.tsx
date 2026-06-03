@@ -6,6 +6,7 @@ import { listActiveExamsSafe, type ActiveExam } from "@/services/exams.service";
 import {
   Alert,
   Button,
+  ButtonLink,
   Card,
   CardHeader,
   EmptyState,
@@ -111,6 +112,9 @@ export default function AdminActiveExamsPage() {
                 <Metric label="Live score" value={`${exam.liveScore}%`} />
                 <Metric label="Violations" value={exam.violations.toString()} />
               </div>
+              <ButtonLink href={`/admin/active-exams/${encodeURIComponent(exam.id)}`} variant="outline" size="sm" fullWidth>
+                Open monitor
+              </ButtonLink>
             </Card>
           ))}
         </div>

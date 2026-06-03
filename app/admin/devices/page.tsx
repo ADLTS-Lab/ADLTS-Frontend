@@ -2,14 +2,11 @@
 
 import { type ReactNode, useCallback, useEffect, useState } from "react";
 import {
-  AlertTriangle,
   CalendarClock,
   Megaphone,
-  Power,
   RefreshCcw,
   Settings,
   Thermometer,
-  Ticket,
   Wifi,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
@@ -17,6 +14,7 @@ import { listDevicesSafe, type DeviceRecord, type DeviceSummary } from "@/servic
 import {
   Alert,
   Button,
+  ButtonLink,
   Card,
   CardHeader,
   EmptyState,
@@ -91,10 +89,10 @@ export default function AdminDeviceDashboard() {
               <RefreshCcw size={16} />
               Refresh
             </Button>
-            <Button variant="outline" size="sm">
+            <ButtonLink href="/admin/devices/new" variant="outline" size="sm">
               <Megaphone size={16} />
               Register device
-            </Button>
+            </ButtonLink>
           </div>
         }
       />
@@ -166,6 +164,7 @@ function SummaryCard({
 }
 
 function DeviceNode({
+  id,
   type,
   name,
   location,
@@ -203,31 +202,10 @@ function DeviceNode({
         />
       </div>
 
-      <div className="flex gap-2">
-        {isOffline ? (
-          <>
-            <Button variant="primary" size="sm" className="flex-1">
-              <Power size={12} />
-              Wake remote
-            </Button>
-            <Button variant="secondary" size="sm" className="flex-1">
-              <Ticket size={12} />
-              Ticket
-            </Button>
-          </>
-        ) : (
-          <>
-            <Button variant="secondary" size="sm" className="flex-1">
-              <Settings size={12} />
-              Configure
-            </Button>
-            <Button variant="danger" size="sm" className="flex-1">
-              <AlertTriangle size={12} />
-              Emergency stop
-            </Button>
-          </>
-        )}
-      </div>
+      <ButtonLink href={id ? `/admin/devices/${encodeURIComponent(id)}` : "/admin/devices"} variant={isOffline ? "outline" : "secondary"} size="sm" fullWidth>
+        <Settings size={12} />
+        Open device detail
+      </ButtonLink>
     </Card>
   );
 }

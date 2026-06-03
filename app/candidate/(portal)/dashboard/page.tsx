@@ -314,12 +314,15 @@ export default function CandidateDashboard() {
 
       <Card padding="md">
         <CardHeader title="Quick actions" description="Use these links to move between major steps quickly." />
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <ButtonLink href="/candidate/booking" variant="outline" className="justify-start">
             View booking status
           </ButtonLink>
           <ButtonLink href="/candidate/payments" variant="outline" className="justify-start">
             Pay now
+          </ButtonLink>
+          <ButtonLink href="/candidate/exams/check-in" variant="outline" className="justify-start">
+            Exam check-in
           </ButtonLink>
           <ButtonLink href="/candidate/exams" variant="outline" className="justify-start">
             View exam results
@@ -380,9 +383,9 @@ function getPrimaryNextAction(status?: BookingStatus | null, paymentSuccessful =
     case "Scheduled":
       return {
         label: "Exam scheduled",
-        description: "Your exam is scheduled. Review your booking details and follow instructions from your institute or test center.",
-        buttonLabel: "View booking status",
-        href: "/candidate/booking",
+        description: "Your exam is scheduled. Use check-in when the assigned test vehicle is ready.",
+        buttonLabel: "Start check-in",
+        href: "/candidate/exams/check-in",
       };
     case "Completed":
       return {

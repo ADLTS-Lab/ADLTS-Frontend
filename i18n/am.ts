@@ -11,6 +11,8 @@ const am = {
   adminPortal: 'የአስተዳዳሪ ፖርታል',
   dashboard: 'ዳሽቦርድ',
   activeExams: 'እየተካሄዱ ፈተናዎች',
+  testPlans: 'የፈተና እቅዶች',
+  slots: 'የፈተና ጊዜዎች',
   candidates: 'እጩዎች',
   institutions: 'ተቋማት',
   invitations: 'ግብዣዎች',

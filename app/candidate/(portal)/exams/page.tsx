@@ -93,9 +93,14 @@ export default function CandidateExamHistoryPage() {
         title="Exam history"
         description="Review completed driving tests, scores, results, centers, and available result breakdowns."
         action={
-          <ButtonLink href="/candidate/booking" variant="outline">
-            Start a booking first
-          </ButtonLink>
+          <div className="flex flex-wrap gap-2">
+            <ButtonLink href="/candidate/exams/check-in" variant="primary">
+              Exam check-in
+            </ButtonLink>
+            <ButtonLink href="/candidate/booking" variant="outline">
+              Start a booking first
+            </ButtonLink>
+          </div>
         }
       />
 
