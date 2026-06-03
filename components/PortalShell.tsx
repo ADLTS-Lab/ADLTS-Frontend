@@ -55,13 +55,13 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
     user?.name || `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || user?.email || "User";
 
   const renderNavItems = ({ mobile = false }: { mobile?: boolean }) => (
-    <nav className={mobile ? "space-y-1.5" : "space-y-1.5 px-1"} aria-label="Portal navigation">
+    <nav className={mobile ? "space-y-1" : "space-y-1 px-1"} aria-label="Portal navigation">
       {navItems.map((item) => {
         const isActive = !item.disabled && item.href !== "#" && pathname.startsWith(item.href);
         const Icon = item.icon;
-        const navClass = `group relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm ${
+        const navClass = `group relative flex min-h-10 items-center gap-3 rounded-[6px] px-3 py-2 text-sm font-medium transition-[background-color,color] ${
           isActive
-            ? "bg-[var(--accent-subtle)] text-[var(--accent)]"
+            ? "bg-[var(--accent-subtle)] text-[#3B82F6]"
             : "text-[var(--text-secondary)] hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
         } ${item.disabled ? "pointer-events-none opacity-55" : ""}`;
 
@@ -79,9 +79,9 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
             className={navClass}
           >
             {isActive ? (
-              <span className="absolute left-0 top-0 h-full w-1 rounded-r-[4px] bg-[var(--accent)]" />
+              <span className="absolute left-0 top-2 h-6 w-1 rounded-r-[4px] bg-[#3B82F6]" />
             ) : null}
-            <Icon size={18} className={isActive ? "text-[var(--accent)]" : "text-[var(--text-secondary)]"} />
+            <Icon size={18} className={`shrink-0 ${isActive ? "text-[#3B82F6]" : "text-[var(--text-secondary)]"}`} />
             <span>{t(item.labelKey)}</span>
           </Link>
         );
@@ -92,9 +92,9 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
           setIsMobileMenuOpen(false);
           handleLogout();
         }}
-        className="mt-3 flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
+        className="mt-3 flex min-h-10 w-full items-center gap-3 rounded-[6px] px-3 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
       >
-        <LogOut size={18} className="text-[var(--danger)]" />
+        <LogOut size={18} className="shrink-0 text-[var(--danger)]" />
         <span className="font-medium text-[var(--danger)]">{t("logout")}</span>
       </button>
     </nav>
@@ -185,12 +185,12 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
       </header>
 
       <div className="flex flex-1">
-        <aside className="hidden w-[248px] border-r border-[var(--border)] bg-[var(--surface)] lg:block">
+        <aside className="hidden w-[256px] border-r border-[var(--border)] bg-[var(--surface)] lg:block">
           <div className="sticky top-16 max-h-[calc(100vh-4rem)] overflow-y-auto">
-            <div className="px-5 py-4">
+            <div className="px-4 py-4">
               <Link
                 href={profileHref}
-                className="mb-5 flex items-center gap-3 rounded-md border border-[var(--border)] bg-[var(--surface-2)] p-2 transition-colors hover:bg-[var(--surface)]"
+                className="mb-4 flex items-center gap-3 rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)] p-2 transition-colors hover:bg-[var(--surface)]"
               >
                 <div className="grid h-10 w-10 place-items-center rounded-[50%] bg-[var(--accent)] text-sm font-semibold text-[var(--surface)]">
                   {initialsFor(displayName)}
@@ -203,7 +203,7 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
         </aside>
 
         <main id="portal-main" className="flex-1 min-w-0">
-          <div className="p-6">{children}</div>
+          <div className="px-4 py-6 sm:px-6 lg:px-8">{children}</div>
         </main>
       </div>
 

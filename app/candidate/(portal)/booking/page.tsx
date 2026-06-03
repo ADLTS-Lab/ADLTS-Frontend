@@ -331,10 +331,10 @@ export default function CandidateBookingPage() {
         </Alert>
       ) : null}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_384px]">
         <div className="space-y-6">
           {showForm ? (
-            <Card padding="lg">
+            <Card padding="lg" className="shadow-[var(--shadow-resting)]">
               <CardHeader
                 title="Submit a booking request"
                 description="If you already have an active booking, finish or close that workflow before creating another request."
@@ -342,7 +342,7 @@ export default function CandidateBookingPage() {
 
               {loadingBookings ? <p className="mb-4 text-[14px] text-[var(--text-secondary)]">Loading your booking history...</p> : null}
 
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleSubmit} className="space-y-5">
                 <Select
                   label="Institution"
                   value={institutionId}
@@ -421,7 +421,7 @@ export default function CandidateBookingPage() {
                   rows={4}
                 />
 
-                <div className="flex flex-col gap-3 border-t border-[var(--border)] pt-4 sm:flex-row">
+                <div className="flex flex-col gap-3 border-t border-[var(--border)] pt-5 sm:flex-row">
                   {bookings.length > 0 ? (
                     <Button type="button" variant="secondary" onClick={() => setShowForm(false)} className="sm:w-[160px]">
                       Back
@@ -439,21 +439,21 @@ export default function CandidateBookingPage() {
               </form>
             </Card>
           ) : currentBooking ? (
-            <Card padding="lg">
+            <Card padding="lg" className="shadow-[var(--shadow-resting)]">
               <CardHeader
                 title="Current booking summary"
                 description={getStatusExplanation(currentBooking.status)}
                 action={<StatusBadge status={currentBooking.status} tone={getStatusTone(currentBooking.status)} />}
               />
 
-              <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid gap-4 md:grid-cols-2">
                 <SummaryBlock label="Institution" value={currentBooking.institutionName || currentBooking.institution} />
                 <SummaryBlock label="License category" value={currentBooking.licenseCategory} />
                 <SummaryBlock label="Preferred date" value={currentBooking.preferredDate || "-"} />
                 <SummaryBlock label="Preferred session" value={currentBooking.preferredSession || "-"} />
               </div>
 
-              <div className="mt-5 rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)] p-4">
+              <div className="mt-6 rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)] p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div>
                     <p className={ui.statLabel}>Payment status</p>
@@ -472,7 +472,7 @@ export default function CandidateBookingPage() {
                 </div>
               </div>
 
-              <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row">
                 {isApprovedBooking || currentBooking.status === "Payment Pending" ? (
                   <ButtonLink href={paymentPageUrl} variant="primary" className="sm:flex-1">
                     Pay now
@@ -504,7 +504,7 @@ export default function CandidateBookingPage() {
           ) : null}
         </div>
 
-        <aside className="space-y-6">
+        <aside className="space-y-6 lg:sticky lg:top-24 lg:self-start">
           <Card padding="md">
             <CardHeader title="Process guide" description="Track scheduling and exam progress from your portal." />
             <StepProgress steps={PROCESS_STEPS} activeIndex={getProcessIndex(currentBooking?.status)} className="md:block md:space-y-4" />

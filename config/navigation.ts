@@ -46,14 +46,6 @@ export const ADMIN_NAV: NavItem[] = [
   { href: '/admin/settings', labelKey: 'settings', icon: Settings },
 ];
 
-function minimalPortalNav(dashboardHref: string, profileHref: string, settingsHref: string): NavItem[] {
-  return [
-    { href: dashboardHref, labelKey: 'dashboard', icon: LayoutDashboard },
-    { href: profileHref, labelKey: 'profile', icon: UserIcon },
-    { href: settingsHref, labelKey: 'settings', icon: Settings },
-  ];
-}
-
 export const SUPER_ADMIN_NAV: NavItem[] = [
   { href: '/super-admin/dashboard', labelKey: 'dashboard', icon: LayoutDashboard },
   { href: '/super-admin/institutions', labelKey: 'institutions', icon: Building2 },
@@ -69,11 +61,17 @@ export const INSTITUTE_NAV = [
   { href: '/institute/profile', labelKey: 'profile', icon: UserIcon },
   { href: '/institute/settings', labelKey: 'settings', icon: Settings },
 ];
-export const TRANSPORT_AUTHORITY_NAV = minimalPortalNav(
-  '/transport-authority/dashboard',
-  '/transport-authority/profile',
-  '/transport-authority/settings'
-);
-export const EXPERT_NAV = minimalPortalNav('/expert/dashboard', '/expert/profile', '/expert/settings');
+export const TRANSPORT_AUTHORITY_NAV: NavItem[] = [
+  { href: '/transport-authority/dashboard', labelKey: 'dashboard', icon: LayoutDashboard },
+  { href: '/transport-authority/notifications', labelKey: 'notifications', icon: Bell },
+  { href: '/transport-authority/profile', labelKey: 'profile', icon: UserIcon },
+  { href: '/transport-authority/settings', labelKey: 'settings', icon: Settings },
+];
+export const EXPERT_NAV: NavItem[] = [
+  { href: '/expert/dashboard', labelKey: 'dashboard', icon: LayoutDashboard },
+  { href: '/expert/notifications', labelKey: 'notifications', icon: Bell },
+  { href: '/expert/profile', labelKey: 'profile', icon: UserIcon },
+  { href: '/expert/settings', labelKey: 'settings', icon: Settings },
+];
 
 export const PORTAL_DASHBOARD_HREF: Record<AppRole, string> = ROLE_HOME_ROUTE;

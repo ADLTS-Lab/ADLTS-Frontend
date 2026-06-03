@@ -79,6 +79,7 @@ function getResponsePayload(err: unknown): { status?: number; code?: string; dat
   const responseData = err.response?.data as
     | { message?: unknown; error?: unknown; errors?: unknown; detail?: unknown }
     | undefined;
+  const nestedError = responseData?.error as { message?: unknown; code?: unknown } | undefined;
 
   return {
     status: err.response?.status,
@@ -87,6 +88,7 @@ function getResponsePayload(err: unknown): { status?: number; code?: string; dat
     message:
       asText(responseData?.message) ||
       asText(responseData?.error) ||
+      asText(nestedError?.message) ||
       asText(responseData?.detail) ||
       asText(err.message),
   };

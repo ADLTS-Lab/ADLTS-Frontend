@@ -88,22 +88,24 @@ export default function ExpertProfilePage() {
         description="Keep your expert profile accurate so review actions can be associated with the correct account."
       />
 
-      <RoleProfileView avatarUrl={photoUrl || undefined} />
-
       {uploadSuccess ? <Alert variant="success">{uploadSuccess}</Alert> : null}
       {uploadError ? <Alert variant="error">{uploadError}</Alert> : null}
 
-      <Card>
-        <CardHeader
-          title="Profile photo"
-          description="Profile identity and photo upload."
-        />
-        <ProfilePhotoUpload
-          imageUrl={photoUrl}
-          onUpload={handlePhotoUpload}
-          onUploadError={(message) => setUploadError(message)}
-        />
-      </Card>
+      <div className="grid gap-6 xl:grid-cols-[1fr_minmax(280px,360px)]">
+        <RoleProfileView avatarUrl={photoUrl || undefined} className="max-w-none" />
+
+        <Card className="xl:self-start">
+          <CardHeader
+            title="Profile photo"
+            description="Maintain the expert identity image used in review workflows."
+          />
+          <ProfilePhotoUpload
+            imageUrl={photoUrl}
+            onUpload={handlePhotoUpload}
+            onUploadError={(message) => setUploadError(message)}
+          />
+        </Card>
+      </div>
     </PageContainer>
   );
 }

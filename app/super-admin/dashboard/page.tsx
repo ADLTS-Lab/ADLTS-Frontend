@@ -147,7 +147,7 @@ export default function SuperAdminDashboard() {
       <Card padding="none" className="overflow-hidden">
         <CardHeader
           title="Recent audits"
-          description="Review recent system events captured during platform operations."
+          description="Review recent system events, actors, timestamps, and outcomes."
           action={
             <ButtonLink variant="secondary" size="sm" href="/super-admin/audits">
               View audit logs
@@ -170,7 +170,7 @@ export default function SuperAdminDashboard() {
 
 function MetricCard({ label, value, loading }: { label: string; value?: number | string; loading: boolean }) {
   return (
-    <Card padding="md">
+    <Card padding="md" variant="metric">
       <StatBlock label={label} value={loading ? "-" : value ?? "-"} />
     </Card>
   );

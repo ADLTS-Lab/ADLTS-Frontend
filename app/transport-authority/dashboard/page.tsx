@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { RefreshCw } from "lucide-react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
 import { extractApiError } from "@/services/api-utils";
 import {
   getComplianceAlerts,
@@ -120,9 +120,9 @@ export default function TransportAuthorityDashboard() {
     <PageContainer width="wide" className="space-y-6">
       <PageHeader
         title="Regional authority portal"
-        description="Monitor regional compliance and performance indicators."
+        description="Monitor licensing coverage, regional test performance, active centers, and compliance alerts."
         action={
-          <Button variant="outline" onClick={() => void loadData()} disabled={loading} state={loading ? { loading: true } : undefined}>
+          <Button variant="secondary" onClick={() => void loadData()} disabled={loading} state={loading ? { loading: true } : undefined}>
             <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
@@ -134,7 +134,7 @@ export default function TransportAuthorityDashboard() {
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {statCards.map((card) => (
-          <Card key={card.label} padding="md">
+          <Card key={card.label} padding="md" variant="metric">
             <StatBlock label={card.label} value={loading ? "-" : card.value ?? "-"} />
           </Card>
         ))}
@@ -142,8 +142,9 @@ export default function TransportAuthorityDashboard() {
 
       <Card padding="none" className="overflow-hidden">
         <CardHeader
-          title="Compliance alert table"
-          description="Authority users review licensed driver counts, regional pass rates, active centers, pending violations, and compliance alerts when the endpoints provide data."
+          title="Compliance alerts"
+          description="Review test-center compliance issues and prioritize follow-up by severity and reporting date."
+          action={<AlertTriangle className="h-5 w-5 text-[var(--warning)]" />}
         />
         <DataTable
           columns={columns}
@@ -157,7 +158,10 @@ export default function TransportAuthorityDashboard() {
       </Card>
 
       <Card padding="md">
-        <CardHeader title="Severity glossary" />
+        <CardHeader
+          title="Severity guide"
+          description="Use severity as an operational priority signal while reviewing regional compliance records."
+        />
         <div className="grid gap-3 md:grid-cols-3">
           <SeverityItem severity="High" description="Requires urgent operational review." />
           <SeverityItem severity="Medium" description="Requires follow-up and monitoring." />

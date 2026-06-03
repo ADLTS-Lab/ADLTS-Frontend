@@ -1,9 +1,8 @@
 "use client";
 
-import { type ReactNode, useEffect, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useState } from "react";
 import {
   AlertTriangle,
-  Battery,
   CalendarClock,
   Megaphone,
   Power,
@@ -46,7 +45,7 @@ export default function AdminDeviceDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const loadDevices = async () => {
+  const loadDevices = useCallback(async () => {
     setIsLoading(true);
     setError("");
 
@@ -55,25 +54,19 @@ export default function AdminDeviceDashboard() {
     setSummary(nextSummary);
     setError(nextError ?? "");
     setIsLoading(false);
-  };
+  }, []);
 
   useEffect(() => {
     if (!isAuthenticated || !isAdminPortalRole(user?.role)) return;
 
     let isMounted = true;
-    setIsLoading(true);
-    setError("");
-
-    listDevicesSafe()
-      .then(({ devices: data, summary: nextSummary, error: nextError }) => {
-        if (!isMounted) return;
-        setDevices(data);
-        setSummary(nextSummary);
-        setError(nextError ?? "");
-      })
-      .finally(() => {
-        if (isMounted) setIsLoading(false);
-      });
+    listDevicesSafe().then(({ devices: data, summary: nextSummary, error: nextError }) => {
+      if (!isMounted) return;
+      setDevices(data);
+      setSummary(nextSummary);
+      setError(nextError ?? "");
+      setIsLoading(false);
+    });
 
     return () => {
       isMounted = false;
@@ -93,10 +86,16 @@ export default function AdminDeviceDashboard() {
         title="Device management"
         description="Track connected biometric units, status, utilization, connectivity, and operational warnings."
         action={
-          <Button variant="outline" size="sm">
-            <Megaphone size={16} />
-            Register device
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button type="button" variant="secondary" onClick={() => void loadDevices()} disabled={isLoading} state={isLoading ? { loading: true } : undefined}>
+              <RefreshCcw size={16} />
+              Refresh
+            </Button>
+            <Button variant="outline" size="sm">
+              <Megaphone size={16} />
+              Register device
+            </Button>
+          </div>
         }
       />
 
@@ -109,16 +108,10 @@ export default function AdminDeviceDashboard() {
 
       {error ? <Alert variant="error">{error}</Alert> : null}
 
-      <Card padding="md" variant="soft">
-        <p className="text-[14px] leading-6 text-[var(--text-secondary)]">
-          Warnings should be reviewed before the next exam session. Offline devices may require remote wake, ticket creation, or local inspection.
-        </p>
-      </Card>
-
       <Card className="overflow-hidden p-0">
         <CardHeader
           title="Device grid"
-          description="Registered biometric units will appear here after the backend returns device data."
+          description="Warnings should be reviewed before the next exam session. Offline devices may require remote wake, ticket creation, or local inspection."
           action={
             <Button type="button" variant="secondary" size="sm" onClick={() => void loadDevices()} disabled={isLoading} state={isLoading ? { loading: true } : undefined}>
               <RefreshCcw size={16} />
@@ -165,7 +158,7 @@ function SummaryCard({
   sub: string;
 }) {
   return (
-    <Card padding="md" className="space-y-1">
+    <Card padding="md" variant="metric" className="space-y-1">
       <StatBlock label={label} value={value} />
       <p className="text-[13px] text-[var(--text-secondary)]">{sub}</p>
     </Card>

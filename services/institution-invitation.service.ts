@@ -25,6 +25,7 @@ export interface InviteInstitutionRequest {
 export interface InviteInstitutionResult {
   institution: InstitutionAccount;
   invitationToken: string;
+  invitationLink: string;
   mockEmailLink: string;
   message: string;
 }
@@ -239,11 +240,6 @@ export async function inviteInstitution(data: InviteInstitutionRequest): Promise
     const response = await api.post<ApiSuccess<BackendInvitationRecord>>('/invitations', {
       email,
       entity_type: 'institute',
-      role: 'institute',
-      name,
-      institution_name: name,
-      first_name: name,
-      last_name: 'Institution',
     });
 
     const invitation: BackendInvitationRecord = response.data.data || {};
@@ -252,6 +248,7 @@ export async function inviteInstitution(data: InviteInstitutionRequest): Promise
     return {
       institution,
       invitationToken: token,
+      invitationLink: buildMockLink(token),
       mockEmailLink: buildMockLink(token),
       message: response.data.message ?? 'Institution invitation sent.',
     };
@@ -281,6 +278,7 @@ export async function inviteInstitution(data: InviteInstitutionRequest): Promise
     return {
       institution,
       invitationToken: token,
+      invitationLink: buildMockLink(token),
       mockEmailLink: buildMockLink(token),
       message: 'Mock invitation created. Use the invitation link to activate the institution account.',
     };
@@ -296,6 +294,7 @@ export async function resendInstitutionInvitation(institutionId: string): Promis
       return {
         institution: toInstitutionFromInvitation({ ...invitation, id: institutionId, email: invitation?.email }),
         invitationToken: token,
+        invitationLink: token ? buildMockLink(token) : '',
         mockEmailLink: '',
         message: response.data.message ?? 'Institution invitation resent.',
       };
@@ -320,6 +319,7 @@ export async function resendInstitutionInvitation(institutionId: string): Promis
       return {
         institution,
         invitationToken: token,
+        invitationLink: buildMockLink(token),
         mockEmailLink: buildMockLink(token),
         message: response.data.message ?? 'Institution invitation resent.',
       };
@@ -342,6 +342,7 @@ export async function resendInstitutionInvitation(institutionId: string): Promis
   return {
     institution: updated,
     invitationToken: token,
+    invitationLink: buildMockLink(token),
     mockEmailLink: buildMockLink(token),
     message: 'Mock invitation resent. Use the new invitation link to activate the account.',
   };

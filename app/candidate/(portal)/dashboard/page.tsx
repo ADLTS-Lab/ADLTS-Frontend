@@ -224,12 +224,17 @@ export default function CandidateDashboard() {
       <PageHeader
         title={`Welcome, ${candidateName}`}
         description="Track your booking lifecycle, payments, and exam progress in one place."
+        action={
+          <ButtonLink href="/candidate/booking" size="lg">
+            Start booking request
+          </ButtonLink>
+        }
       />
 
-      <Card padding="lg">
+      <Card padding="lg" className="shadow-[var(--shadow-resting)]">
         <CardHeader
           title="Current journey state"
-          description="The candidate portal should answer three questions at every moment: where am I, what changed, and what should I do next?"
+          description={booking ? "Your latest booking status and next required action." : "No active request is currently attached to this account."}
         />
 
         {!booking ? (
@@ -245,7 +250,7 @@ export default function CandidateDashboard() {
           />
         ) : (
           <div className="space-y-5">
-            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               <Card padding="sm" variant="soft">
                 <p className={ui.statLabel}>Booking status</p>
                 <div className="mt-2">
@@ -270,12 +275,6 @@ export default function CandidateDashboard() {
                 </Link>
               </Card>
             </div>
-
-            <div className="rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)] p-4">
-              <p className="text-[14px] leading-6 text-[var(--text-secondary)]">
-                Each booking has a status. Each status has a next action. If a step is unavailable, ADLTS should explain why.
-              </p>
-            </div>
           </div>
         )}
       </Card>
@@ -288,14 +287,13 @@ export default function CandidateDashboard() {
       ) : null}
 
       <section className="space-y-4">
-        <PageHeader
-          title="License category cards"
-          description="Use the category provided by your training institution or transport authority instructions."
-          className="items-start"
-        />
+        <div className="space-y-1">
+          <h2 className={ui.sectionTitle}>License categories</h2>
+          <p className={ui.sectionLead}>Use the category provided by your training institution or transport authority instructions.</p>
+        </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {LICENSE_CATEGORIES.map((category) => (
-            <Card key={category.code} padding="md" variant="soft" className="flex h-full flex-col">
+            <Card key={category.code} padding="md" className="flex h-full flex-col">
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className={ui.statLabel}>Category {category.code}</p>

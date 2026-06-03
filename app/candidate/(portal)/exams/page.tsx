@@ -25,8 +25,6 @@ export default function CandidateExamHistoryPage() {
 
   useEffect(() => {
     let isMounted = true;
-    setIsLoading(true);
-    setError("");
 
     listCandidateExams()
       .then((data) => {
@@ -104,28 +102,22 @@ export default function CandidateExamHistoryPage() {
       {error ? <Alert variant="error">{error}</Alert> : null}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        <Card padding="sm">
+        <Card padding="sm" variant="metric">
           <StatBlock label="Total exams" value={isLoading ? "-" : metrics.total} />
         </Card>
-        <Card padding="sm">
+        <Card padding="sm" variant="metric">
           <StatBlock label="Passes" value={isLoading ? "-" : metrics.passed} />
         </Card>
-        <Card padding="sm">
+        <Card padding="sm" variant="metric">
           <StatBlock label="Failed" value={isLoading ? "-" : metrics.failed} />
         </Card>
-        <Card padding="sm">
+        <Card padding="sm" variant="metric">
           <StatBlock label="Pass rate" value={isLoading ? "-" : `${passRate}%`} />
         </Card>
-        <Card padding="sm">
+        <Card padding="sm" variant="metric">
           <StatBlock label="Latest score" value={isLoading ? "-" : metrics.latestScore === undefined ? "-" : `${metrics.latestScore}%`} />
         </Card>
       </div>
-
-      <Card padding="md" variant="soft">
-        <p className="text-[14px] leading-6 text-[var(--text-secondary)]">
-          Some results require review before publication. If a result is hidden, wait for the official update or contact support with your exam ID.
-        </p>
-      </Card>
 
       <div className="space-y-4 md:hidden">
         {isLoading ? (
@@ -172,7 +164,11 @@ export default function CandidateExamHistoryPage() {
         )}
       </div>
 
-      <div className="hidden md:block">
+      <Card padding="md" className="hidden md:block">
+        <CardHeader
+          title="Published results"
+          description="Some results require review before publication. If a result is hidden, wait for the official update or contact support with your exam ID."
+        />
         <DataTable
           columns={columns}
           data={exams}
@@ -186,7 +182,7 @@ export default function CandidateExamHistoryPage() {
             </ButtonLink>
           }
         />
-      </div>
+      </Card>
 
       <Card padding="md">
         <CardHeader title="Result legend" />

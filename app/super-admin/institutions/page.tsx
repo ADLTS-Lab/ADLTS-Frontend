@@ -171,7 +171,7 @@ export default function SuperAdminInstitutionsPage() {
     <PageContainer width="wide" className="space-y-6">
       <PageHeader
         title="Institutions"
-        description="Invite institutions, resend onboarding emails, and manage account status."
+        description="Invite institutions, manage onboarding links, and monitor institution account status."
       />
 
       <section className="grid gap-4 sm:grid-cols-2 md:grid-cols-4">
@@ -208,8 +208,8 @@ export default function SuperAdminInstitutionsPage() {
       <div className="grid gap-6 lg:grid-cols-[380px,1fr]">
         <Card className="space-y-4">
           <CardHeader
-            title="Invite form"
-            description="Invite institutions, resend onboarding emails, and manage account status."
+            title="Invite institution"
+            description="Create a secure onboarding link for an institution administrator."
           />
           <form onSubmit={handleInvite} className="space-y-4">
             <Input
@@ -236,8 +236,8 @@ export default function SuperAdminInstitutionsPage() {
 
         <Card padding="none" className="overflow-hidden">
           <CardHeader
-            title="Institution accounts table"
-            description="Invite institutions, resend onboarding emails, and manage account status."
+            title="Institution accounts"
+            description="Review onboarding status, resend invitation links, or disable institution access."
           />
           <DataTable
             columns={columns}
@@ -256,7 +256,7 @@ export default function SuperAdminInstitutionsPage() {
 
 function Summary({ label, value }: { label: string; value: string | number }) {
   return (
-    <Card padding="md">
+    <Card padding="md" variant="metric">
       <StatBlock label={label} value={value} />
     </Card>
   );

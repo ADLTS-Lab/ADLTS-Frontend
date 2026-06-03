@@ -3,13 +3,87 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff, LockKeyhole, Route, ShieldCheck, Users } from "lucide-react";
+import { Eye, EyeOff, LockKeyhole } from "lucide-react";
 import { login } from "@/services/auth.service";
 import { useAuthStore } from "@/store/authStore";
 import { useI18n } from "@/i18n/useI18n";
-import { getHomeRouteForRole } from "@/config/routes";
+import { getHomeRouteForRole, type AppRole } from "@/config/routes";
 import { extractApiError } from "@/services/api-utils";
-import { Alert, AuthCard, AuthForm, AuthLink, Button, Input, LabelRow, PublicCard } from "@/app/components/ui";
+import { Alert, AuthCard, AuthForm, AuthLink, Button, Input, LabelRow } from "@/app/components/ui";
+
+const isDevelopment = process.env.NODE_ENV === "development";
+
+const devUsers: Array<{
+  label: string;
+  role: AppRole;
+  user: {
+    id: string;
+    email: string;
+    role: AppRole;
+    first_name?: string;
+    last_name?: string;
+    name?: string;
+    institutionId?: string;
+    institutionName?: string;
+  };
+}> = [
+  {
+    label: "Continue as Candidate (Dev)",
+    role: "candidate",
+    user: {
+      id: "dev-candidate-1",
+      email: "candidate.dev@adlts.local",
+      role: "candidate",
+      first_name: "Dev",
+      last_name: "Candidate",
+      name: "Dev Candidate",
+    },
+  },
+  {
+    label: "Continue as Institution (Dev)",
+    role: "institute",
+    user: {
+      id: "dev-institute-1",
+      email: "institution.dev@adlts.local",
+      role: "institute",
+      name: "Dev Driving Institution",
+      institutionId: "dev-institute-1",
+      institutionName: "Dev Driving Institution",
+    },
+  },
+  {
+    label: "Continue as Expert (Dev)",
+    role: "expert",
+    user: {
+      id: "dev-expert-1",
+      email: "expert.dev@adlts.local",
+      role: "expert",
+      first_name: "Dev",
+      last_name: "Expert",
+      name: "Dev Expert",
+    },
+  },
+  {
+    label: "Continue as Transport Authority (Dev)",
+    role: "transport_authority",
+    user: {
+      id: "dev-transport-authority-1",
+      email: "authority.dev@adlts.local",
+      role: "transport_authority",
+      name: "Dev Transport Authority",
+    },
+  },
+  {
+    label: "Continue as Super Admin (Dev)",
+    role: "super_admin",
+    user: {
+      id: "dev-super-admin-1",
+      email: "superadmin.dev@adlts.local",
+      role: "super_admin",
+      name: "Dev Super Admin",
+    },
+  },
+];
 
 export default function UnifiedLoginPage() {
   const router = useRouter();
@@ -20,6 +94,16 @@ export default function UnifiedLoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const setUser = useAuthStore((s) => s.setUser);
   const { t } = useI18n();
+
+  // DEV ONLY AUTH BYPASS - REMOVE BEFORE PRODUCTION
+  const handleDevLogin = (role: AppRole) => {
+    const devAccount = devUsers.find((account) => account.role === role);
+    if (!devAccount) return;
+
+    const token = `dev-token-${role}`;
+    setUser(devAccount.user, token, role, `dev-refresh-token-${role}`);
+    router.push(getHomeRouteForRole(role));
+  };
 
   const validateForm = () => {
     if (!email.trim() || !password.trim()) {
@@ -68,13 +152,16 @@ export default function UnifiedLoginPage() {
 
   return (
     <main className="bg-[var(--bg)] px-6 py-20">
-      <div className="mx-auto grid w-full max-w-container-public gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
-        <AuthCard
-          icon={<LockKeyhole size={20} />}
-          title="Login to ADLTS"
-          subtitle="Use the email and password connected to your ADLTS account. After login, you will be sent to the portal for your role."
-          footer={<AuthLink href="/candidate/register">{t("registerPrompt")}</AuthLink>}
-        >
+      <AuthCard
+        icon={<LockKeyhole size={20} />}
+        title="Login to ADLTS"
+        subtitle="Use the email and password connected to your ADLTS account."
+        footer={
+          <>
+             <AuthLink href="/candidate/register">{t("registerPrompt")}</AuthLink>
+          </>
+        }
+      >
           <form onSubmit={handleLogin}>
             <AuthForm>
               <Input
@@ -121,32 +208,30 @@ export default function UnifiedLoginPage() {
               <Button type="submit" fullWidth disabled={isLoading} state={isLoading ? { loading: true } : undefined}>
                 {isLoading ? t("loginLoading") : t("loginButton")}
               </Button>
+
+              {isDevelopment ? (
+                <div className="border-t border-[var(--border)] pt-4">
+                  <p className="mb-3 text-center text-[12px] font-semibold uppercase tracking-normal text-[var(--text-secondary)]">
+                    DEV ONLY AUTH BYPASS - REMOVE BEFORE PRODUCTION
+                  </p>
+                  <div className="grid gap-2">
+                    {devUsers.map((account) => (
+                      <Button
+                        key={account.role}
+                        type="button"
+                        variant="secondary"
+                        fullWidth
+                        onClick={() => handleDevLogin(account.role)}
+                      >
+                        {account.label}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </AuthForm>
           </form>
-        </AuthCard>
-
-        <div className="grid gap-4">
-          <PublicCard icon={Route} title="Role routing helper">
-            Candidates, institutes, admins, experts, super admins, and transport authority users all use this login page. Your account role controls which portal opens after login.
-          </PublicCard>
-          <PublicCard icon={ShieldCheck} title="Security reminder">
-            Keep your password private. ADLTS support will never ask for your password.
-          </PublicCard>
-          <PublicCard icon={Users} title="Help links">
-            <div className="flex flex-wrap gap-3">
-              <Link href="/forgot-password" className="text-[14px] font-medium text-[var(--accent)] hover:text-[var(--accent-hover)]">
-                Reset your password
-              </Link>
-              <Link href="/candidate/register" className="text-[14px] font-medium text-[var(--accent)] hover:text-[var(--accent-hover)]">
-                Create candidate account
-              </Link>
-              <Link href="/contact" className="text-[14px] font-medium text-[var(--accent)] hover:text-[var(--accent-hover)]">
-                Contact ADLTS support
-              </Link>
-            </div>
-          </PublicCard>
-        </div>
-      </div>
+      </AuthCard>
     </main>
   );
 }

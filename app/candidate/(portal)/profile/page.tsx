@@ -277,7 +277,7 @@ export default function CandidateProfile() {
   const displayName = `${firstName} ${lastName}`.trim() || "Candidate";
 
   return (
-    <PageContainer width="narrow" className="space-y-6">
+    <PageContainer width="wide" className="space-y-6">
       <PageHeader
         title="Candidate profile"
         description="Keep your contact and identity details accurate so institutions and support teams can review your booking without delays."
@@ -287,140 +287,152 @@ export default function CandidateProfile() {
       {successMessage ? <Alert variant="success">{successMessage}</Alert> : null}
       {errorMessage ? <Alert variant="error">{errorMessage}</Alert> : null}
 
-      <Card>
-        <CardHeader title="Profile summary" description="Profile details help ADLTS show the correct identity and contact information across role-based workflows." />
-        <div className="flex flex-col items-center gap-4 border-b border-[var(--border)] pb-4 sm:flex-row sm:items-start">
-          <div className="grid h-16 w-16 shrink-0 place-items-center rounded-[50%] bg-[var(--accent-subtle)] text-[20px] font-semibold text-[var(--accent)]">
-            {initials}
-          </div>
-          <div className="space-y-2 text-center sm:text-left">
-            <h2 className="text-[20px] font-semibold text-[var(--text-primary)]">{displayName}</h2>
-            <p className={`inline-flex items-center gap-2 text-[14px] ${ui.statLabel}`}>
-              <Mail size={16} /> {email}
-            </p>
-          </div>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <div className="space-y-6">
+          <Card className="shadow-[var(--shadow-resting)]">
+            <CardHeader title="Profile summary" description="Profile details help ADLTS show the correct identity and contact information across role-based workflows." />
+            <div className="flex flex-col items-center gap-4 border-b border-[var(--border)] pb-4 sm:flex-row sm:items-start">
+              <div className="grid h-16 w-16 shrink-0 place-items-center rounded-[50%] bg-[var(--accent-subtle)] text-[20px] font-semibold text-[var(--accent)]">
+                {initials}
+              </div>
+              <div className="space-y-2 text-center sm:text-left">
+                <h2 className="text-[20px] font-semibold text-[var(--text-primary)]">{displayName}</h2>
+                <p className={`inline-flex items-center gap-2 text-[14px] ${ui.statLabel}`}>
+                  <Mail size={16} /> {email}
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-4">
+              <ProfilePhotoUpload
+                imageUrl={photoUrl}
+                onUpload={handlePhotoUpload}
+                onUploadError={(message) => setErrorMessage(message)}
+              />
+            </div>
+          </Card>
+
+          <Card>
+            <CardHeader title="Account details" />
+            <div className="grid gap-3">
+              <div className="rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)] p-4">
+                <StatBlock label="Email" value={email || "-"} />
+              </div>
+              <div className="rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)] p-4">
+                <StatBlock label="Role" value="Candidate" />
+              </div>
+              <div className="rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)] p-4">
+                <StatBlock label="Phone" value={phone || "-"} />
+              </div>
+            </div>
+          </Card>
         </div>
 
-        <div className="pt-4">
-          <ProfilePhotoUpload
-            imageUrl={photoUrl}
-            onUpload={handlePhotoUpload}
-            onUploadError={(message) => setErrorMessage(message)}
-          />
+        <div className="space-y-6">
+          <Card className="shadow-[var(--shadow-resting)]">
+            <CardHeader title="Personal information" />
+
+            <form onSubmit={handleUpdate} className="space-y-5">
+              <div className="grid gap-4 md:grid-cols-2">
+                <Input label="First name" type="text" required value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+                <Input label="Last name" type="text" required value={lastName} onChange={(e) => setLastName(e.target.value)} />
+              </div>
+
+              <Input label="Email address (read only)" type="email" disabled value={email} />
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <Input label="Phone number" type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} />
+                <Input label="Birth date" type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
+              </div>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                <Select label="Gender" value={gender} onChange={(e) => setGender(e.target.value)}>
+                  <option value="">Select gender</option>
+                  <option value="male">Male</option>
+                  <option value="female">Female</option>
+                  <option value="other">Other</option>
+                </Select>
+                <Input label="Address" type="text" value={address} onChange={(e) => setAddress(e.target.value)} />
+              </div>
+
+              <div className="flex flex-col gap-3 border-t border-[var(--border)] pt-5 sm:flex-row">
+                <Button type="submit" disabled={isSaving} className="sm:flex-1" state={isSaving ? { loading: true } : undefined}>
+                  {isSaving ? (
+                    <>
+                      <RefreshCw className="mr-2 inline animate-spin" size={16} />
+                      Updating profile
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 inline" size={16} />
+                      Update profile
+                    </>
+                  )}
+                </Button>
+                <Button type="button" variant="secondary" onClick={handleReset} disabled={isSaving}>
+                  Reset
+                </Button>
+              </div>
+            </form>
+          </Card>
+
+          <Card>
+            <CardHeader
+              title="Security"
+              description="Use a strong password and update it immediately if you think your account has been exposed."
+            />
+
+            {passwordSuccess ? <Alert variant="success">{passwordSuccess}</Alert> : null}
+            {passwordError ? <Alert variant="error">{passwordError}</Alert> : null}
+
+            <form onSubmit={handlePasswordChange} className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-3">
+                <Input
+                  label="Current password"
+                  type="password"
+                  required
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                />
+                <Input
+                  label="New password"
+                  type="password"
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                />
+                <Input
+                  label="Confirm password"
+                  type="password"
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
+              <div className="border-t border-[var(--border)] pt-4">
+                <Button
+                  type="submit"
+                  disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
+                  state={isChangingPassword ? { loading: true } : undefined}
+                  className="sm:w-auto"
+                >
+                  {isChangingPassword ? (
+                    <>
+                      <RefreshCw className="mr-2 inline animate-spin" size={16} />
+                      Updating
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 inline" size={16} />
+                      Update password
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </Card>
         </div>
-      </Card>
-
-      <Card>
-        <CardHeader title="Account details" />
-        <div className="grid gap-3 md:grid-cols-3">
-          <StatBlock label="Email" value={email || "-"} />
-          <StatBlock label="Role" value="Candidate" />
-          <StatBlock label="Phone" value={phone || "-"} />
-        </div>
-      </Card>
-
-      <Card>
-        <CardHeader title="Personal information" />
-
-        <form onSubmit={handleUpdate} className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Input label="First name" type="text" required value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-            <Input label="Last name" type="text" required value={lastName} onChange={(e) => setLastName(e.target.value)} />
-          </div>
-
-          <Input label="Email address (read only)" type="email" disabled value={email} />
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <Input label="Phone number" type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} />
-            <Input label="Birth date" type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <Select label="Gender" value={gender} onChange={(e) => setGender(e.target.value)}>
-              <option value="">Select gender</option>
-              <option value="male">Male</option>
-              <option value="female">Female</option>
-              <option value="other">Other</option>
-            </Select>
-            <Input label="Address" type="text" value={address} onChange={(e) => setAddress(e.target.value)} />
-          </div>
-
-          <div className="flex flex-col gap-3 border-t border-[var(--border)] pt-4 sm:flex-row">
-            <Button type="submit" disabled={isSaving} className="sm:flex-1" state={isSaving ? { loading: true } : undefined}>
-              {isSaving ? (
-                <>
-                  <RefreshCw className="mr-2 inline animate-spin" size={16} />
-                  Updating profile
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 inline" size={16} />
-                  Update profile
-                </>
-              )}
-            </Button>
-            <Button type="button" variant="secondary" onClick={handleReset} disabled={isSaving}>
-              Reset
-            </Button>
-          </div>
-        </form>
-      </Card>
-
-      <Card>
-        <CardHeader
-          title="Security"
-          description="Use a strong password and update it immediately if you think your account has been exposed."
-        />
-
-        {passwordSuccess ? <Alert variant="success">{passwordSuccess}</Alert> : null}
-        {passwordError ? <Alert variant="error">{passwordError}</Alert> : null}
-
-        <form onSubmit={handlePasswordChange} className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Input
-              label="Current password"
-              type="password"
-              required
-              value={currentPassword}
-              onChange={(e) => setCurrentPassword(e.target.value)}
-            />
-            <Input
-              label="New password"
-              type="password"
-              required
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-            />
-            <Input
-              label="Confirm password"
-              type="password"
-              required
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-            />
-          </div>
-          <div className="border-t border-[var(--border)] pt-4">
-            <Button
-              type="submit"
-              disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
-              state={isChangingPassword ? { loading: true } : undefined}
-              className="sm:w-auto"
-            >
-              {isChangingPassword ? (
-                <>
-                  <RefreshCw className="mr-2 inline animate-spin" size={16} />
-                  Updating
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 inline" size={16} />
-                  Update password
-                </>
-              )}
-            </Button>
-          </div>
-        </form>
-      </Card>
+      </div>
     </PageContainer>
   );
 }

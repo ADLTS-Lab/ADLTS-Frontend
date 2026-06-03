@@ -10,7 +10,7 @@ export default function SuperAdminProfilePage() {
         title="Super admin profile"
         description="Profile details help ADLTS show the correct identity and contact information across role-based workflows."
       />
-      <RoleProfileView />
+      <RoleProfileView className="max-w-none" />
     </PageContainer>
   );
 }

@@ -5,6 +5,7 @@ import { Card, CardHeader, StatBlock, StatusBadge } from "@/app/components/ui";
 
 type RoleProfileViewProps = {
   avatarUrl?: string | null;
+  className?: string;
 };
 
 type ProfileImageSource = {
@@ -42,14 +43,14 @@ function formatRole(value?: string | null) {
   return value ? value.replace(/_/g, " ") : "-";
 }
 
-export default function RoleProfileView({ avatarUrl }: RoleProfileViewProps) {
+export default function RoleProfileView({ avatarUrl, className = "" }: RoleProfileViewProps) {
   const { user } = useAuthStore();
   const displayAvatar = getAvatarUrl(user, avatarUrl);
   const displayName =
     user?.name || `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "-";
 
   return (
-    <Card className="max-w-[720px] space-y-4 p-0">
+    <Card className={`max-w-[720px] space-y-4 p-0 ${className}`}>
       <CardHeader
         title="Profile summary"
         description="Profile details help ADLTS show the correct identity and contact information across role-based workflows."
@@ -59,6 +60,8 @@ export default function RoleProfileView({ avatarUrl }: RoleProfileViewProps) {
       <div className="space-y-4 px-6 pb-6">
         {displayAvatar ? (
           <div className="h-16 w-16 overflow-hidden rounded-[50%] border border-[var(--border)] bg-[var(--surface-2)]">
+            {/* Uploaded profile URLs are not guaranteed to be covered by next/image remotePatterns. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={displayAvatar}
               alt="Profile"

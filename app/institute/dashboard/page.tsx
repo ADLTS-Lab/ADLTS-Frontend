@@ -84,7 +84,6 @@ export default function InstituteDashboard() {
       }
       unsubscribe();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleRequestAction = async (request: BookingRequest, action: "approve" | "reject") => {
@@ -217,12 +216,6 @@ export default function InstituteDashboard() {
         }
       />
 
-      <Card padding="md" variant="soft">
-        <p className="text-[14px] leading-6 text-[var(--text-secondary)]">
-          Only pending bookings can be approved or rejected. Closed or advanced bookings cannot be changed from this queue.
-        </p>
-      </Card>
-
       <section className="grid gap-4 sm:grid-cols-3">
         <KpiCard label="Active students" value={overview ? overview.activeStudents : "-"} />
         <KpiCard label="Upcoming exams" value={overview ? overview.upcomingExams : "-"} />
@@ -238,8 +231,8 @@ export default function InstituteDashboard() {
 
       <Card padding="none" className="overflow-hidden">
         <CardHeader
-          title="Recent enrollments"
-          description="Review your driving school candidates, booking queue, and upcoming testing activity."
+          title="Recent booking requests"
+          description="Only pending bookings can be approved or rejected. Closed or advanced bookings remain available for review."
           action={
             <ButtonLink variant="secondary" size="sm" href="/institute/requests">
               View all requests
@@ -272,7 +265,7 @@ export default function InstituteDashboard() {
 
 function KpiCard({ label, value }: { label: string; value: string | number }) {
   return (
-    <Card padding="md">
+    <Card padding="md" variant="metric">
       <StatBlock label={label} value={value} />
     </Card>
   );

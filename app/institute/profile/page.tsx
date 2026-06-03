@@ -158,7 +158,7 @@ export default function InstituteProfilePage() {
 
   if (isLoading) {
     return (
-      <PageContainer width="narrow">
+      <PageContainer width="wide">
         <Card padding="lg" className="animate-pulse space-y-4">
           <div className="h-6 w-48 rounded-[6px] bg-[var(--surface-2)]" />
           <div className="grid gap-4 md:grid-cols-2">
@@ -171,7 +171,7 @@ export default function InstituteProfilePage() {
   }
 
   return (
-    <PageContainer width="narrow" className="space-y-6">
+    <PageContainer width="wide" className="space-y-6">
       <PageHeader
         title="Institute profile"
         description="Update institution identity details used by candidates and coordinators."
@@ -181,165 +181,178 @@ export default function InstituteProfilePage() {
       {successMessage ? <Alert variant="success">{successMessage}</Alert> : null}
       {errorMessage ? <Alert variant="error">{errorMessage}</Alert> : null}
 
-      <Card>
-        <CardHeader title="Institution identity" description="Maintain institution profile details, contact person, phone, address, description, and logo." />
-        <div className="grid gap-3 md:grid-cols-3">
-          <StatBlock label="Institution" value={institutionName || "-"} />
-          <StatBlock label="Contact person" value={contactPerson || "-"} />
-          <StatBlock label="Institution ID" value={institutionId || "-"} />
+      <div className="grid gap-6 xl:grid-cols-[minmax(280px,360px)_1fr]">
+        <div className="space-y-6">
+          <Card>
+            <CardHeader
+              title="Institution identity"
+              description="Core profile details shown across the ADLTS institute workflow."
+            />
+            <div className="grid gap-4">
+              <StatBlock label="Institution" value={institutionName || "-"} />
+              <StatBlock label="Contact person" value={contactPerson || "-"} />
+              <StatBlock label="Institution ID" value={institutionId || "-"} />
+            </div>
+          </Card>
+
+          <Card>
+            <CardHeader title="Logo upload" description="Keep the institution identity recognizable to candidates and coordinators." />
+            <ProfilePhotoUpload
+              title="Institute logo"
+              imageUrl={logoUrl}
+              onUpload={handleLogoUpload}
+              onUploadError={(message) => setErrorMessage(message)}
+            />
+          </Card>
         </div>
-      </Card>
 
-      <Card>
-        <CardHeader title="Logo upload" description="Update institution identity details used by candidates and coordinators." />
-        <ProfilePhotoUpload
-          title="Institute logo"
-          imageUrl={logoUrl}
-          onUpload={handleLogoUpload}
-          onUploadError={(message) => setErrorMessage(message)}
-        />
-      </Card>
-
-      <Card>
-        <CardHeader
-          title="Contact and location details"
-          description="Update institution identity details used by candidates and coordinators."
-          action={<Building size={18} className="text-[var(--accent)]" />}
-        />
-
-        <form onSubmit={handleUpdate} className="space-y-6">
-          <div className="grid gap-4 md:grid-cols-2">
-            <Input
-              label="Institution name"
-              required
-              value={institutionName}
-              onChange={(event) => setInstitutionName(event.target.value)}
+        <div className="space-y-6">
+          <Card>
+            <CardHeader
+              title="Contact and location details"
+              description="Maintain official contact, address, and public institution description."
+              action={<Building size={18} className="text-[var(--accent)]" />}
             />
-            <Input
-              label="Contact person"
-              required
-              value={contactPerson}
-              onChange={(event) => setContactPerson(event.target.value)}
-              suffix={<UserIcon className="h-4 w-4 text-[var(--text-tertiary)]" />}
-            />
-          </div>
 
-          <Textarea
-            label="Description"
-            rows={3}
-            value={description}
-            onChange={(event) => setDescription(event.target.value)}
-          />
+            <form onSubmit={handleUpdate} className="space-y-5">
+              <div className="grid gap-4 md:grid-cols-2">
+                <Input
+                  label="Institution name"
+                  required
+                  value={institutionName}
+                  onChange={(event) => setInstitutionName(event.target.value)}
+                />
+                <Input
+                  label="Contact person"
+                  required
+                  value={contactPerson}
+                  onChange={(event) => setContactPerson(event.target.value)}
+                  suffix={<UserIcon className="h-4 w-4 text-[var(--text-tertiary)]" />}
+                />
+              </div>
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <Input
-              label="Phone number"
-              required
-              value={phone}
-              onChange={(event) => setPhone(event.target.value)}
-              suffix={<Phone className="h-4 w-4 text-[var(--text-tertiary)]" />}
-            />
-            <Input
-              label="Address"
-              required
-              value={address}
-              onChange={(event) => setAddress(event.target.value)}
-              suffix={<MapPin className="h-4 w-4 text-[var(--text-tertiary)]" />}
-            />
-          </div>
+              <Textarea
+                label="Description"
+                rows={3}
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+              />
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <Input
-              label="Email address"
-              disabled
-              value={email}
-              suffix={<Mail className="h-4 w-4 text-[var(--text-tertiary)]" />}
-            />
-            <Input
-              label="Institution ID"
-              disabled
-              value={institutionId}
-              suffix={<FileText className="h-4 w-4 text-[var(--text-tertiary)]" />}
-            />
-          </div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <Input
+                  label="Phone number"
+                  required
+                  value={phone}
+                  onChange={(event) => setPhone(event.target.value)}
+                  suffix={<Phone className="h-4 w-4 text-[var(--text-tertiary)]" />}
+                />
+                <Input
+                  label="Address"
+                  required
+                  value={address}
+                  onChange={(event) => setAddress(event.target.value)}
+                  suffix={<MapPin className="h-4 w-4 text-[var(--text-tertiary)]" />}
+                />
+              </div>
 
-          <Button type="submit" disabled={isSaving} className="w-full md:w-auto" state={isSaving ? { loading: true } : undefined}>
-            {isSaving ? (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                Saving
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Update profile
-              </>
-            )}
-          </Button>
-        </form>
-      </Card>
+              <div className="grid gap-4 md:grid-cols-2">
+                <Input
+                  label="Email address"
+                  disabled
+                  value={email}
+                  suffix={<Mail className="h-4 w-4 text-[var(--text-tertiary)]" />}
+                />
+                <Input
+                  label="Institution ID"
+                  disabled
+                  value={institutionId}
+                  suffix={<FileText className="h-4 w-4 text-[var(--text-tertiary)]" />}
+                />
+              </div>
 
-      <Card>
-        <CardHeader title="Security" description="Use a strong password and keep credentials private." />
+              <div className="border-t border-[var(--border)] pt-5">
+                <Button type="submit" disabled={isSaving} className="w-full md:w-auto" state={isSaving ? { loading: true } : undefined}>
+                  {isSaving ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      Saving
+                    </>
+                  ) : (
+                    <>
+                      <Save className="mr-2 h-4 w-4" />
+                      Update profile
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </Card>
 
-        {passwordSuccess ? (
-          <Alert variant="success">
-            <CheckCircle className="mr-2 inline-block h-4 w-4" />
-            {passwordSuccess}
-          </Alert>
-        ) : null}
-        {passwordError ? (
-          <Alert variant="error">
-            <AlertCircle className="mr-2 inline-block h-4 w-4" />
-            {passwordError}
-          </Alert>
-        ) : null}
+          <Card>
+            <CardHeader title="Security" description="Use a strong password and keep institute credentials private." />
 
-        <form onSubmit={handlePasswordChange} className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-3">
-            <Input
-              label="Current password"
-              required
-              type="password"
-              value={currentPassword}
-              onChange={(event) => setCurrentPassword(event.target.value)}
-            />
-            <Input
-              label="New password"
-              required
-              type="password"
-              value={newPassword}
-              onChange={(event) => setNewPassword(event.target.value)}
-            />
-            <Input
-              label="Confirm password"
-              required
-              type="password"
-              value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
-            />
-          </div>
+            {passwordSuccess ? (
+              <Alert variant="success">
+                <CheckCircle className="mr-2 inline-block h-4 w-4" />
+                {passwordSuccess}
+              </Alert>
+            ) : null}
+            {passwordError ? (
+              <Alert variant="error">
+                <AlertCircle className="mr-2 inline-block h-4 w-4" />
+                {passwordError}
+              </Alert>
+            ) : null}
 
-          <Button
-            type="submit"
-            disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
-            state={isChangingPassword ? { loading: true } : undefined}
-            className="w-full md:w-auto"
-          >
-            {isChangingPassword ? (
-              <>
-                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
-                Updating
-              </>
-            ) : (
-              <>
-                <Lock className="mr-2 h-4 w-4" />
-                Update password
-              </>
-            )}
-          </Button>
-        </form>
-      </Card>
+            <form onSubmit={handlePasswordChange} className="space-y-5">
+              <div className="grid gap-4 md:grid-cols-3">
+                <Input
+                  label="Current password"
+                  required
+                  type="password"
+                  value={currentPassword}
+                  onChange={(event) => setCurrentPassword(event.target.value)}
+                />
+                <Input
+                  label="New password"
+                  required
+                  type="password"
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                />
+                <Input
+                  label="Confirm password"
+                  required
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                />
+              </div>
+
+              <div className="border-t border-[var(--border)] pt-5">
+                <Button
+                  type="submit"
+                  disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
+                  state={isChangingPassword ? { loading: true } : undefined}
+                  className="w-full md:w-auto"
+                >
+                  {isChangingPassword ? (
+                    <>
+                      <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                      Updating
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="mr-2 h-4 w-4" />
+                      Update password
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </div>
+      </div>
     </PageContainer>
   );
 }

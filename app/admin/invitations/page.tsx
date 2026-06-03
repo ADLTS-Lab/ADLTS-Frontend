@@ -205,30 +205,27 @@ export default function AdminInvitationsPage() {
       />
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card padding="md">
+        <Card padding="md" variant="metric">
           <StatBlock label="Total invitations" value={metricValue(invitations.length)} />
         </Card>
-        <Card padding="md">
+        <Card padding="md" variant="metric">
           <StatBlock label="Pending" value={metricValue(pendingCount)} />
         </Card>
-        <Card padding="md">
+        <Card padding="md" variant="metric">
           <StatBlock label="Accepted" value={metricValue(acceptedCount)} />
         </Card>
       </div>
-
-      <Card padding="md" variant="soft">
-        <p className="text-[14px] leading-6 text-[var(--text-secondary)]">
-          Choose the role that matches the user's responsibility. Staff roles should not be created through candidate registration.
-        </p>
-      </Card>
 
       {error ? <Alert variant="error">{error}</Alert> : null}
 
       <div className="grid gap-6 lg:grid-cols-[380px,1fr]">
         <Card padding="lg">
-          <CardHeader title="Create invitation form" description="Create, resend, and track staff invitations from the backend." />
+          <CardHeader
+            title="Create invitation"
+            description="Choose the role that matches the user's responsibility. Staff roles should not be created through candidate registration."
+          />
 
-          <form onSubmit={handleCreate} className="space-y-4">
+          <form onSubmit={handleCreate} className="space-y-5">
             <Input
               label="Email"
               value={formData.email}
@@ -272,7 +269,7 @@ export default function AdminInvitationsPage() {
         </Card>
 
         <Card padding="none" className="overflow-hidden">
-          <CardHeader title="Invitations table" description="Resend or delete staff invitations from the backend." />
+          <CardHeader title="Staff invitations" description="Resend or delete pending staff invitations from the backend." />
           <DataTable
             columns={columns}
             data={invitations}

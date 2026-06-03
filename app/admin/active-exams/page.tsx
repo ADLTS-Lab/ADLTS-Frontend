@@ -65,7 +65,7 @@ export default function AdminActiveExamsPage() {
         title="Active exams monitor"
         description="Review running exams, progress, live score, violations, and status indicators."
         action={
-          <Button variant="outline" size="sm" onClick={() => void loadActiveExams()} disabled={isLoading} state={isLoading ? { loading: true } : undefined}>
+          <Button variant="secondary" size="sm" onClick={() => void loadActiveExams()} disabled={isLoading} state={isLoading ? { loading: true } : undefined}>
             <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
@@ -80,12 +80,6 @@ export default function AdminActiveExamsPage() {
         <Kpi label="Reviews" value={metricValue(activeExams.filter((exam) => exam.status === "Review").length)} />
         <Kpi label="Excellent" value={metricValue(activeExams.filter((exam) => exam.status === "Excellent").length)} />
       </section>
-
-      <Card padding="md" variant="soft">
-        <p className="text-[14px] leading-6 text-[var(--text-secondary)]">
-          This monitor refreshes periodically and can be refreshed manually when operators need the latest connected backend state.
-        </p>
-      </Card>
 
       {isLoading ? (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
@@ -123,7 +117,10 @@ export default function AdminActiveExamsPage() {
       )}
 
       <Card padding="md">
-        <CardHeader title="Status glossary" />
+        <CardHeader
+          title="Status guide"
+          description="This monitor refreshes periodically and can be refreshed manually when operators need the latest connected backend state."
+        />
         <div className="grid gap-3 md:grid-cols-4">
           <GlossaryItem status="Stable" description="Running without a current warning." />
           <GlossaryItem status="Warning" description="Requires operator attention." />
@@ -146,7 +143,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 
 function Kpi({ label, value }: { label: string; value: string | number }) {
   return (
-    <Card padding="md">
+    <Card padding="md" variant="metric">
       <StatBlock label={label} value={value} />
     </Card>
   );

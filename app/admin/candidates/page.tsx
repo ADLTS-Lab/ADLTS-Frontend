@@ -12,6 +12,7 @@ import {
   Alert,
   Button,
   Card,
+  CardHeader,
   DataTable,
   Input,
   PageContainer,
@@ -111,24 +112,22 @@ export default function AdminCandidatesPage() {
       />
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card padding="md">
+        <Card padding="md" variant="metric">
           <StatBlock label="Active" value={metricValue(activeCount)} />
         </Card>
-        <Card padding="md">
+        <Card padding="md" variant="metric">
           <StatBlock label="Suspended" value={metricValue(suspendedCount)} />
         </Card>
-        <Card padding="md">
+        <Card padding="md" variant="metric">
           <StatBlock label="Total candidates" value={metricValue(candidates.length)} />
         </Card>
       </section>
 
-      <Card padding="md" variant="soft">
-        <p className="text-[14px] leading-6 text-[var(--text-secondary)]">
-          Use status changes carefully. Suspended candidates may be blocked from normal workflow actions.
-        </p>
-      </Card>
-
       <Card padding="md">
+        <CardHeader
+          title="Candidate search"
+          description="Search candidate records by supported backend fields before reviewing or changing status."
+        />
         <Input
           value={search}
           onChange={(event) => setSearch(event.target.value)}
@@ -140,14 +139,21 @@ export default function AdminCandidatesPage() {
 
       {error ? <Alert variant="error">{error}</Alert> : null}
 
-      <DataTable
-        columns={columns}
-        data={candidates}
-        getRowKey={(candidate) => candidate.id}
-        loading={isLoading}
-        emptyTitle="No candidates found"
-        emptyDescription="No candidates found for this search."
-      />
+      <Card padding="none" className="overflow-hidden">
+        <CardHeader
+          title="Candidate records"
+          description="Use status changes carefully. Suspended candidates may be blocked from normal workflow actions."
+        />
+        <DataTable
+          columns={columns}
+          data={candidates}
+          getRowKey={(candidate) => candidate.id}
+          loading={isLoading}
+          emptyTitle="No candidates found"
+          emptyDescription="No candidates found for this search."
+          className="rounded-none border-x-0 border-b-0"
+        />
+      </Card>
     </PageContainer>
   );
 }

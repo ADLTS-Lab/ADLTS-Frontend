@@ -196,25 +196,19 @@ export default function InstituteRequestsPage() {
         }
       />
 
-      <Card padding="md" variant="soft">
-        <p className="text-[14px] leading-6 text-[var(--text-secondary)]">
-          Institutes are responsible for reviewing booking requests assigned to them. Pending requests can be approved or rejected according to workflow rules.
-        </p>
-      </Card>
-
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card padding="sm">
+        <Card padding="md" variant="metric">
           <StatBlock label="Total requests" value={loading ? "-" : total} />
         </Card>
-        <Card padding="sm">
+        <Card padding="md" variant="metric">
           <StatBlock label="Requests on this page" value={loading ? "-" : requests.length} />
         </Card>
-        <Card padding="sm">
+        <Card padding="md" variant="metric">
           <StatBlock label="Pending on this page" value={loading ? "-" : pendingOnPage} />
         </Card>
       </div>
 
-      <Card className="space-y-4">
+      <Card>
         <CardHeader
           title="Filter panel"
           description="Filter requests by search term, status, and license category."
@@ -265,14 +259,21 @@ export default function InstituteRequestsPage() {
 
       {error ? <Alert variant="error">{error}</Alert> : null}
 
-      <DataTable
-        columns={columns}
-        data={requests}
-        getRowKey={(request) => request.id}
-        loading={loading}
-        emptyTitle="No booking requests found"
-        emptyDescription="Requests for your institution will appear here."
-      />
+      <Card padding="none" className="overflow-hidden">
+        <CardHeader
+          title="Assigned booking requests"
+          description="Institutes are responsible for reviewing requests assigned to them according to workflow rules."
+        />
+        <DataTable
+          columns={columns}
+          data={requests}
+          getRowKey={(request) => request.id}
+          loading={loading}
+          emptyTitle="No booking requests found"
+          emptyDescription="Requests for your institution will appear here."
+          className="rounded-none border-x-0 border-b-0"
+        />
+      </Card>
 
       <Card className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <p className={`${ui.statLabel} sm:mb-0`}>

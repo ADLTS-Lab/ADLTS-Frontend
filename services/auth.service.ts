@@ -59,7 +59,7 @@ export interface CandidateRegistrationRequest {
   phone_number?: string;
   /**
    * Backward-compatible alias used by the current registration form.
-   * The service normalizes this to `phone_number` before sending.
+   * The service normalizes this to the backend `phone` field before sending.
    */
   phone?: string;
   fayida_id?: string;
@@ -119,6 +119,13 @@ type NormalizedSessionPayload = {
   entity_type?: string;
   role?: string;
   user?: User;
+};
+
+type JwtSessionClaims = {
+  sub?: string;
+  sub_id?: string;
+  email?: string;
+  entity_type?: string;
 };
 
 export type CandidateRegistrationData = CandidateRegistrationRequest;
@@ -249,11 +256,40 @@ function buildLocalOtpVerificationResponse(user: LocalRegisteredUser): RefreshTo
   return buildLocalSessionResponse(user);
 }
 
+function decodeJwtClaims(token: string): JwtSessionClaims | null {
+  try {
+    const payload = token.split('.')[1];
+    if (!payload) return null;
+
+    const base64 = payload.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = base64.padEnd(base64.length + ((4 - (base64.length % 4)) % 4), '=');
+    const decoded =
+      typeof atob === 'function'
+        ? atob(padded)
+        : Buffer.from(padded, 'base64').toString('utf8');
+
+    return JSON.parse(decoded) as JwtSessionClaims;
+  } catch {
+    return null;
+  }
+}
+
+function buildUserFromToken(accessToken: string, entityType: string): User | null {
+  const claims = decodeJwtClaims(accessToken);
+  if (!claims?.email) return null;
+
+  return {
+    id: claims.sub_id || claims.sub || claims.email,
+    email: claims.email,
+    role: claims.entity_type || entityType,
+  };
+}
+
 function normalizeSessionResponse(raw: RawSessionResponse): RefreshTokenResponse {
   const payload = ('data' in raw && raw.data ? raw.data : raw) as NormalizedSessionPayload;
-  const user = payload.user;
   const accessToken = payload.access_token || payload.token;
-  const entityType = payload.entity_type || payload.role || user?.role || 'candidate';
+  const entityType = payload.entity_type || payload.role || payload.user?.role || 'candidate';
+  const user = payload.user || (accessToken ? buildUserFromToken(accessToken, entityType) : null);
 
   if (!user || !accessToken) {
     throw new Error('Login response is missing user or token');
@@ -273,6 +309,18 @@ function normalizeSessionResponse(raw: RawSessionResponse): RefreshTokenResponse
 // ---------- Login ----------
 export async function login(credentials: LoginCredentials): Promise<LoginResponse> {
   try {
+    if (process.env.NODE_ENV !== 'production') {
+      console.info('[auth:login] request', {
+        baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
+        endpoint: '/auth/login',
+        payload: {
+          email: credentials.email,
+          password: '<redacted>',
+          passwordLength: credentials.password?.length ?? 0,
+        },
+      });
+    }
+
     const response = await api.post('/auth/login', credentials);
     return normalizeSessionResponse(response.data as RawSessionResponse);
   } catch (error: unknown) {
@@ -407,19 +455,32 @@ export async function registerCandidate(
   data: CandidateRegistrationRequest
 ): Promise<CandidateRegistrationResponse> {
   const phoneNumber = data.phone_number ?? data.phone;
+  const birthDate = data.birth_date ? `${data.birth_date}T00:00:00Z` : undefined;
   const payload = {
     first_name: data.first_name,
     middle_name: data.middle_name,
     last_name: data.last_name,
     email: data.email,
     password: data.password,
-    ...(phoneNumber ? { phone_number: phoneNumber } : {}),
-    fayda_id: data.fayida_id,
-    birth_date: data.birth_date,
+    ...(phoneNumber ? { phone: phoneNumber } : {}),
+    fayida_id: data.fayida_id,
+    birth_date: birthDate,
     gender: data.gender,
   };
 
   try {
+    if (process.env.NODE_ENV !== 'production') {
+      console.info('[auth:registerCandidate] request', {
+        baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
+        endpoint: '/auth/candidates/register',
+        payload: {
+          ...payload,
+          password: '<redacted>',
+          passwordLength: payload.password?.length ?? 0,
+        },
+      });
+    }
+
     const res = await api.post<CandidateRegistrationResponse>('/auth/candidates/register', payload);
 
     if (typeof window !== 'undefined' && ALLOW_LOCAL_FALLBACK) {

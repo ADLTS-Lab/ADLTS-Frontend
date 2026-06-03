@@ -1,7 +1,7 @@
 "use client";
 
 import { type FormEvent, useEffect, useState } from "react";
-import { Bell, CheckCircle, Globe, Monitor } from "lucide-react";
+import { Bell, CheckCircle, Globe } from "lucide-react";
 import { getAppSettings, updateAppSettings, type CandidateSettings } from "@/services/settings.service";
 import {
   Alert,
@@ -101,7 +101,7 @@ export function SettingsBoard() {
     <PageContainer width="wide" className="space-y-6">
       <PageHeader
         title="Settings"
-        description="Manage how ADLTS appears and which updates you want to receive."
+        description="Manage language and notification preferences for ADLTS operations."
       />
 
       {successMessage ? (
@@ -115,7 +115,7 @@ export function SettingsBoard() {
       {errorMessage ? <Alert variant="error">{errorMessage}</Alert> : null}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-6">
           <Card>
             <CardHeader
               title="Language"
@@ -134,27 +134,6 @@ export function SettingsBoard() {
               >
                 <option value="en">English</option>
                 <option value="am">Amharic</option>
-              </Select>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader
-              title="Theme"
-              description="Theme preference is saved from the supported application settings."
-              action={<Monitor className="h-5 w-5 text-[var(--accent)]" />}
-            />
-            <CardContent>
-              <Select
-                label="Theme preference"
-                value={settings.theme}
-                onChange={(event) =>
-                  setSettings((current) =>
-                    current ? { ...current, theme: event.target.value as CandidateSettings["theme"] } : current
-                  )
-                }
-              >
-                <option value="light">Light</option>
               </Select>
             </CardContent>
           </Card>

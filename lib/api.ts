@@ -1,4 +1,4 @@
-import axios from 'axios';
+import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
 import { clearAuthStorage } from '@/lib/auth-session';
 import { isLocalFallbackEnabled } from '@/lib/runtime-flags';
 import { useAuthStore } from '@/store/authStore';
@@ -6,6 +6,7 @@ import { useAuthStore } from '@/store/authStore';
 const CONFIGURED_API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() ?? '';
 const API_BASE_URL = CONFIGURED_API_BASE_URL || (isLocalFallbackEnabled() ? '/api/v1' : '');
 const MOCK_API_KEY = process.env.NEXT_PUBLIC_MOCK_API_KEY;
+const IS_DEVELOPMENT = process.env.NODE_ENV === 'development';
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -16,7 +17,7 @@ const api = axios.create({
 });
 
 // Request interceptor to add token
-api.interceptors.request.use((config: any) => {
+api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
   if (!API_BASE_URL) {
     throw new Error(
       'NEXT_PUBLIC_API_BASE_URL is not set. Configure a backend /api/v1 URL or enable NEXT_PUBLIC_ALLOW_LOCAL_FALLBACK=true for local mocks.'
@@ -29,16 +30,19 @@ api.interceptors.request.use((config: any) => {
       config.headers = config.headers || {};
       config.headers.Authorization = `Bearer ${token}`;
     }
-  } catch (e) {
+  } catch {
     // ignore
   }
   return config;
 });
 
 let isRefreshing = false;
-let failedQueue: any[] = [];
+let failedQueue: Array<{
+  resolve: (token: string | null) => void;
+  reject: (error: unknown) => void;
+}> = [];
 
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
@@ -52,11 +56,24 @@ const processQueue = (error: any, token: string | null = null) => {
 // Response interceptor for error handling
 api.interceptors.response.use(
   (response) => response,
-  async (error: any) => {
+  async (error: AxiosError) => {
     const originalRequest = error.config;
+    if (!originalRequest) {
+      return Promise.reject(error);
+    }
 
     // Check if error status is 401 and it's not a retry
-    if (error?.response?.status === 401 && !originalRequest._retry) {
+    if (error?.response?.status === 401 && !(originalRequest as InternalAxiosRequestConfig & { _retry?: boolean })._retry) {
+      const currentToken = typeof window !== 'undefined' ? localStorage.getItem('auth-token') : null;
+
+      // DEV ONLY AUTH BYPASS - REMOVE BEFORE PRODUCTION
+      // Mock dev sessions intentionally use local-only tokens that the backend
+      // cannot validate. Keep the UI session alive while surfacing page-level
+      // API errors instead of forcing logout.
+      if (IS_DEVELOPMENT && currentToken?.startsWith('dev-token-')) {
+        return Promise.reject(error);
+      }
+
       // Do not try to refresh if we are already on login/refresh endpoints
       if (
         originalRequest.url?.includes('/auth/login') ||
@@ -87,7 +104,7 @@ api.interceptors.response.use(
           });
       }
 
-      originalRequest._retry = true;
+      (originalRequest as InternalAxiosRequestConfig & { _retry?: boolean })._retry = true;
       isRefreshing = true;
 
       try {

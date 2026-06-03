@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CircleX, RefreshCw } from "lucide-react";
+import { CircleX, RefreshCw, ShieldCheck } from "lucide-react";
 import {
   getFlaggedCandidates,
   getReviewMetrics,
@@ -142,7 +142,7 @@ export default function ExpertDashboard() {
     <PageContainer width="wide" className="space-y-6">
       <PageHeader
         title="Expert review portal"
-        description="Review flagged appeals and resolve exam concerns."
+        description="Monitor flagged test outcomes, review appeal context, and resolve exam concerns."
         action={
           <Button variant="secondary" onClick={() => void loadData()} disabled={loading} state={loading ? { loading: true } : undefined}>
             <RefreshCw className="h-4 w-4" />
@@ -162,22 +162,17 @@ export default function ExpertDashboard() {
 
       <section className="grid gap-4 sm:grid-cols-3">
         {metricCards.map((card) => (
-          <Card key={card.label} padding="md">
+          <Card key={card.label} padding="md" variant="metric">
             <StatBlock label={card.label} value={loading ? "-" : card.value ?? "-"} />
           </Card>
         ))}
       </section>
 
-      <Card padding="md" variant="soft">
-        <p className="text-[14px] leading-6 text-[var(--text-secondary)]">
-          Resolve only after reviewing the available exam context and issue type.
-        </p>
-      </Card>
-
       <Card padding="none" className="overflow-hidden">
         <CardHeader
           title="Review queue"
-          description="Experts see pending reviews, completed work, flagged issues, candidate names, exam dates, issue types, statuses, and resolve actions."
+          description="Resolve only after reviewing the available exam context, issue type, and supporting evidence."
+          action={<ShieldCheck className="h-5 w-5 text-[var(--accent)]" />}
         />
         <DataTable
           columns={columns}

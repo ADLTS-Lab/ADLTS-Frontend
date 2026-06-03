@@ -78,13 +78,9 @@ export default function AdminReportsPage() {
       {error ? <Alert variant="error">{error}</Alert> : null}
       {reportUrl ? <Alert variant="success">Report ready: {reportUrl}</Alert> : null}
 
-      <Alert variant="info">
-        Analytics dashboards are not available from the connected backend yet. Report generation can still run when a valid test ID is provided.
-      </Alert>
-
       <div className="grid gap-6 lg:grid-cols-[380px,1fr]">
         <Card padding="lg" className="space-y-4">
-          <CardHeader title="Report generation form" description="Generate exam reports and download PDFs when backend report endpoints are available." />
+          <CardHeader title="Report generation" description="Generate or download exam reports by test ID when report endpoints are available." />
 
           <Input
             value={testId}
@@ -117,7 +113,10 @@ export default function AdminReportsPage() {
         </Card>
 
         <Card padding="lg" className="space-y-4">
-          <CardHeader title="Analytics availability state" description="This page does not add synthetic dashboard data values." />
+          <CardHeader
+            title="Analytics availability"
+            description="Analytics dashboards are not available from the connected backend yet. This page does not add synthetic dashboard data values."
+          />
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <MetricItem label="Analytics dashboards" value="Backend unavailable" />
@@ -132,7 +131,7 @@ export default function AdminReportsPage() {
 
 function MetricItem({ label, value }: { label: string; value: string }) {
   return (
-    <Card padding="md">
+    <Card padding="md" variant="metric">
       <StatBlock label={label} value={value} />
     </Card>
   );

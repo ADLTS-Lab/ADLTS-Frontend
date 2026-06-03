@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto';
 import type { NextRequest } from 'next/server';
 
 const ALLOW_LOCAL_FALLBACK = process.env.NEXT_PUBLIC_ALLOW_LOCAL_FALLBACK === 'true';
+const USE_NEXT_MOCK_API = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() === '/api/v1';
 
 type MockRole =
   | 'candidate'
@@ -317,7 +318,7 @@ const state: MockState = globalThis.__adltsMockAuthState ?? {
 
 globalThis.__adltsMockAuthState = state;
 
-if (!ALLOW_LOCAL_FALLBACK) {
+if (!ALLOW_LOCAL_FALLBACK && !USE_NEXT_MOCK_API) {
   state.users.clear();
   state.tokens.clear();
   state.refreshTokens.clear();

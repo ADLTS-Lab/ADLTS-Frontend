@@ -6,15 +6,8 @@ import { Eye, EyeOff, MailCheck, UserPlus } from "lucide-react";
 import { registerCandidate, verifyOtp } from "@/services/auth.service";
 import { useAuthStore } from "@/store/authStore";
 import { extractApiError } from "@/services/api-utils";
-import { Alert, AuthCard, AuthForm, AuthLink, Button, Input, PublicCard, PublicList, Select } from "@/app/components/ui";
+import { Alert, AuthCard, AuthForm, AuthLink, Button, Input, Select } from "@/app/components/ui";
 import { getHomeRouteForRole } from "@/config/routes";
-
-const beforeContinue = [
-  "Use your own email address.",
-  "Enter a reachable phone number.",
-  "Choose a secure password.",
-  "Add optional identity details if your institution requires them.",
-];
 
 export default function CandidateRegisterPage() {
   const router = useRouter();
@@ -53,6 +46,14 @@ export default function CandidateRegisterPage() {
 
     if (formData.password.length < 8) {
       return "Password must be at least 8 characters long.";
+    }
+
+    if (!formData.fayida_id.trim() || !formData.birth_date || !formData.gender) {
+      return "Please complete the required identity details before continuing.";
+    }
+
+    if (formData.gender === "other") {
+      return "Please select male or female. The backend currently accepts only those values.";
     }
 
     return "";
@@ -98,8 +99,9 @@ export default function CandidateRegisterPage() {
         return;
       }
 
+      const dataMessage = (res?.data as { message?: string } | undefined)?.message;
       setPendingEmail(formData.email.trim());
-      setSuccess(res?.data?.message || res?.message || "Registration submitted. Enter the one-time code sent to your email to finish account setup.");
+      setSuccess(dataMessage || res?.message || "Registration submitted. Enter the one-time code sent to your email to finish account setup.");
     } catch (err: unknown) {
       setError(extractApiError(err, "Registration failed. Please try again.", "auth-register"));
     } finally {
@@ -134,29 +136,28 @@ export default function CandidateRegisterPage() {
   if (pendingEmail) {
     return (
       <main className="bg-[var(--bg)] px-6 py-20">
-        <div className="mx-auto grid w-full max-w-container-public gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
-          <AuthCard
-            icon={<MailCheck size={20} />}
-            title="Verify your email"
-            subtitle="Enter the one-time code sent to your email to finish account setup."
-            footer={
-              <>
-                Wrong email?{" "}
-                <button
-                  type="button"
-                  className="font-semibold text-[var(--accent)] hover:text-[var(--accent-hover)]"
-                  onClick={() => {
-                    setPendingEmail("");
-                    setOtpCode("");
-                    setError("");
-                    setSuccess("");
-                  }}
-                >
-                  Edit registration
-                </button>
-              </>
-            }
-          >
+        <AuthCard
+          icon={<MailCheck size={20} />}
+          title="Verify your email"
+          subtitle="Enter the one-time code sent to your email to finish account setup."
+          footer={
+            <>
+              Wrong email?{" "}
+              <button
+                type="button"
+                className="font-semibold text-[var(--accent)] hover:text-[var(--accent-hover)]"
+                onClick={() => {
+                  setPendingEmail("");
+                  setOtpCode("");
+                  setError("");
+                  setSuccess("");
+                }}
+              >
+                Edit registration
+              </button>
+            </>
+          }
+        >
             <form onSubmit={handleVerifyOtp}>
               <AuthForm>
                 <Input label="Email" type="email" value={pendingEmail} readOnly className="bg-[var(--surface-2)]" />
@@ -181,31 +182,23 @@ export default function CandidateRegisterPage() {
                 </Button>
               </AuthForm>
             </form>
-          </AuthCard>
-
-          <div className="grid gap-4">
-            <PublicCard icon={MailCheck} title="Next step after registration">
-              After your account is verified, go to the candidate dashboard and start your booking request.
-            </PublicCard>
-          </div>
-        </div>
+        </AuthCard>
       </main>
     );
   }
 
   return (
     <main className="bg-[var(--bg)] px-6 py-20">
-      <div className="mx-auto grid w-full max-w-container-public gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
-        <AuthCard
-          icon={<UserPlus size={20} />}
-          title="Create your candidate account"
-          subtitle="Register once, verify your account, and use the candidate portal to submit booking requests, track payment, and view exam results."
-          footer={
-            <>
-              Already have an account? <AuthLink href="/login">Login</AuthLink>
-            </>
-          }
-        >
+      <AuthCard
+        icon={<UserPlus size={20} />}
+        title="Create your candidate account"
+        subtitle="Register once, verify your account, and use the candidate portal to submit booking requests, track payment, and view exam results."
+        footer={
+          <>
+            Already have an account? <AuthLink href="/login">Login</AuthLink>
+          </>
+        }
+      >
           <form onSubmit={handleRegister}>
             <AuthForm>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -273,9 +266,9 @@ export default function CandidateRegisterPage() {
                 required
               />
 
-              <details className="rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--text-secondary)]">
+              <details open className="rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--text-secondary)]">
                 <summary className="cursor-pointer font-medium text-[var(--text-primary)]">
-                  Additional info (optional)
+                  Required identity details
                 </summary>
                 <div className="mt-4 space-y-4">
                   <Input
@@ -284,6 +277,7 @@ export default function CandidateRegisterPage() {
                     name="fayida_id"
                     value={formData.fayida_id}
                     onChange={handleChange}
+                    required
                   />
                   <Input
                     label="Birth date"
@@ -291,12 +285,12 @@ export default function CandidateRegisterPage() {
                     name="birth_date"
                     value={formData.birth_date}
                     onChange={handleChange}
+                    required
                   />
-                  <Select label="Gender" name="gender" value={formData.gender} onChange={handleChange}>
+                  <Select label="Gender" name="gender" value={formData.gender} onChange={handleChange} required>
                     <option value="">Select</option>
                     <option value="male">Male</option>
                     <option value="female">Female</option>
-                    <option value="other">Other</option>
                   </Select>
                 </div>
               </details>
@@ -309,20 +303,7 @@ export default function CandidateRegisterPage() {
               </Button>
             </AuthForm>
           </form>
-        </AuthCard>
-
-        <div className="grid gap-4">
-          <PublicCard icon={UserPlus} title="Before you continue">
-            <PublicList items={beforeContinue} />
-          </PublicCard>
-          <PublicCard icon={MailCheck} title="Verify your email">
-            Enter the one-time code sent to your email to finish account setup.
-          </PublicCard>
-          <PublicCard icon={UserPlus} title="Next step after registration">
-            After your account is verified, go to the candidate dashboard and start your booking request.
-          </PublicCard>
-        </div>
-      </div>
+      </AuthCard>
     </main>
   );
 }
