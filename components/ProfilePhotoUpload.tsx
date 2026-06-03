@@ -58,10 +58,10 @@ export default function ProfilePhotoUpload({
   };
 
   return (
-    <div className="rounded-3xl border border-slate-100 bg-white p-4 sm:p-5">
-      <p className="mb-3 text-sm font-semibold text-slate-900">{title}</p>
+    <div className="rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-4 sm:p-5">
+      <p className="mb-3 text-sm font-semibold text-[var(--text-primary)]">{title}</p>
       <div className="mb-4 flex items-center gap-4">
-        <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-50">
+        <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-[50%] border border-[var(--border)] bg-[var(--surface-2)]">
           {(previewUrl || imageUrl) ? (
             <img
               src={previewUrl ?? imageUrl ?? ""}
@@ -69,12 +69,12 @@ export default function ProfilePhotoUpload({
               className="h-full w-full object-cover"
             />
           ) : (
-            <Camera className="h-9 w-9 text-slate-400" />
+            <Camera className="h-9 w-9 text-[var(--text-tertiary)]" />
           )}
         </div>
 
         <div className="space-y-2">
-          <label className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 cursor-pointer">
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-[6px] border border-[var(--border)] px-3 py-2 text-sm font-medium text-[var(--text-primary)] hover:bg-[var(--surface-2)]">
             <Upload size={16} />
             <span>{isUploading ? "Uploading..." : "Upload new image"}</span>
             <input
@@ -85,12 +85,12 @@ export default function ProfilePhotoUpload({
               onChange={handleFileChange}
             />
           </label>
-          <p className="text-xs text-slate-500">Use a square image. File field must be named <span className="font-semibold">file</span>.</p>
+          <p className="text-xs text-[var(--text-secondary)]">Use a square image. File field must be named <span className="font-semibold">file</span>.</p>
         </div>
       </div>
 
-      {errorMessage ? <p className="mb-2 rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">{errorMessage}</p> : null}
-      {successMessage ? <p className="mb-2 rounded-md bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{successMessage}</p> : null}
+      {errorMessage ? <p className="mb-2 rounded-md bg-[var(--danger-subtle)] px-3 py-2 text-sm text-[var(--danger)]">{errorMessage}</p> : null}
+      {successMessage ? <p className="mb-2 rounded-md bg-[var(--success-subtle)] px-3 py-2 text-sm text-[var(--success)]">{successMessage}</p> : null}
     </div>
   );
 }

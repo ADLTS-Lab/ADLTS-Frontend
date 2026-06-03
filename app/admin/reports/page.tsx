@@ -1,13 +1,11 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Alert, Button, Card, Input, PageContainer, PageHeader, ui } from "@/app/components/ui";
+import { Alert, Button, Card, CardHeader, Input, PageContainer, PageHeader, StatBlock } from "@/app/components/ui";
 import { downloadExamReportPdf, generateExamReport } from "@/services/reports.service";
-import { useI18n } from "@/i18n/useI18n";
 import { extractApiError } from "@/services/api-utils";
 
 export default function AdminReportsPage() {
-  const { t } = useI18n();
   const [testId, setTestId] = useState("");
   const [reportUrl, setReportUrl] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -18,7 +16,7 @@ export default function AdminReportsPage() {
 
   const handleGenerate = async () => {
     if (!canRun) {
-      setError(t("reports_pending"));
+      setError("Enter a valid test ID before generating a report.");
       return;
     }
 
@@ -32,7 +30,7 @@ export default function AdminReportsPage() {
       } else if (response?.message) {
         setError(response.message);
       } else {
-        setError("Report generation is not available yet.");
+        setError("Report generation is not available for this test ID right now.");
       }
     } catch (err) {
       setError(extractApiError(err, "Unable to generate report."));
@@ -43,7 +41,7 @@ export default function AdminReportsPage() {
 
   const handleDownload = async () => {
     if (!canRun) {
-      setError(t("reports_pending"));
+      setError("Enter a valid test ID before downloading a report.");
       return;
     }
 
@@ -53,7 +51,7 @@ export default function AdminReportsPage() {
     try {
       const response = await downloadExamReportPdf(testId.trim());
       if (!response) {
-        setError("PDF download is not available yet.");
+        setError("Report generation is not available for this test ID right now.");
         return;
       }
 
@@ -71,26 +69,28 @@ export default function AdminReportsPage() {
   };
 
   return (
-    <PageContainer width="wide">
+    <PageContainer width="wide" className="space-y-6">
       <PageHeader
-        eyebrow={t("adminPortal")}
-        title={t("reports_title") || "Reports"}
-        description={t("reports_subtitle") || "Generate and download exam reports directly from the service."}
+        title="Reports and analytics"
+        description="Generate exam reports and download PDFs when backend report endpoints are available."
       />
 
       {error ? <Alert variant="error">{error}</Alert> : null}
-      {reportUrl ? <Alert variant="success">{`${t("reports_ready") || "Ready"}: ${reportUrl}`}</Alert> : null}
+      {reportUrl ? <Alert variant="success">Report ready: {reportUrl}</Alert> : null}
+
+      <Alert variant="info">
+        Analytics dashboards are not available from the connected backend yet. Report generation can still run when a valid test ID is provided.
+      </Alert>
 
       <div className="grid gap-6 lg:grid-cols-[380px,1fr]">
         <Card padding="lg" className="space-y-4">
-          <h2 className="text-base font-semibold text-[var(--adlts-ink-950)]">Generate exam report</h2>
-          <p className="text-sm text-[var(--adlts-ink-600)]">Provide a test id to generate or download from the backend service.</p>
+          <CardHeader title="Report generation form" description="Generate exam reports and download PDFs when backend report endpoints are available." />
 
           <Input
             value={testId}
             onChange={(event) => setTestId(event.target.value)}
             placeholder="test-123"
-            label={t("reports_testId")}
+            label="Test ID"
           />
 
           <div className="flex flex-col gap-3 sm:flex-row">
@@ -101,7 +101,7 @@ export default function AdminReportsPage() {
               state={isGenerating ? { loading: true } : undefined}
               fullWidth
             >
-              {t("reports_generate")}
+              Generate report
             </Button>
             <Button
               type="button"
@@ -111,21 +111,18 @@ export default function AdminReportsPage() {
               state={isDownloading ? { loading: true } : undefined}
               fullWidth
             >
-              {t("reports_download")}
+              Download PDF
             </Button>
           </div>
         </Card>
 
         <Card padding="lg" className="space-y-4">
-          <h2 className="text-base font-semibold text-[var(--adlts-ink-950)]">Analytics status</h2>
-          <p className="text-sm text-[var(--adlts-ink-600)]">
-            Shows report availability without adding synthetic data values.
-          </p>
+          <CardHeader title="Analytics availability state" description="This page does not add synthetic dashboard data values." />
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <MetricItem label="Analytics endpoint" value="Backend-blocked" />
-            <MetricItem label="Report generation" value={reportUrl ? "Ready" : "Pending"} />
-            <MetricItem label="PDF download" value={canRun ? "Available" : "Requires Test ID"} />
+            <MetricItem label="Analytics dashboards" value="Backend unavailable" />
+            <MetricItem label="Report endpoint" value={reportUrl ? "Report returned" : "Waiting for valid test ID"} />
+            <MetricItem label="PDF download" value={canRun ? "Requires backend response" : "Requires test ID"} />
           </div>
         </Card>
       </div>
@@ -135,9 +132,8 @@ export default function AdminReportsPage() {
 
 function MetricItem({ label, value }: { label: string; value: string }) {
   return (
-    <Card padding="md" className="space-y-1">
-      <p className={`${ui.statLabel} mb-1`}>{label}</p>
-      <p className="font-semibold text-[var(--adlts-ink-900)]">{value}</p>
+    <Card padding="md">
+      <StatBlock label={label} value={value} />
     </Card>
   );
 }

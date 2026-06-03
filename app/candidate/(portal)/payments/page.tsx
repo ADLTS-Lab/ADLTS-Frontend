@@ -1,9 +1,23 @@
 "use client";
 
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, Button, ButtonLink, Card, CardHeader, Input, PageContainer, PageHeader } from "@/app/components/ui";
+import {
+  Alert,
+  Button,
+  ButtonLink,
+  Card,
+  CardHeader,
+  DataTable,
+  EmptyState,
+  Input,
+  PageContainer,
+  PageHeader,
+  StatBlock,
+  StatusBadge,
+  ui,
+  type DataTableColumn,
+} from "@/app/components/ui";
 import { getAllBookings, getBookingById, type BookingRequest } from "@/services/booking.service";
 import {
   completePaymentCheckout,
@@ -16,8 +30,6 @@ import {
   type Payment,
 } from "@/services/payment.service";
 import { useAuthStore } from "@/store/authStore";
-
-const ENABLE_LOCAL_DEBUG = process.env.NEXT_PUBLIC_ALLOW_LOCAL_FALLBACK === 'true';
 
 const PAYABLE_BOOKING_STATUSES = new Set(["Approved", "Payment Pending"]);
 
@@ -82,29 +94,6 @@ export default function CandidatePaymentsPage() {
 
       const bookingPayments = await getPaymentsForBooking(resolvedBooking.id);
       setPayments(bookingPayments);
-
-      // #region agent log
-      if (ENABLE_LOCAL_DEBUG) {
-        fetch("http://127.0.0.1:7485/ingest/750002e8-fc34-4f4c-aec9-03b23cf457b3", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "30f368" },
-          body: JSON.stringify({
-            sessionId: "30f368",
-            runId: "payment-flow",
-            hypothesisId: "H1",
-            location: "payments/page.tsx:loadData",
-            message: "payment page loaded",
-            data: {
-              bookingId: resolvedBooking.id,
-              status: resolvedBooking.status,
-              paymentCount: bookingPayments.length,
-              amountCents: resolvePaymentAmountCents(bookingPayments),
-            },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-      }
-      // #endregion
     } catch (loadError) {
       setBooking(null);
       setPayments([]);
@@ -129,6 +118,29 @@ export default function CandidatePaymentsPage() {
     !submitting;
   const isRetry = latestPayment?.status === "Failed" || latestPayment?.status === "Cancelled";
 
+  const paymentColumns: Array<DataTableColumn<Payment>> = [
+    {
+      key: "provider",
+      header: "Provider",
+      cell: (payment) => payment.provider ?? "Local",
+    },
+    {
+      key: "amount",
+      header: "Amount",
+      cell: (payment) => formatAmount(payment.amountCents, payment.currency),
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (payment) => <StatusBadge status={payment.status} />,
+    },
+    {
+      key: "created",
+      header: "Created",
+      cell: (payment) => new Date(payment.createdAt).toLocaleString(),
+    },
+  ];
+
   const handlePay = async () => {
     if (!booking || !canPay) return;
 
@@ -146,58 +158,18 @@ export default function CandidatePaymentsPage() {
             metadata: { bookingId: booking.id, institutionId: booking.institutionId },
           });
 
-      // #region agent log
-      if (ENABLE_LOCAL_DEBUG) {
-        fetch("http://127.0.0.1:7485/ingest/750002e8-fc34-4f4c-aec9-03b23cf457b3", {
-          method: "POST",
-          headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "30f368" },
-          body: JSON.stringify({
-            sessionId: "30f368",
-            runId: "payment-flow",
-            hypothesisId: "H2",
-            location: "payments/page.tsx:handlePay",
-            message: "payment initiated",
-            data: {
-              paymentId: initiated.id,
-              providerRef: initiated.providerRef,
-              checkoutUrl: initiated.checkout_url,
-            },
-            timestamp: Date.now(),
-          }),
-        }).catch(() => {});
-      }
-      // #endregion
-
       const completed = await completePaymentCheckout(booking.id, initiated);
       const refreshed = await getPaymentsForBooking(booking.id);
       setPayments(refreshed);
 
       if (completed.status === "Succeeded" || refreshed[0]?.status === "Succeeded") {
-        // #region agent log
-        if (ENABLE_LOCAL_DEBUG) {
-          fetch("http://127.0.0.1:7485/ingest/750002e8-fc34-4f4c-aec9-03b23cf457b3", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-Debug-Session-Id": "30f368" },
-            body: JSON.stringify({
-              sessionId: "30f368",
-              runId: "payment-flow",
-              hypothesisId: "H3",
-              location: "payments/page.tsx:handlePay",
-              message: "payment succeeded redirecting",
-              data: { bookingId: booking.id },
-              timestamp: Date.now(),
-            }),
-          }).catch(() => {});
-        }
-        // #endregion
-
         router.push(`/candidate/booking?payment=success&bookingId=${encodeURIComponent(booking.id)}`);
         return;
       }
 
       setSuccess("Checkout opened. Return here after you finish payment.");
     } catch (payError) {
-      setError(payError instanceof Error ? payError.message : "Payment could not be completed.");
+      setError(payError instanceof Error ? payError.message : "Payment could not be completed. Retry payment or contact support with your booking reference.");
     } finally {
       setSubmitting(false);
     }
@@ -207,80 +179,126 @@ export default function CandidatePaymentsPage() {
     return (
       <PageContainer>
         <Card padding="lg" className="animate-pulse space-y-4">
-          <div className="h-4 w-32 rounded bg-slate-100" />
-          <div className="h-8 w-64 rounded bg-slate-100" />
-          <div className="h-24 rounded-lg bg-slate-100" />
+          <div className="h-5 w-32 rounded-[6px] bg-[var(--surface-2)]" />
+          <div className="h-9 w-64 rounded-[6px] bg-[var(--surface-2)]" />
+          <div className="h-28 rounded-[8px] bg-[var(--surface-2)]" />
         </Card>
       </PageContainer>
     );
   }
 
   return (
-    <PageContainer>
-      <PageHeader eyebrow="Checkout" title="Payment" />
+    <PageContainer width="wide" className="space-y-6">
+      <PageHeader
+        title="Payment"
+        description="Complete payment after your institution approves the booking request."
+        action={
+          <ButtonLink href="/candidate/booking" variant="outline">
+            View booking status
+          </ButtonLink>
+        }
+      />
 
       {error ? <Alert variant="error">{error}</Alert> : null}
       {success ? <Alert variant="info">{success}</Alert> : null}
 
       {!booking ? (
         <Card padding="lg">
-          <CardHeader title="No booking found" />
-          <p className="text-sm text-slate-600">Submit and get a booking approved before paying.</p>
-          <ButtonLink href="/candidate/booking" variant="primary" className="mt-4">
-            Go to booking
-          </ButtonLink>
-        </Card>
-      ) : paymentSucceeded ? (
-        <Card padding="lg">
-          <CardHeader title="Payment complete" />
-          <p className="text-sm text-slate-600">
-            {booking.institutionName || booking.institution} · {amountLabel}
-          </p>
-          <ButtonLink href={`/candidate/booking?bookingId=${encodeURIComponent(booking.id)}`} variant="primary" className="mt-4">
-            View booking status
-          </ButtonLink>
-        </Card>
-      ) : booking.status === "Pending" ? (
-        <Card padding="lg">
-          <CardHeader title="Awaiting approval" />
-          <p className="text-sm text-slate-600">
-            {booking.institutionName || booking.institution} must approve your request before payment opens.
-          </p>
-          <ButtonLink href="/candidate/booking" variant="secondary" className="mt-4">
-            Back to booking
-          </ButtonLink>
+          <EmptyState
+            title="No booking found"
+            description="Submit and receive approval for a booking before payment is available."
+            action={
+              <ButtonLink href="/candidate/booking" variant="primary">
+                Submit booking request
+              </ButtonLink>
+            }
+            className="border-0 bg-transparent"
+          />
         </Card>
       ) : (
-        <Card padding="lg">
-          <CardHeader
-            title={booking.institutionName || booking.institution}
-            description={`Ref ${booking.id}`}
-          />
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="space-y-6">
+            <Card padding="lg">
+              <CardHeader
+                title="Booking summary"
+                description={`Payment is tied to booking ${booking.id}.`}
+                action={<StatusBadge status={booking.status} />}
+              />
+              <div className="grid gap-3 md:grid-cols-2">
+                <SummaryItem label="Institution" value={booking.institutionName || booking.institution || "-"} />
+                <SummaryItem label="License category" value={booking.licenseCategory} />
+                <SummaryItem label="Exam date" value={booking.preferredDate || "-"} />
+                <SummaryItem label="Session" value={booking.preferredSession || "-"} />
+              </div>
+            </Card>
 
-          <dl className="mt-4 grid gap-3 sm:grid-cols-2">
-            <SummaryItem label="Category" value={booking.licenseCategory} />
-            <SummaryItem label="Exam date" value={booking.preferredDate || "—"} />
-            <SummaryItem label="Session" value={booking.preferredSession || "—"} />
-            <SummaryItem label="Amount due" value={amountLabel} />
-          </dl>
+            <Card padding="lg">
+              <CardHeader title="Payment history" description="Payment history for this booking appears after the backend returns records." />
+              <DataTable
+                columns={paymentColumns}
+                data={payments}
+                getRowKey={(payment) => payment.id}
+                emptyTitle="No payments"
+                emptyDescription="No payment history for this booking yet."
+              />
+            </Card>
+          </div>
 
-          {canPay ? (
-            <div className="mt-6 space-y-4 border-t border-slate-100 pt-6">
-              <Input label="Amount" value={amountLabel} readOnly disabled />
-              <Button type="button" onClick={() => void handlePay()} disabled={submitting} fullWidth>
-                {submitting ? "Processing…" : isRetry ? "Retry payment" : "Pay now"}
-              </Button>
-            </div>
-          ) : (
-            <Alert variant="info" className="mt-6">
-              Payment is not available for this booking status ({booking.status}).
-            </Alert>
-          )}
+          <aside className="space-y-6">
+            <Card padding="md">
+              <CardHeader title="Amount due" />
+              <StatBlock label="Payment amount" value={amountLabel} />
+            </Card>
 
-          <Link href="/candidate/booking" className="mt-4 inline-block text-sm font-medium text-blue-800 hover:text-blue-900">
-            ← Back to booking
-          </Link>
-        </Card>
+            {paymentSucceeded ? (
+              <Card padding="md">
+                <CardHeader title="Payment complete" />
+                <p className="text-[14px] leading-6 text-[var(--text-secondary)]">
+                  Payment is complete for booking {booking.id}. Return to booking status for scheduling updates.
+                </p>
+                <ButtonLink href={`/candidate/booking?bookingId=${encodeURIComponent(booking.id)}`} variant="primary" fullWidth className="mt-4">
+                  View booking status
+                </ButtonLink>
+              </Card>
+            ) : booking.status === "Pending" ? (
+              <Card padding="md">
+                <CardHeader title="Awaiting approval" />
+                <p className="text-[14px] leading-6 text-[var(--text-secondary)]">
+                  Payment opens after {booking.institutionName || booking.institution} approves your booking request.
+                </p>
+                <ButtonLink href="/candidate/booking" variant="secondary" fullWidth className="mt-4">
+                  Back to booking
+                </ButtonLink>
+              </Card>
+            ) : (
+              <Card padding="md">
+                <CardHeader title="Payment action" description={getPaymentActionDescription(booking.status)} />
+                {canPay ? (
+                  <div className="space-y-4">
+                    <Input label="Amount" value={amountLabel} readOnly disabled />
+                    <Button type="button" onClick={() => void handlePay()} disabled={submitting} state={submitting ? { loading: true } : undefined} fullWidth>
+                      {submitting ? "Processing..." : isRetry ? "Retry payment" : "Pay now"}
+                    </Button>
+                  </div>
+                ) : (
+                  <Alert variant="info">
+                    Payment is not available for the current booking status: {booking.status}.
+                  </Alert>
+                )}
+              </Card>
+            )}
+
+            <Card padding="md" variant="soft">
+              <p className={`${ui.statLabel} mb-2`}>Help</p>
+              <p className="text-[14px] leading-6 text-[var(--text-secondary)]">
+                If the problem continues, contact support with your booking reference.
+              </p>
+              <ButtonLink href="/contact" variant="outline" fullWidth className="mt-4">
+                Contact ADLTS support
+              </ButtonLink>
+            </Card>
+          </aside>
+        </div>
       )}
     </PageContainer>
   );
@@ -288,9 +306,14 @@ export default function CandidatePaymentsPage() {
 
 function SummaryItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-      <dt className="text-xs font-medium uppercase tracking-wide text-slate-500">{label}</dt>
-      <dd className="mt-1 text-sm font-semibold text-slate-900">{value}</dd>
-    </div>
+    <Card padding="sm" variant="soft">
+      <StatBlock label={label} value={value || "-"} />
+    </Card>
   );
+}
+
+function getPaymentActionDescription(status: string) {
+  if (status === "Approved") return "Payment becomes available after approval.";
+  if (status === "Payment Pending") return "Payment is required or in progress before scheduling can continue.";
+  return "Payment is not available for the current booking status.";
 }

@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
@@ -13,15 +12,41 @@ import {
   subscribeToBookingChanges,
   type BookingInstitution,
   type BookingRequest,
-  type LicenseCategory,
   type BookingStatus,
+  type LicenseCategory,
 } from "@/services/booking.service";
-import PaymentBadge from '@/components/PaymentBadge';
-import PaymentHistory from '@/components/PaymentHistory';
-import { getPaymentsForBooking, type Payment } from '@/services/payment.service';
-import { useI18n } from "@/i18n/useI18n";
+import PaymentBadge from "@/components/PaymentBadge";
+import PaymentHistory from "@/components/PaymentHistory";
+import { getPaymentsForBooking, type Payment } from "@/services/payment.service";
 import { useAuthStore } from "@/store/authStore";
-import { Alert, Button, ButtonLink, Card, CardHeader, EmptyState, Input, PageContainer, PageHeader, Select, StatusBadge, Textarea, ui } from "@/app/components/ui";
+import {
+  Alert,
+  Button,
+  ButtonLink,
+  Card,
+  CardHeader,
+  ConfirmModal,
+  EmptyState,
+  Input,
+  PageContainer,
+  PageHeader,
+  Select,
+  StatBlock,
+  StatusBadge,
+  StepProgress,
+  Textarea,
+  ui,
+} from "@/app/components/ui";
+
+const LICENSE_CATEGORIES: LicenseCategory[] = ["A", "B", "C", "D"];
+
+const PROCESS_STEPS = [
+  { label: "Submit booking request" },
+  { label: "Wait for institution review" },
+  { label: "Complete payment after approval" },
+  { label: "Attend scheduled practical exam" },
+  { label: "Review result when published" },
+];
 
 const getStatusTone = (status?: BookingStatus | null) => {
   switch (status) {
@@ -46,10 +71,7 @@ const getStatusTone = (status?: BookingStatus | null) => {
   }
 };
 
-const LICENSE_CATEGORIES: LicenseCategory[] = ["A", "B", "C", "D"];
-
 export default function CandidateBookingPage() {
-  const { t } = useI18n();
   const searchParams = useSearchParams();
   const paymentSuccess = searchParams.get("payment") === "success";
   const [bookings, setBookings] = useState<BookingRequest[]>([]);
@@ -118,7 +140,7 @@ export default function CandidateBookingPage() {
       setInstitutions(activeInstitutions);
     } catch (err) {
       console.error("Failed to load active institutes", err);
-      setInstitutionLoadError("Unable to load active institutes.");
+      setInstitutionLoadError("No active institutions found. Try again later or contact support.");
       setInstitutions([]);
     } finally {
       setLoadingInstitutions(false);
@@ -126,12 +148,13 @@ export default function CandidateBookingPage() {
   };
 
   useEffect(() => {
-    loadBookings();
+    void loadBookings();
     const unsubscribe = subscribeToBookingChanges(() => {
       void loadBookings();
     });
 
     return unsubscribe;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.email]);
 
   useEffect(() => {
@@ -144,7 +167,7 @@ export default function CandidateBookingPage() {
   );
 
   const canSubmit = useMemo(
-    () => institutionId && licenseCategory && preferredDate && !isSubmitting && !loadingBookings,
+    () => Boolean(institutionId && licenseCategory && preferredDate && !isSubmitting && !loadingBookings),
     [institutionId, licenseCategory, preferredDate, isSubmitting, loadingBookings],
   );
   const currentBooking = bookings[0] || null;
@@ -152,23 +175,17 @@ export default function CandidateBookingPage() {
   const currentBookingStatus = currentBooking?.status;
   const activeBooking = useMemo(
     () => bookings.find((booking) => isActiveBookingStatus(booking.status)) || null,
-    [bookings]
+    [bookings],
   );
   const isPendingBooking = currentBooking?.status === "Pending";
   const isApprovedBooking = currentBooking?.status === "Approved";
   const bookingLockMessage = activeBooking ? getBookingBlockMessage(activeBooking.status) : "";
   const latestPayment = payments[0] || null;
-  const paymentStatusLabel = currentBooking?.status === 'Approved'
-    ? (latestPayment?.status || 'Required')
-    : currentBooking?.status === 'Pending'
-      ? 'Waiting for approval'
-      : currentBooking?.status === 'Rejected'
-        ? 'Unavailable'
-        : 'Not available';
+  const paymentStatusLabel = getPaymentStatusLabel(currentBooking?.status, latestPayment?.status);
 
   useEffect(() => {
     if (paymentSuccess) {
-      setActionMessage("Payment completed. Your exam is scheduled.");
+      setActionMessage("Payment is complete. Return to booking status for scheduling updates.");
     }
   }, [paymentSuccess]);
 
@@ -176,7 +193,7 @@ export default function CandidateBookingPage() {
     let mounted = true;
 
     const loadPayments = async () => {
-      if (!currentBookingId || (currentBookingStatus !== 'Approved' && currentBookingStatus !== 'Payment Pending' && currentBookingStatus !== 'Scheduled')) {
+      if (!currentBookingId || (currentBookingStatus !== "Approved" && currentBookingStatus !== "Payment Pending" && currentBookingStatus !== "Scheduled")) {
         setPayments([]);
         return;
       }
@@ -187,7 +204,7 @@ export default function CandidateBookingPage() {
           setPayments(bookingPayments);
         }
       } catch (error) {
-        console.error('Failed to load booking payment status', error);
+        console.error("Failed to load booking payment status", error);
         if (mounted) {
           setPayments([]);
         }
@@ -208,11 +225,7 @@ export default function CandidateBookingPage() {
       setBloodType(currentBooking.bloodType || "A+");
       setPreferredSession(currentBooking.preferredSession || "Morning");
       setAdditionalNotes(currentBooking.additionalNotes || "");
-      if (resetDate) {
-        setPreferredDate("");
-      } else {
-        setPreferredDate(currentBooking.preferredDate || "");
-      }
+      setPreferredDate(resetDate ? "" : currentBooking.preferredDate || "");
       return;
     }
 
@@ -267,19 +280,19 @@ export default function CandidateBookingPage() {
         preferredSession,
         additionalNotes,
         candidateDetails: {
-          candidateId: user?.id || '',
-          name: user?.name || `${user?.first_name || ''} ${user?.last_name || ''}`.trim() || 'Candidate User',
-          email: user?.email || '',
-          phone: user?.phone || '',
-          fayidaId: (user as { fayida_id?: string } | null)?.fayida_id || '',
-          gender: user?.gender || '',
-        }
+          candidateId: user?.id || "",
+          name: user?.name || `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "Candidate User",
+          email: user?.email || "",
+          phone: user?.phone || "",
+          fayidaId: (user as { fayida_id?: string } | null)?.fayida_id || "",
+          gender: user?.gender || "",
+        },
       });
 
       await loadBookings();
       setShowForm(false);
-      setActionMessage(`Booking #${nextBooking.id} created successfully.`);
-      setMessage(t("bookingSuccess"));
+      setActionMessage(`Booking ${nextBooking.id} created successfully.`);
+      setMessage("Booking request submitted.");
       setTimeout(() => setMessage(""), 5000);
     } catch (err) {
       const nextMessage = err instanceof Error ? err.message : bookingLockMessage;
@@ -296,46 +309,46 @@ export default function CandidateBookingPage() {
     : "/candidate/payments";
 
   return (
-    <PageContainer width="wide">
+    <PageContainer width="wide" className="space-y-6">
       <PageHeader
-        eyebrow={t("bookingPageTitle")}
-        title={t("bookingPageTitle")}
-        description={t("bookingPageSubtitle")}
+        title="Book your practical driving test"
+        description="Select an active institution, license category, preferred date, and session. Your request will be reviewed before payment opens."
         action={
           <ButtonLink href="/candidate/exams" variant="outline">
-            My exams
+            Exam history
           </ButtonLink>
         }
       />
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <div className="space-y-4 lg:col-span-2">
-          {(message || actionMessage) ? <Alert variant="success">{message || actionMessage}</Alert> : null}
-          {errorMessage ? <Alert variant="error">{errorMessage}</Alert> : null}
-          {bookingLoadError ? <Alert variant="error">{bookingLoadError}</Alert> : null}
-          {institutionLoadError ? <Alert variant="error">{institutionLoadError}</Alert> : null}
+      {(message || actionMessage) ? <Alert variant="success">{message || actionMessage}</Alert> : null}
+      {errorMessage ? <Alert variant="error">{errorMessage}</Alert> : null}
+      {bookingLoadError ? <Alert variant="error">{bookingLoadError}</Alert> : null}
+      {institutionLoadError ? <Alert variant="error">{institutionLoadError}</Alert> : null}
 
+      {activeBooking ? (
+        <Alert variant="info">
+          You already have an active booking. You can create a new request only after the current booking is rejected, cancelled, completed, or expired.
+        </Alert>
+      ) : null}
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="space-y-6">
           {showForm ? (
             <Card padding="lg">
               <CardHeader
-                title={bookings.length > 0 ? (t("currentBooking") || "Current Booking") : (t("bookingPageTitle") || "Book a Test")}
-                description="Complete the form to submit a new request."
+                title="Submit a booking request"
+                description="If you already have an active booking, finish or close that workflow before creating another request."
               />
 
-              <div className="mb-4 rounded-lg border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-4">
-                <p className="text-sm text-[var(--adlts-ink-700)]">
-                  If you already have an active request, update details through your current booking from this dashboard.
-                </p>
-              </div>
+              {loadingBookings ? <p className="mb-4 text-[14px] text-[var(--text-secondary)]">Loading your booking history...</p> : null}
 
-              {loadingBookings ? <p className="mb-4 text-sm text-[var(--adlts-ink-600)]">Loading booking data...</p> : null}
               <form onSubmit={handleSubmit} className="space-y-4">
                 <Select
-                  label={t("bookingInstitutionField")}
+                  label="Institution"
                   value={institutionId}
                   disabled={loadingInstitutions}
                   onChange={(event) => setInstitutionId(event.target.value)}
-                  hint={loadingInstitutions ? "Loading active institutions..." : "Choose from active institutes."}
+                  hint={loadingInstitutions ? "Loading active institutions..." : "Choose an active institution."}
                   required
                 >
                   <option value="" disabled>
@@ -343,7 +356,7 @@ export default function CandidateBookingPage() {
                   </option>
                   {loadingInstitutions ? (
                     <option key="loading" value="">
-                      Loading...
+                      Loading active institutions...
                     </option>
                   ) : institutions.length > 0 ? (
                     institutions.map((item) => (
@@ -358,9 +371,9 @@ export default function CandidateBookingPage() {
                   )}
                 </Select>
 
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-2">
                   <Select
-                    label={t("bookingCategoryField")}
+                    label="License category"
                     value={licenseCategory}
                     onChange={(event) => setLicenseCategory(event.target.value as LicenseCategory)}
                   >
@@ -370,7 +383,7 @@ export default function CandidateBookingPage() {
                       </option>
                     ))}
                   </Select>
-                  <Select label={t("bloodTypeLabel")} value={bloodType} onChange={(event) => setBloodType(event.target.value)}>
+                  <Select label="Blood type" value={bloodType} onChange={(event) => setBloodType(event.target.value)}>
                     <option value="A+">A+</option>
                     <option value="A-">A-</option>
                     <option value="B+">B+</option>
@@ -382,103 +395,108 @@ export default function CandidateBookingPage() {
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 md:grid-cols-2">
                   <Input
-                    label={t("preferredDateLabel")}
+                    label="Preferred date"
                     type="date"
                     required
                     value={preferredDate}
                     onChange={(event) => setPreferredDate(event.target.value)}
                   />
                   <Select
-                    label={t("preferredSessionLabel")}
+                    label="Preferred session"
                     value={preferredSession}
                     onChange={(event) => setPreferredSession(event.target.value)}
                   >
-                    <option value="Morning">{t("morningSession")}</option>
-                    <option value="Afternoon">{t("afternoonSession")}</option>
+                    <option value="Morning">Morning</option>
+                    <option value="Afternoon">Afternoon</option>
                   </Select>
                 </div>
 
                 <Textarea
-                  label={t("additionalNotesLabel")}
+                  label="Notes"
                   value={additionalNotes}
                   onChange={(event) => setAdditionalNotes(event.target.value)}
-                  placeholder={t("additionalNotesPlaceholder")}
+                  placeholder="Add notes to help the institution review the request."
                   rows={4}
                 />
 
-                <div className="flex gap-3 border-t border-[var(--adlts-divider)] pt-4">
+                <div className="flex flex-col gap-3 border-t border-[var(--border)] pt-4 sm:flex-row">
                   {bookings.length > 0 ? (
-                    <Button type="button" variant="secondary" onClick={() => setShowForm(false)} className="w-1/3">
+                    <Button type="button" variant="secondary" onClick={() => setShowForm(false)} className="sm:w-[160px]">
                       Back
                     </Button>
                   ) : null}
                   <Button
                     type="submit"
                     disabled={!canSubmit || loadingInstitutions}
+                    state={isSubmitting ? { loading: true } : undefined}
                     fullWidth
-                    className={bookings.length > 0 ? "flex-1" : ""}
                   >
-                    {isSubmitting ? "Submitting..." : t("bookingSubmit")}
+                    {isSubmitting ? "Submitting..." : "Submit booking request"}
                   </Button>
                 </div>
               </form>
             </Card>
-          ) : bookings.length > 0 ? (
+          ) : currentBooking ? (
             <Card padding="lg">
               <CardHeader
-                title={t("currentBooking") || "Current Booking"}
-                action={<StatusBadge status={bookings[0].status} tone={getStatusTone(bookings[0].status)} />}
+                title="Current booking summary"
+                description={getStatusExplanation(currentBooking.status)}
+                action={<StatusBadge status={currentBooking.status} tone={getStatusTone(currentBooking.status)} />}
               />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                <BookingSummaryRow label={t("bookingInstitutionLabel")} value={bookings[0].institutionName || bookings[0].institution} />
-                <BookingSummaryRow label={t("bookingCategoryLabel")} value={bookings[0].licenseCategory} />
-                <BookingSummaryRow label={t("preferredDateLabel")} value={bookings[0].preferredDate} />
-                <BookingSummaryRow label={t("preferredSessionLabel")} value={bookings[0].preferredSession} />
+
+              <div className="grid gap-3 md:grid-cols-2">
+                <SummaryBlock label="Institution" value={currentBooking.institutionName || currentBooking.institution} />
+                <SummaryBlock label="License category" value={currentBooking.licenseCategory} />
+                <SummaryBlock label="Preferred date" value={currentBooking.preferredDate || "-"} />
+                <SummaryBlock label="Preferred session" value={currentBooking.preferredSession || "-"} />
               </div>
-              <div className="rounded-lg border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-4">
-                <p className={ui.statLabel}>Payment status</p>
-                <div className="mt-2 flex items-center justify-between gap-3">
-                  <p className="text-sm font-medium text-[var(--adlts-ink-800)]">{paymentStatusLabel}</p>
+
+              <div className="mt-5 rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)] p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className={ui.statLabel}>Payment status</p>
+                    <p className="mt-1 text-[14px] font-medium text-[var(--text-primary)]">{paymentStatusLabel}</p>
+                    <p className="mt-1 text-[13px] leading-5 text-[var(--text-secondary)]">
+                      {getPaymentExplanation(currentBooking.status, currentBooking.institutionName || currentBooking.institution)}
+                    </p>
+                  </div>
                   <StatusBadge status={latestPayment?.status || "required"} tone={latestPayment?.status === "Succeeded" ? "succeeded" : "warning"} />
                 </div>
-              </div>
-              <div className="mt-4">
-                <h3 className="mb-3 text-sm font-semibold text-[var(--adlts-ink-800)]">Payment</h3>
-                <div className="mb-3">
-                  <PaymentBadge bookingId={bookings[0].id} required={bookings[0].status === "Approved"} />
-                </div>
-                <PaymentHistory bookingId={bookings[0].id} />
-              </div>
-              {isApprovedBooking || currentBooking?.status === "Payment Pending" ? (
                 <div className="mt-4">
-                  <ButtonLink href={paymentPageUrl} variant="primary">
-                    Pay now
-                  </ButtonLink>
+                  <PaymentBadge bookingId={currentBooking.id} required={currentBooking.status === "Approved"} />
                 </div>
-              ) : null}
+                <div className="mt-4 border-t border-[var(--border)] pt-4">
+                  <PaymentHistory bookingId={currentBooking.id} />
+                </div>
+              </div>
 
               <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                {isApprovedBooking || currentBooking.status === "Payment Pending" ? (
+                  <ButtonLink href={paymentPageUrl} variant="primary" className="sm:flex-1">
+                    Pay now
+                  </ButtonLink>
+                ) : null}
                 {(isPendingBooking || isApprovedBooking) ? (
                   <Button
                     type="button"
                     variant="danger"
                     disabled={isCancelling}
                     onClick={() => setShowCancelConfirm(true)}
-                    className="flex-1"
+                    className="sm:flex-1"
                   >
-                    {isCancelling ? "Cancelling..." : "Cancel Booking"}
+                    {isCancelling ? "Cancelling..." : "Cancel booking"}
                   </Button>
                 ) : null}
                 {isPendingBooking ? (
-                  <Button type="button" variant="secondary" onClick={() => openNewBookingForm(false)} className="flex-1">
-                    Change Institution
+                  <Button type="button" variant="secondary" onClick={() => openNewBookingForm(false)} className="sm:flex-1">
+                    Change institution
                   </Button>
                 ) : null}
                 {!activeBooking ? (
-                  <Button type="button" onClick={() => openNewBookingForm(true)} className="flex-1">
-                    {isApprovedBooking ? "Book Again" : t("bookAnotherTest") || "Book Again"}
+                  <Button type="button" onClick={() => openNewBookingForm(true)} className="sm:flex-1">
+                    Submit booking request
                   </Button>
                 ) : null}
               </div>
@@ -486,101 +504,134 @@ export default function CandidateBookingPage() {
           ) : null}
         </div>
 
-        <div className="space-y-6 lg:col-span-1">
+        <aside className="space-y-6">
           <Card padding="md">
-            <CardHeader title="Process guide" />
-            <ol className="space-y-3 text-sm">
-              <li className="rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-3">
-                <p className="text-[12px] font-medium uppercase tracking-wide text-[var(--adlts-ink-500)]">Step 1</p>
-                <p className="mt-1 font-medium text-[var(--adlts-ink-900)]">Submit booking request</p>
-              </li>
-              <li className="rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-3">
-                <p className="text-[12px] font-medium uppercase tracking-wide text-[var(--adlts-ink-500)]">Step 2</p>
-                <p className="mt-1 font-medium text-[var(--adlts-ink-900)]">Institution review and approval</p>
-              </li>
-              <li className="rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-3">
-                <p className="text-[12px] font-medium uppercase tracking-wide text-[var(--adlts-ink-500)]">Step 3</p>
-                <p className="mt-1 font-medium text-[var(--adlts-ink-900)]">Payment and scheduling</p>
-              </li>
-              <li className="rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-3">
-                <p className="text-[12px] font-medium uppercase tracking-wide text-[var(--adlts-ink-500)]">Step 4</p>
-                <p className="mt-1 font-medium text-[var(--adlts-ink-900)]">Take test and review result</p>
-              </li>
-            </ol>
+            <CardHeader title="Process guide" description="Track scheduling and exam progress from your portal." />
+            <StepProgress steps={PROCESS_STEPS} activeIndex={getProcessIndex(currentBooking?.status)} className="md:block md:space-y-4" />
           </Card>
 
           <Card padding="md">
-            <CardHeader title={selectedInstitution ? "Selected institution" : (t("bookingHistory") || "Selected institution")} />
+            <CardHeader title="Selected institution detail" />
             {selectedInstitution ? (
-              <div className="space-y-2">
-                <p className="font-medium text-[var(--adlts-ink-900)]">{selectedInstitution.name}</p>
-                <p className="text-sm text-[var(--adlts-ink-600)]">Address not provided.</p>
-                <p className="text-xs text-[var(--adlts-ink-500)]">Reference id: {selectedInstitution.id}</p>
+              <div className="space-y-3">
+                <StatBlock label="Institution" value={selectedInstitution.name} />
+                <p className="text-[13px] text-[var(--text-secondary)]">Reference ID: {selectedInstitution.id}</p>
               </div>
             ) : (
-              <p className="text-sm text-[var(--adlts-ink-600)]">
+              <p className="text-[14px] leading-6 text-[var(--text-secondary)]">
                 Choose an institution in the form to see selected office details.
               </p>
             )}
           </Card>
 
-          <Card padding="md" className="h-fit">
-            <CardHeader title={t("bookingHistory") || "Booking History"} />
+          <Card padding="md">
+            <CardHeader title="Booking history" />
             {loadingBookings ? (
-              <p className="px-4 py-6 text-sm text-[var(--adlts-ink-600)]">Loading booking history...</p>
+              <p className="py-4 text-[14px] text-[var(--text-secondary)]">Loading your booking history...</p>
             ) : bookings.length > 0 ? (
               <div className="space-y-3">
-                {bookings.map((b) => (
+                {bookings.map((booking) => (
                   <div
-                    key={b.id}
-                    className="flex items-center justify-between gap-3 rounded-lg border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-3 transition-colors hover:border-[var(--adlts-border-strong)]"
+                    key={booking.id}
+                    className="flex items-center justify-between gap-3 rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)] p-3"
                   >
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-[var(--adlts-ink-900)]">{b.institutionName || b.institution}</p>
-                      <p className="mt-0.5 text-xs text-[var(--adlts-ink-500)]">{new Date(b.createdAt).toLocaleDateString()}</p>
+                      <p className="truncate text-[14px] font-medium text-[var(--text-primary)]">{booking.institutionName || booking.institution}</p>
+                      <p className="mt-1 text-[12px] text-[var(--text-tertiary)]">{new Date(booking.createdAt).toLocaleDateString()}</p>
                     </div>
-                    <StatusBadge status={b.status} tone={getStatusTone(b.status)} />
+                    <StatusBadge status={booking.status} tone={getStatusTone(booking.status)} />
                   </div>
                 ))}
               </div>
             ) : (
-              <EmptyState title="No bookings yet" description="Submitted requests will appear here." className="!py-8" />
+              <EmptyState title="No bookings yet" description="Submitted requests will appear here." className="border-0 bg-transparent py-8" />
             )}
           </Card>
-        </div>
+        </aside>
       </div>
 
-      {showCancelConfirm && currentBooking ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--adlts-ink-950)]/40 p-4">
-          <Card padding="md" className="w-full max-w-md shadow-lg">
-            <h3 className="text-lg font-semibold text-[var(--adlts-ink-950)]">Cancel booking?</h3>
-            <p className="mt-2 text-sm text-[var(--adlts-ink-600)]">
-              Your current booking will be marked as Cancelled. You can create a new booking after this.
-            </p>
-            <div className="mt-6 flex gap-3">
-              <Button type="button" variant="secondary" fullWidth onClick={() => setShowCancelConfirm(false)}>
-                Keep Booking
-              </Button>
-              <Button
-                type="button"
-                variant="danger"
-                disabled={isCancelling}
-                fullWidth
-                onClick={() => void handleCancelRequest()}
-              >
-                {isCancelling ? "Cancelling..." : "Cancel Booking"}
-              </Button>
-            </div>
-          </Card>
-        </div>
-      ) : null}
+      <ConfirmModal
+        open={showCancelConfirm}
+        title="Cancel booking?"
+        description="Your current booking will be marked as cancelled. You can create a new booking after cancellation."
+        cancelLabel="Keep booking"
+        confirmLabel={isCancelling ? "Cancelling..." : "Cancel booking"}
+        confirming={isCancelling}
+        onCancel={() => setShowCancelConfirm(false)}
+        onConfirm={() => void handleCancelRequest()}
+      />
     </PageContainer>
   );
 }
 
-const BookingSummaryRow = ({ label, value }: { label: string; value: string }) => (
-  <div className="rounded-lg border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-4">
-    <p className={ui.statLabel}>{label}</p>
-    <p className="mt-1 text-sm font-medium text-[var(--adlts-ink-900)]">{value}</p>
-  </div>
-);
+function SummaryBlock({ label, value }: { label: string; value: string }) {
+  return (
+    <Card padding="sm" variant="soft">
+      <StatBlock label={label} value={value || "-"} />
+    </Card>
+  );
+}
+
+function getPaymentStatusLabel(status?: BookingStatus | null, paymentStatus?: string) {
+  if (paymentStatus === "Succeeded") return "Payment complete";
+  if (status === "Approved") return paymentStatus || "Payment required";
+  if (status === "Pending") return "Waiting for approval";
+  if (status === "Rejected") return "Unavailable";
+  return "Not available";
+}
+
+function getPaymentExplanation(status?: BookingStatus | null, institutionName?: string) {
+  switch (status) {
+    case "Pending":
+      return institutionName
+        ? `Payment opens after ${institutionName} approves your booking request.`
+        : "Payment opens after the institution approves your booking request.";
+    case "Approved":
+      return "Payment becomes available after approval. Complete payment to continue toward scheduling.";
+    case "Payment Pending":
+      return "Payment is required or in progress before scheduling can continue.";
+    case "Scheduled":
+      return "Payment is complete. Return to booking status for scheduling updates.";
+    default:
+      return status ? `Payment is not available for the current booking status: ${status}.` : "Submit and receive approval for a booking before payment is available.";
+  }
+}
+
+function getStatusExplanation(status?: BookingStatus | null) {
+  switch (status) {
+    case "Pending":
+      return "Your request is waiting for institution review.";
+    case "Approved":
+      return "Your request was accepted. Complete payment to continue.";
+    case "Payment Pending":
+      return "Payment is required or in progress.";
+    case "Scheduled":
+      return "Your test has been scheduled.";
+    case "Rejected":
+      return "Your request was not accepted by the institution.";
+    case "Cancelled":
+      return "Your booking was cancelled.";
+    case "Completed":
+      return "The booking cycle is complete.";
+    case "Expired":
+      return "The request is no longer active.";
+    default:
+      return "Submitted requests will appear here.";
+  }
+}
+
+function getProcessIndex(status?: BookingStatus | null) {
+  switch (status) {
+    case "Pending":
+      return 1;
+    case "Approved":
+    case "Payment Pending":
+      return 2;
+    case "Scheduled":
+      return 3;
+    case "Completed":
+      return 4;
+    default:
+      return 0;
+  }
+}

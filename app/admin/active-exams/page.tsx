@@ -1,15 +1,18 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { RefreshCw } from "lucide-react";
 import { listActiveExamsSafe, type ActiveExam } from "@/services/exams.service";
-import { useI18n } from "@/i18n/useI18n";
 import {
   Alert,
   Button,
   Card,
   CardHeader,
+  EmptyState,
   PageContainer,
   PageHeader,
+  ProgressBar,
+  StatBlock,
   StatusBadge,
   ui,
 } from "@/app/components/ui";
@@ -28,7 +31,6 @@ function getStatusTone(status: ActiveExam["status"] | string) {
 }
 
 export default function AdminActiveExamsPage() {
-  const { t } = useI18n();
   const [activeExams, setActiveExams] = useState<ActiveExam[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -55,14 +57,16 @@ export default function AdminActiveExamsPage() {
     return () => clearInterval(polling);
   }, []);
 
+  const metricValue = (value: number) => (isLoading ? "-" : value);
+
   return (
-    <PageContainer width="wide">
+    <PageContainer width="wide" className="space-y-6">
       <PageHeader
-        eyebrow={t("adminPortal")}
-        title={t("activeExams_monitor_title") || "Active Exams"}
-        description={t("activeExams_monitor_subtitle") || "Live exam monitoring and progress insights."}
+        title="Active exams monitor"
+        description="Review running exams, progress, live score, violations, and status indicators."
         action={
-          <Button variant="outline" size="sm" onClick={() => void loadActiveExams()}>
+          <Button variant="outline" size="sm" onClick={() => void loadActiveExams()} disabled={isLoading} state={isLoading ? { loading: true } : undefined}>
+            <RefreshCw className="h-4 w-4" />
             Refresh
           </Button>
         }
@@ -71,19 +75,30 @@ export default function AdminActiveExamsPage() {
       {error ? <Alert variant="error">{error}</Alert> : null}
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Kpi label={t("active") || "Active exams"} value={activeExams.length} />
-        <Kpi label={t("warnings") || "Warnings"} value={activeExams.filter((exam) => exam.status === "Warning").length} />
-        <Kpi label={t("reviews") || "Reviews"} value={activeExams.filter((exam) => exam.status === "Review").length} />
-        <Kpi
-          label={t("excellent") || "Excellent"}
-          value={activeExams.filter((exam) => exam.status === "Excellent").length}
-        />
+        <Kpi label="Active exams" value={metricValue(activeExams.length)} />
+        <Kpi label="Warnings" value={metricValue(activeExams.filter((exam) => exam.status === "Warning").length)} />
+        <Kpi label="Reviews" value={metricValue(activeExams.filter((exam) => exam.status === "Review").length)} />
+        <Kpi label="Excellent" value={metricValue(activeExams.filter((exam) => exam.status === "Excellent").length)} />
       </section>
 
-      {isLoading ? <Alert variant="info">{t("loadingCandidates") || "Loading active exams…"}</Alert> : activeExams.length === 0 ? (
-        <Card padding="lg" className="text-center">
-          <p className="text-sm text-[var(--adlts-ink-600)]">No active exams are currently running.</p>
-        </Card>
+      <Card padding="md" variant="soft">
+        <p className="text-[14px] leading-6 text-[var(--text-secondary)]">
+          This monitor refreshes periodically and can be refreshed manually when operators need the latest connected backend state.
+        </p>
+      </Card>
+
+      {isLoading ? (
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Card key={index} padding="md" className="animate-pulse space-y-4">
+              <div className="h-5 w-32 rounded-[6px] bg-[var(--surface-2)]" />
+              <div className="h-4 w-full rounded-[6px] bg-[var(--surface-2)]" />
+              <div className="h-20 rounded-[8px] bg-[var(--surface-2)]" />
+            </Card>
+          ))}
+        </div>
+      ) : activeExams.length === 0 ? (
+        <EmptyState title="No active exams" description="No active exams are currently running." />
       ) : (
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {activeExams.map((exam) => (
@@ -91,43 +106,57 @@ export default function AdminActiveExamsPage() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <p className={ui.statLabel}>{exam.center}</p>
-                  <h2 className="mt-1 text-lg font-semibold text-[var(--adlts-ink-900)]">{exam.candidateName}</h2>
+                  <h2 className="mt-1 text-[18px] font-semibold text-[var(--text-primary)]">{exam.candidateName}</h2>
                 </div>
                 <StatusBadge status={exam.status} tone={getStatusTone(exam.status)} />
               </div>
 
-              <div>
-                <div className="mb-2 flex items-center justify-between text-[11px] font-semibold uppercase tracking-wide text-[var(--adlts-ink-500)]">
-                  <span>{t("metric_progress")}</span>
-                  <span>{exam.progress}%</span>
-                </div>
-                <div className="h-2 rounded-full bg-[var(--adlts-surface-soft)] overflow-hidden">
-                  <div className="h-full rounded-full bg-[var(--adlts-blue-600)]" style={{ width: `${exam.progress}%` }} />
-                </div>
-              </div>
+              <ProgressBar value={exam.progress} label="Progress" />
 
-              <div className="grid grid-cols-2 gap-3 text-sm">
-                <Metric label={t("metric_liveScore")} value={`${exam.liveScore}%`} />
-                <Metric label={t("metric_violations")} value={exam.violations.toString()} />
+              <div className="grid grid-cols-2 gap-3 text-[14px]">
+                <Metric label="Live score" value={`${exam.liveScore}%`} />
+                <Metric label="Violations" value={exam.violations.toString()} />
               </div>
             </Card>
           ))}
         </div>
       )}
+
+      <Card padding="md">
+        <CardHeader title="Status glossary" />
+        <div className="grid gap-3 md:grid-cols-4">
+          <GlossaryItem status="Stable" description="Running without a current warning." />
+          <GlossaryItem status="Warning" description="Requires operator attention." />
+          <GlossaryItem status="Excellent" description="Running with strong indicators." />
+          <GlossaryItem status="Review" description="Requires review before it is closed." />
+        </div>
+      </Card>
     </PageContainer>
   );
 }
 
-const Metric = ({ label, value }: { label: string; value: string }) => (
-  <div className="rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-3">
-    <p className={`${ui.statLabel} mb-1`}>{label}</p>
-    <p className="font-semibold text-[var(--adlts-ink-900)]">{value}</p>
-  </div>
-);
+function Metric({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)] p-3">
+      <p className={`${ui.statLabel} mb-1`}>{label}</p>
+      <p className="font-semibold text-[var(--text-primary)]">{value}</p>
+    </div>
+  );
+}
 
-const Kpi = ({ label, value }: { label: string; value: number }) => (
-  <Card padding="md" className="space-y-1">
-    <p className={ui.statLabel}>{label}</p>
-    <p className="text-2xl font-semibold text-[var(--adlts-ink-900)]">{value}</p>
-  </Card>
-);
+function Kpi({ label, value }: { label: string; value: string | number }) {
+  return (
+    <Card padding="md">
+      <StatBlock label={label} value={value} />
+    </Card>
+  );
+}
+
+function GlossaryItem({ status, description }: { status: ActiveExam["status"]; description: string }) {
+  return (
+    <div className="rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)] p-3">
+      <StatusBadge status={status} tone={getStatusTone(status)} />
+      <p className="mt-2 text-[13px] leading-5 text-[var(--text-secondary)]">{description}</p>
+    </div>
+  );
+}

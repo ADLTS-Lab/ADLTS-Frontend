@@ -1,59 +1,202 @@
-import { Card, CardHeader, PageContainer, PageHeader, ui } from "@/app/components/ui";
+import { Building2, ClipboardCheck, CreditCard, FileText, LockKeyhole, Scale, UserCheck } from "lucide-react";
 
-const values = [
+import {
+  PublicButtonLink,
+  PublicCard,
+  PublicHeader,
+  PublicList,
+  PublicSection,
+  PublicTimeline,
+} from "@/app/components/ui";
+
+const missionBullets = [
+  "Give candidates a clear path from account creation to results.",
+  "Help institutes review booking requests with the right context.",
+  "Support administrators with monitoring and reporting tools.",
+  "Keep expert review and appeal resolution organized.",
+  "Improve visibility for transport authorities and super admins.",
+];
+
+const coordinationCards = [
   {
-    title: "Trusted Process",
-    description:
-      "Clear, auditable workflows reduce manual follow-up and keep role-based actions predictable.",
+    icon: UserCheck,
+    title: "Registration and identity",
+    body: "Candidate accounts, contact details, OTP verification, profile updates, password reset, and role-based login.",
   },
   {
-    title: "Role-Aware Access",
-    description:
-      "Candidates, institutes, experts, and authorities each receive focused tools for their workflow.",
+    icon: ClipboardCheck,
+    title: "Booking and readiness",
+    body: "Institution selection, license category, preferred exam date, session, blood type, notes, and candidate details.",
   },
   {
-    title: "Reliable Operations",
-    description:
-    "ADLTS is designed for coordinated scheduling, review, and reporting across the exam lifecycle.",
+    icon: Building2,
+    title: "Review and approval",
+    body: "Institute request queues, filters, candidate details, approve actions, reject actions, and pending-status rules.",
   },
+  {
+    icon: CreditCard,
+    title: "Payments",
+    body: "Payment initiation after approval, retry support, payment status, amount due, booking reference, and payment history.",
+  },
+  {
+    icon: FileText,
+    title: "Testing and results",
+    body: "Active exam monitoring, exam history, score breakdown, result visibility, and hidden results while under review.",
+  },
+  {
+    icon: Scale,
+    title: "Governance",
+    body: "Institution invitations, audit logs, review queues, compliance alerts, notifications, and settings.",
+  },
+];
+
+const stakeholders = [
+  ["Candidate", "Registers, requests booking, pays after approval, tracks exam and results."],
+  ["Institute", "Reviews candidate requests, approves or rejects pending bookings, manages institution profile."],
+  ["Admin", "Monitors devices, active exams, candidates, invitations, reports, and notifications."],
+  ["Expert", "Reviews flagged exam concerns and resolves pending cases."],
+  ["Super admin", "Manages institutions, invitations, system metrics, audit logs, and governance."],
+  ["Transport authority", "Monitors regional analytics, compliance alerts, and operational indicators."],
+];
+
+const principles = [
+  ["Transparency", "Users should understand what a status means and what action comes next."],
+  ["Accountability", "Sensitive actions such as approvals, invitations, status changes, and review resolution should be traceable."],
+  ["Role clarity", "Users should only see the tools and data needed for their role."],
+  ["Operational reliability", "The interface should show loading, empty, unavailable, and error states honestly."],
+  ["Accessibility", "The platform should remain usable across devices, languages, and user abilities."],
+  ["No fake data", "Dashboards should not invent business records or success states when the backend has not returned them."],
+];
+
+const lifecycleSteps = [
+  { title: "A candidate creates an account and signs in." },
+  { title: "The candidate submits a booking request for an active institute." },
+  { title: "The institute reviews the request and decides whether it can proceed." },
+  { title: "Approved requests move to payment." },
+  { title: "Paid or scheduled requests move toward examination." },
+  { title: "Exam results become available after completion and review." },
+  { title: "Experts, administrators, super admins, and authorities monitor the system from their portals." },
+];
+
+const outcomes = [
+  "Fewer manual follow-ups for candidates.",
+  "Better visibility for institution request queues.",
+  "Faster recognition of device and exam issues.",
+  "More consistent handling of appeals and flagged cases.",
+  "Clearer system audit trail for governance.",
+  "Stronger public confidence in the testing process.",
 ];
 
 export default function AboutPage() {
   return (
-    <PageContainer width="wide" className="space-y-8">
-      <PageHeader
-        eyebrow="About ADLTS"
-        title="Automated Driving License Testing System"
-        description="ADLTS is a transparent digital workflow for driving test enrollment, review, scheduling, and result tracking."
-      />
-
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <Card padding="lg" className="space-y-3">
-          <p className={ui.eyebrow}>Mission</p>
-          <h2 className={ui.sectionTitle}>Built for clarity in public service</h2>
-          <p className={ui.sectionLead}>
-            ADLTS helps candidates complete verification and testing milestones through a consistent portal experience.
+    <main>
+      <PublicSection tone="surface" className="pt-16">
+        <div className="max-w-4xl">
+          <p className="text-[14px] font-medium text-[var(--text-secondary)]">About ADLTS</p>
+          <h1 className="mt-4 text-[40px] font-bold leading-tight text-[var(--text-primary)] max-md:text-[32px]">
+            Digital infrastructure for a clearer driving license testing process.
+          </h1>
+          <p className="mt-5 text-[18px] leading-8 text-[var(--text-secondary)]">
+            ADLTS is a role-based platform for managing the driving license testing lifecycle. It connects candidates, institutes, administrators, experts, super admins, and transport authorities through one accountable workflow.
           </p>
-        </Card>
+          <p className="mt-5 text-[15px] leading-7 text-[var(--text-secondary)]">
+            The system is designed to reduce uncertainty in the testing process. Candidates can see where they are in the journey. Institutes can review requests assigned to them. Administrators can monitor operational readiness. Experts can resolve flagged concerns. Authorities and super admins can review system-level activity.
+          </p>
+        </div>
+      </PublicSection>
 
-        {values.map((value) => (
-          <Card key={value.title} className="space-y-2">
-            <CardHeader title={value.title} />
-            <p className="text-sm text-[var(--adlts-ink-600)]">{value.description}</p>
-          </Card>
-        ))}
-      </section>
+      <PublicSection tone="bg">
+        <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr]">
+          <PublicHeader title="Our mission" />
+          <div>
+            <p className="text-[16px] leading-7 text-[var(--text-secondary)]">
+              ADLTS exists to make driving license testing easier to follow, easier to administer, and easier to oversee. The platform does this by turning scattered tasks into a sequence of authenticated, role-specific actions.
+            </p>
+            <div className="mt-6">
+              <PublicList items={missionBullets} />
+            </div>
+          </div>
+        </div>
+      </PublicSection>
 
-      <Card className="space-y-3">
-        <CardHeader title="How it works" description="A concise summary of the candidate journey." />
-        <ul className="ml-5 list-disc space-y-2 text-sm text-[var(--adlts-ink-700)]">
-          <li>Candidate registers and submits a booking request.</li>
-          <li>Institution validates documents and training readiness.</li>
-          <li>Payment and scheduling follow institutional approval.</li>
-          <li>Examination is administered and reviewed by expert teams.</li>
-          <li>Authorities monitor compliance, outcomes, and operational health.</li>
-        </ul>
-      </Card>
-    </PageContainer>
+      <PublicSection tone="surface">
+        <PublicHeader title="What the platform coordinates" />
+        <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {coordinationCards.map((card) => (
+            <PublicCard key={card.title} icon={card.icon} title={card.title}>
+              {card.body}
+            </PublicCard>
+          ))}
+        </div>
+      </PublicSection>
+
+      <PublicSection tone="bg">
+        <PublicHeader
+          title="One process, separate responsibilities."
+          lead="Each role has a different responsibility. ADLTS keeps those responsibilities separate while making the full process easier to understand."
+        />
+        <div className="mt-10 overflow-hidden rounded-[8px] border border-[var(--border)] bg-[var(--surface)]">
+          <table className="w-full border-collapse text-left">
+            <thead className="bg-[var(--surface-2)] text-[12px] font-medium text-[var(--text-secondary)]">
+              <tr>
+                <th className="px-4 py-3 font-medium">Role</th>
+                <th className="px-4 py-3 font-medium">Responsibility</th>
+              </tr>
+            </thead>
+            <tbody>
+              {stakeholders.map(([role, responsibility]) => (
+                <tr key={role} className="border-t border-[var(--border)]">
+                  <td className="px-4 py-4 text-[14px] font-semibold text-[var(--text-primary)]">{role}</td>
+                  <td className="px-4 py-4 text-[14px] leading-6 text-[var(--text-secondary)]">{responsibility}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </PublicSection>
+
+      <PublicSection tone="surface">
+        <PublicHeader title="Principles behind the system" />
+        <div className="mt-10 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {principles.map(([title, body]) => (
+            <PublicCard key={title} icon={LockKeyhole} title={title}>
+              {body}
+            </PublicCard>
+          ))}
+        </div>
+      </PublicSection>
+
+      <PublicSection tone="bg">
+        <div className="grid gap-10 lg:grid-cols-[0.85fr_1.15fr]">
+          <PublicHeader title="How the ADLTS lifecycle works" />
+          <PublicTimeline steps={lifecycleSteps} />
+        </div>
+      </PublicSection>
+
+      <PublicSection tone="surface">
+        <PublicHeader title="What improves when the workflow is connected" />
+        <div className="mt-8">
+          <PublicList items={outcomes} />
+        </div>
+      </PublicSection>
+
+      <PublicSection tone="accent">
+        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+          <div className="max-w-2xl">
+            <h2 className="text-[32px] font-bold leading-tight text-[var(--surface)]">
+              Start with the right next step.
+            </h2>
+            <p className="mt-4 text-[16px] leading-7 text-[var(--accent-subtle)]">
+              Candidates can register directly. Staff and institutional roles should use authorized onboarding or contact support.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <PublicButtonLink href="/candidate/register" variant="inverse">Register as candidate</PublicButtonLink>
+            <PublicButtonLink href="/guidelines" variant="inverse-outline">Read guidelines</PublicButtonLink>
+            <PublicButtonLink href="/contact" variant="inverse-outline">Contact ADLTS</PublicButtonLink>
+          </div>
+        </div>
+      </PublicSection>
+    </main>
   );
 }

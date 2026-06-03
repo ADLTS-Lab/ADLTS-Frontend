@@ -34,19 +34,19 @@ export default function PaymentHistory({ bookingId, payments: paymentsProp, load
     };
   }, [bookingId, loadingProp, paymentsProp]);
 
-  if (loading) return <div className="text-sm text-slate-500">Loading payments…</div>;
-  if (!payments.length) return <div className="text-sm text-slate-500">No payments found.</div>;
+  if (loading) return <div className="text-sm text-[var(--text-secondary)]">Loading payments...</div>;
+  if (!payments.length) return <div className="text-sm text-[var(--text-secondary)]">No payments found.</div>;
 
   return (
     <div className="space-y-2">
       {payments.map((p) => (
-        <div key={p.id} className="p-3 border rounded">
+        <div key={p.id} className="rounded-[8px] border border-[var(--border)] p-3">
           <div className="flex justify-between">
-            <div className="text-sm font-medium">{p.provider ?? 'Local'}</div>
-            <div className="text-sm text-slate-600">{p.status}</div>
+            <div className="text-sm font-medium text-[var(--text-primary)]">{p.provider ?? 'Local'}</div>
+            <div className="text-sm text-[var(--text-secondary)]">{p.status}</div>
           </div>
-          <div className="text-sm text-slate-500">{(p.amountCents / 100).toFixed(2)} {p.currency}</div>
-          <div className="text-xs text-slate-400">{new Date(p.createdAt).toLocaleString()}</div>
+          <div className="text-sm text-[var(--text-secondary)]">{(p.amountCents / 100).toFixed(2)} {p.currency}</div>
+          <div className="text-xs text-[var(--text-tertiary)]">{new Date(p.createdAt).toLocaleString()}</div>
         </div>
       ))}
     </div>

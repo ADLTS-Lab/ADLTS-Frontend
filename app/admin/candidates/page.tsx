@@ -1,26 +1,27 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Search } from "lucide-react";
 import {
   listCandidates,
   updateCandidateStatus,
   type CandidateRecord,
 } from "@/services/candidates.service";
-import { useI18n } from "@/i18n/useI18n";
 import { extractApiError } from "@/services/api-utils";
 import {
   Alert,
   Button,
   Card,
+  DataTable,
   Input,
   PageContainer,
   PageHeader,
+  StatBlock,
   StatusBadge,
-  ui,
+  type DataTableColumn,
 } from "@/app/components/ui";
 
 export default function AdminCandidatesPage() {
-  const { t } = useI18n();
   const [search, setSearch] = useState("");
   const [candidates, setCandidates] = useState<CandidateRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,15 +37,19 @@ export default function AdminCandidatesPage() {
         setCandidates(data);
       } catch (err: unknown) {
         setError(extractApiError(err, "Unable to load candidates."));
+        setCandidates([]);
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadCandidates();
+    void loadCandidates();
   }, [search]);
 
   const activeCount = useMemo(() => candidates.filter((candidate) => candidate.status === "active").length, [candidates]);
+  const suspendedCount = candidates.length - activeCount;
+  const displayUnavailable = Boolean(error) && candidates.length === 0;
+  const metricValue = (value: number) => (isLoading || displayUnavailable ? "-" : value);
 
   const toggleStatus = async (candidate: CandidateRecord) => {
     const nextStatus = candidate.status === "active" ? "suspended" : "active";
@@ -57,93 +62,92 @@ export default function AdminCandidatesPage() {
     }
   };
 
+  const columns: Array<DataTableColumn<CandidateRecord>> = [
+    {
+      key: "name",
+      header: "Name",
+      cell: (candidate) => candidate.name || `${candidate.first_name} ${candidate.last_name}`.trim() || "-",
+    },
+    {
+      key: "email",
+      header: "Email",
+      cell: (candidate) => candidate.email,
+    },
+    {
+      key: "center",
+      header: "Test center",
+      cell: (candidate) => candidate.testCenter || "-",
+    },
+    {
+      key: "category",
+      header: "Category",
+      cell: (candidate) => candidate.licenseCategory || "-",
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (candidate) => <StatusBadge status={candidate.status} tone={candidate.status === "active" ? "success" : "inactive"} />,
+    },
+    {
+      key: "action",
+      header: "Action",
+      cell: (candidate) => (
+        <Button
+          variant={candidate.status === "active" ? "danger" : "secondary"}
+          size="sm"
+          onClick={() => void toggleStatus(candidate)}
+        >
+          {candidate.status === "active" ? "Suspend" : "Activate"}
+        </Button>
+      ),
+    },
+  ];
+
   return (
-    <PageContainer width="wide">
+    <PageContainer width="wide" className="space-y-6">
       <PageHeader
-        eyebrow={t("adminPortal")}
-        title={t("candidates_title") || "Candidates"}
-        description={t("candidates_subtitle") || "Review user accounts and status controls."}
+        title="Candidate management"
+        description="Search candidates, review account details, and manage active or suspended status."
       />
 
       <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        <Card padding="md" className="space-y-1">
-          <p className={ui.statLabel}>{t("status_active") || "Active"}</p>
-          <p className="text-2xl font-semibold text-[var(--adlts-ink-900)]">{activeCount}</p>
+        <Card padding="md">
+          <StatBlock label="Active" value={metricValue(activeCount)} />
         </Card>
-        <Card padding="md" className="space-y-1">
-          <p className={ui.statLabel}>{t("status_suspended") || "Suspended"}</p>
-          <p className="text-2xl font-semibold text-[var(--adlts-ink-900)]">{candidates.length - activeCount}</p>
+        <Card padding="md">
+          <StatBlock label="Suspended" value={metricValue(suspendedCount)} />
         </Card>
-        <Card padding="md" className="space-y-1">
-          <p className={ui.statLabel}>Total candidates</p>
-          <p className="text-2xl font-semibold text-[var(--adlts-ink-900)]">{candidates.length}</p>
+        <Card padding="md">
+          <StatBlock label="Total candidates" value={metricValue(candidates.length)} />
         </Card>
       </section>
+
+      <Card padding="md" variant="soft">
+        <p className="text-[14px] leading-6 text-[var(--text-secondary)]">
+          Use status changes carefully. Suspended candidates may be blocked from normal workflow actions.
+        </p>
+      </Card>
 
       <Card padding="md">
         <Input
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={t("search_placeholder_candidates") || "Search candidates"}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search candidates"
+          label="Search"
+          suffix={<Search size={16} className="text-[var(--text-tertiary)]" />}
         />
       </Card>
 
-      {error && <Alert variant="error">{error}</Alert>}
+      {error ? <Alert variant="error">{error}</Alert> : null}
 
-      <Card className="overflow-hidden p-0">
-        <div className="overflow-x-auto">
-          <table className="w-full min-w-[52rem] text-left">
-            <thead className="border-b border-[var(--adlts-divider)] bg-[var(--adlts-surface-soft)]">
-              <tr>
-                <th className="px-6 py-4">{t("table_name")}</th>
-                <th className="px-6 py-4">{t("table_email")}</th>
-                <th className="px-6 py-4">{t("table_center")}</th>
-                <th className="px-6 py-4">{t("table_category")}</th>
-                <th className="px-6 py-4">{t("table_status")}</th>
-                <th className="px-6 py-4">{t("table_action")}</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--adlts-divider)]">
-              {isLoading ? (
-                <tr>
-                  <td className="px-6 py-8 text-[var(--adlts-ink-600)]" colSpan={6}>
-                    {t("loadingCandidates")}
-                  </td>
-                </tr>
-              ) : candidates.length === 0 ? (
-                <tr>
-                  <td className="px-6 py-8 text-[var(--adlts-ink-600)]" colSpan={6}>
-                    {t("noCandidatesFound")}
-                  </td>
-                </tr>
-              ) : (
-                candidates.map((candidate) => (
-                  <tr key={candidate.id} className="transition-colors hover:bg-[var(--adlts-surface-soft)]">
-                    <td className="px-6 py-4 font-medium text-[var(--adlts-ink-900)]">
-                      {candidate.name || `${candidate.first_name} ${candidate.last_name}`}
-                    </td>
-                    <td className="px-6 py-4 text-[var(--adlts-ink-700)]">{candidate.email}</td>
-                    <td className="px-6 py-4 text-[var(--adlts-ink-700)]">{candidate.testCenter}</td>
-                    <td className="px-6 py-4 text-[var(--adlts-ink-700)]">{candidate.licenseCategory}</td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={candidate.status} tone={candidate.status === "active" ? "success" : "inactive"} />
-                    </td>
-                    <td className="px-6 py-4">
-                      <Button
-                        variant={candidate.status === "active" ? "danger" : "secondary"}
-                        size="sm"
-                        onClick={() => toggleStatus(candidate)}
-                      >
-                        {candidate.status === "active" ? t("action_suspend") : t("action_activate")}
-                      </Button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </Card>
+      <DataTable
+        columns={columns}
+        data={candidates}
+        getRowKey={(candidate) => candidate.id}
+        loading={isLoading}
+        emptyTitle="No candidates found"
+        emptyDescription="No candidates found for this search."
+      />
     </PageContainer>
   );
 }

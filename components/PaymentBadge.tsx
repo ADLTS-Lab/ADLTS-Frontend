@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Button } from '@/app/components/ui/Button';
+import { StatusBadge } from '@/app/components/ui/StatusBadge';
 import PaymentModal from './PaymentModal';
 import type { Payment } from '@/types/payment';
 
@@ -16,7 +17,7 @@ export default function PaymentBadge({ bookingId, payment, required = false }: P
 
   return (
     <div className="flex items-center gap-3">
-      <div className="text-sm text-slate-700">{label}</div>
+      <StatusBadge status={label} tone={payment ? undefined : required ? "warning" : "neutral"} />
       <Button variant="primary" onClick={() => setOpen(true)} className="text-sm">
         {payment ? 'View / Retry' : 'Pay'}
       </Button>

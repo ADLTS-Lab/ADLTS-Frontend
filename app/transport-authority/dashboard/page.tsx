@@ -1,16 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, CircleAlert, CheckCircle2, ShieldAlert, ShieldCheck } from "lucide-react";
-import { useI18n } from "@/i18n/useI18n";
+import { RefreshCw } from "lucide-react";
 import { extractApiError } from "@/services/api-utils";
 import {
-  getRegionalAnalytics,
   getComplianceAlerts,
-  RegionalAnalytics,
-  ComplianceAlert,
+  getRegionalAnalytics,
+  type ComplianceAlert,
+  type RegionalAnalytics,
 } from "@/services/transport-authority.service";
-import { Alert, Button, Card, CardHeader, PageContainer, PageHeader, StatusBadge, ui } from "@/app/components/ui";
+import {
+  Alert,
+  Button,
+  Card,
+  CardHeader,
+  DataTable,
+  PageContainer,
+  PageHeader,
+  StatBlock,
+  StatusBadge,
+  type DataTableColumn,
+} from "@/app/components/ui";
 
 function severityTone(severity: ComplianceAlert["severity"]) {
   if (severity === "High") return "error";
@@ -20,12 +30,11 @@ function severityTone(severity: ComplianceAlert["severity"]) {
 
 function formatDate(value: string) {
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "—";
+  if (Number.isNaN(date.getTime())) return "-";
   return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date);
 }
 
 export default function TransportAuthorityDashboard() {
-  const { t } = useI18n();
   const [analytics, setAnalytics] = useState<RegionalAnalytics | null>(null);
   const [alerts, setAlerts] = useState<ComplianceAlert[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,7 +53,7 @@ export default function TransportAuthorityDashboard() {
         setAnalytics(analyticsRes.data);
       } else {
         setAnalytics(null);
-        setUnavailableReason(analyticsRes.message || t("transport_authority_data_unavailable"));
+        setUnavailableReason(analyticsRes.message || "Transport authority analytics endpoint is unavailable. Refresh later or confirm backend access.");
       }
 
       if (alertsRes.success && alertsRes.data) {
@@ -53,6 +62,8 @@ export default function TransportAuthorityDashboard() {
         setAlerts([]);
       }
     } catch (err) {
+      setAnalytics(null);
+      setAlerts([]);
       setError(extractApiError(err, "Failed to load authority dashboard data"));
     } finally {
       setLoading(false);
@@ -60,45 +71,60 @@ export default function TransportAuthorityDashboard() {
   };
 
   useEffect(() => {
-    loadData();
+    void loadData();
   }, []);
 
   const statCards = [
     {
-      label: "Licensed Drivers",
-      value: analytics?.licensedDrivers ?? "—",
-      tone: "info" as const,
-      icon: ShieldCheck,
+      label: "Licensed drivers",
+      value: analytics?.licensedDrivers,
     },
     {
-      label: "Regional Pass Rate",
-      value: analytics ? `${analytics.regionalPassRate}%` : "—",
-      tone: "success" as const,
-      icon: CheckCircle2,
+      label: "Regional pass rate",
+      value: analytics ? `${analytics.regionalPassRate}%` : undefined,
     },
     {
-      label: "Active Test Centers",
-      value: analytics?.activeCenters ?? "—",
-      tone: "info" as const,
-      icon: ShieldCheck,
+      label: "Active centers",
+      value: analytics?.activeCenters,
     },
     {
-      label: "Pending Violations",
-      value: analytics?.pendingViolations ?? "—",
-      tone: "warning" as const,
-      icon: AlertTriangle,
+      label: "Pending violations",
+      value: analytics?.pendingViolations,
+    },
+  ];
+
+  const columns: Array<DataTableColumn<ComplianceAlert>> = [
+    {
+      key: "center",
+      header: "Test center",
+      cell: (alert) => alert.centerName,
+    },
+    {
+      key: "issue",
+      header: "Issue description",
+      cell: (alert) => alert.issue,
+    },
+    {
+      key: "date",
+      header: "Date reported",
+      cell: (alert) => formatDate(alert.dateReported),
+    },
+    {
+      key: "severity",
+      header: "Severity",
+      cell: (alert) => <StatusBadge status={alert.severity} tone={severityTone(alert.severity)} />,
     },
   ];
 
   return (
-    <PageContainer width="wide" className="space-y-7">
+    <PageContainer width="wide" className="space-y-6">
       <PageHeader
-        eyebrow={t("transportAuthority") || "Transport Authority"}
-        title={t("regionalAuthorityPortal") || "Regional Authority Portal"}
-        description={t("authorityOverview") || "Monitor regional compliance and performance indicators."}
+        title="Regional authority portal"
+        description="Monitor regional compliance and performance indicators."
         action={
-          <Button variant="outline" onClick={() => void loadData()} disabled={loading}>
-            {loading ? "Refreshing..." : "Refresh"}
+          <Button variant="outline" onClick={() => void loadData()} disabled={loading} state={loading ? { loading: true } : undefined}>
+            <RefreshCw className="h-4 w-4" />
+            Refresh
           </Button>
         }
       />
@@ -106,78 +132,47 @@ export default function TransportAuthorityDashboard() {
       {error ? <Alert variant="error">{error}</Alert> : null}
       {unavailableReason ? <Alert variant="warning">{unavailableReason}</Alert> : null}
 
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {statCards.map((card) => {
-          const Icon = card.icon;
-          return (
-            <Card key={card.label} padding="md" className="space-y-3">
-              <div className="mb-1 inline-flex h-9 w-9 items-center justify-center rounded-md bg-[var(--adlts-surface-soft)] text-[var(--adlts-blue-700)]">
-                <Icon className="h-4 w-4" />
-              </div>
-              <p className={ui.statLabel}>{card.label}</p>
-              {loading ? (
-                <div className="h-9 w-20 rounded bg-[var(--adlts-surface-soft)] animate-pulse" />
-              ) : (
-                <p className="text-3xl font-semibold text-[var(--adlts-ink-900)]">{card.value}</p>
-              )}
-              <p className="text-xs text-[var(--adlts-ink-500)]">Updated from authority endpoint</p>
-            </Card>
-          );
-        })}
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {statCards.map((card) => (
+          <Card key={card.label} padding="md">
+            <StatBlock label={card.label} value={loading ? "-" : card.value ?? "-"} />
+          </Card>
+        ))}
       </section>
 
-      <Card className="overflow-hidden p-0">
+      <Card padding="none" className="overflow-hidden">
         <CardHeader
-          title={t("complianceAlerts") || "Compliance Alerts"}
-          description={t("complianceAlertsDescription") || "Review active safety or process issues for test centers."}
+          title="Compliance alert table"
+          description="Authority users review licensed driver counts, regional pass rates, active centers, pending violations, and compliance alerts when the endpoints provide data."
         />
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-[var(--adlts-surface-soft)] text-sm text-[var(--adlts-ink-500)] border-b border-[var(--adlts-divider)]">
-              <tr>
-                <th className="px-6 py-4">Test Center</th>
-                <th className="px-6 py-4">Issue Description</th>
-                <th className="px-6 py-4">Date Reported</th>
-                <th className="px-6 py-4">Severity</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--adlts-divider)]">
-              {loading ? (
-                Array.from({ length: 3 }).map((_, index) => (
-                  <tr key={index}>
-                    <td className="px-6 py-4"><div className="h-5 w-36 rounded bg-[var(--adlts-surface-soft)] animate-pulse" /></td>
-                    <td className="px-6 py-4"><div className="h-5 w-64 rounded bg-[var(--adlts-surface-soft)] animate-pulse" /></td>
-                    <td className="px-6 py-4"><div className="h-5 w-24 rounded bg-[var(--adlts-surface-soft)] animate-pulse" /></td>
-                    <td className="px-6 py-4"><div className="h-5 w-20 rounded bg-[var(--adlts-surface-soft)] animate-pulse" /></td>
-                  </tr>
-                ))
-              ) : alerts.length === 0 ? (
-                <tr>
-                  <td className="px-6 py-12 text-center text-[var(--adlts-ink-500)]" colSpan={4}>
-                    No active compliance issues.
-                  </td>
-                </tr>
-              ) : (
-                alerts.map((alert) => (
-                  <tr key={alert.id} className="hover:bg-[var(--adlts-surface-soft)]">
-                    <td className="px-6 py-4 font-medium text-[var(--adlts-ink-900)]">{alert.centerName}</td>
-                    <td className="px-6 py-4 text-[var(--adlts-ink-700)]">
-                      <span className="inline-flex items-center gap-2">
-                        <CircleAlert className="h-3.5 w-3.5 text-[var(--adlts-ink-500)]" />
-                        {alert.issue}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-[var(--adlts-ink-700)]">{formatDate(alert.dateReported)}</td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={alert.severity} tone={severityTone(alert.severity)} />
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+        <DataTable
+          columns={columns}
+          data={alerts}
+          getRowKey={(alert) => alert.id}
+          loading={loading}
+          emptyTitle="No active compliance issues"
+          emptyDescription="No active compliance issues."
+          className="rounded-none border-x-0 border-b-0"
+        />
+      </Card>
+
+      <Card padding="md">
+        <CardHeader title="Severity glossary" />
+        <div className="grid gap-3 md:grid-cols-3">
+          <SeverityItem severity="High" description="Requires urgent operational review." />
+          <SeverityItem severity="Medium" description="Requires follow-up and monitoring." />
+          <SeverityItem severity="Low" description="Informational or low-risk issue." />
         </div>
       </Card>
     </PageContainer>
+  );
+}
+
+function SeverityItem({ severity, description }: { severity: ComplianceAlert["severity"]; description: string }) {
+  return (
+    <div className="rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)] p-3">
+      <StatusBadge status={severity} tone={severityTone(severity)} />
+      <p className="mt-2 text-[13px] leading-5 text-[var(--text-secondary)]">{description}</p>
+    </div>
   );
 }

@@ -1,12 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { fetchCandidateExamById } from "@/services/exams.service";
-import { useI18n } from "@/i18n/useI18n";
-import { Card, PageContainer, PageHeader, ui } from "@/app/components/ui";
+import { ButtonLink, Card, PageContainer, PageHeader, ProgressBar, StatBlock, StatusBadge } from "@/app/components/ui";
 
 export default async function CandidateExamDetailPage({ params }: { params: Promise<{ examId: string }> }) {
   const { examId } = await params;
-  const { t } = useI18n();
   const exam = await fetchCandidateExamById(examId);
 
   if (!exam) {
@@ -15,65 +13,99 @@ export default async function CandidateExamDetailPage({ params }: { params: Prom
 
   if (exam.visible === false) {
     return (
-      <PageContainer width="wide">
-        <div className="space-y-6">
-          <PageHeader
-            eyebrow={t("exams_portal_label")}
-            title={`${exam.title} ${t("exam_breakdown_suffix")}`}
-            description={t("resultUnavailable") || "Result is not available yet."}
-          />
-          <div className="flex items-center justify-between gap-4 flex-wrap">
-            <p className={ui.statLabel}>Current status</p>
-            <span className="rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] px-3 py-1 text-xs font-medium uppercase tracking-wide text-[var(--adlts-ink-600)]">
-              {exam.result}
-            </span>
+      <PageContainer width="wide" className="space-y-6">
+        <PageHeader
+          title="Result under review"
+          description="This result is being reviewed and will be published once approved."
+          action={
+            <ButtonLink href="/candidate/exams" variant="outline">
+              Back to exam history
+            </ButtonLink>
+          }
+        />
+
+        <Card padding="lg">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[12px] font-medium text-[var(--text-secondary)]">Current status</p>
+              <h2 className="mt-1 text-[20px] font-semibold text-[var(--text-primary)]">{exam.title}</h2>
+            </div>
+            <StatusBadge status={exam.result} tone="warning" />
           </div>
-          <Card padding="lg">
-            <p className="text-sm text-[var(--adlts-ink-600)]">
-              This result is being reviewed and will be published once approved.
-            </p>
-          </Card>
-          <div>
-            <Link href="/candidate/exams" className="text-[var(--adlts-blue-700)] font-medium hover:text-[var(--adlts-blue-800)]">
-              ← {t("backToHistory")}
-            </Link>
-          </div>
-        </div>
+          <p className="mt-4 text-[14px] leading-6 text-[var(--text-secondary)]">
+            Some results require review before they are shown. If your result is not visible, wait for the official update or contact support with your booking reference.
+          </p>
+        </Card>
       </PageContainer>
     );
   }
 
   return (
-    <PageContainer width="wide">
+    <PageContainer width="wide" className="space-y-6">
       <PageHeader
-        eyebrow={t("exams_portal_label")}
-        title={`${exam.title} ${t("exam_breakdown_suffix")}`}
-        description={`${exam.date} · ${t("exams_score")} ${exam.score}% · ${exam.result === "Pass" ? t("result_pass") : t("result_fail")}`}
+        title={`${exam.title} result`}
+        description="Review completed driving tests, scores, results, centers, and available result breakdowns."
+        action={
+          <ButtonLink href="/candidate/exams" variant="outline">
+            Back to exam history
+          </ButtonLink>
+        }
       />
 
       <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <DetailCard label={t("detail_speed")} value={exam.speed} />
-        <DetailCard label={t("detail_lane")} value={exam.lane} />
-        <DetailCard label={t("detail_braking")} value={exam.braking} />
-        <DetailCard label={t("detail_trafficSigns")} value={exam.trafficSigns} />
+        <Card padding="sm">
+          <StatBlock label="Date" value={exam.date} />
+        </Card>
+        <Card padding="sm">
+          <StatBlock label="Score" value={`${exam.score}%`} />
+        </Card>
+        <Card padding="sm">
+          <p className="text-[12px] font-medium text-[var(--text-secondary)]">Result</p>
+          <div className="mt-2">
+            <StatusBadge status={exam.result} tone={exam.result === "Pass" ? "passed" : "failed"} />
+          </div>
+        </Card>
+        <Card padding="sm">
+          <StatBlock label="Exam ID" value={exam.id} />
+        </Card>
       </section>
 
       <Card padding="lg">
-        <div className="flex items-center justify-between gap-4 flex-wrap">
-          <h2 className="text-lg font-semibold text-[var(--adlts-ink-950)]">{t("notesTitle")}</h2>
-          <Link href="/candidate/exams" className="text-sm font-medium text-[var(--adlts-blue-700)] hover:text-[var(--adlts-blue-800)]">
-            {t("backToHistory")}
+        <h2 className="text-[18px] font-semibold text-[var(--text-primary)]">Performance breakdown</h2>
+        <div className="mt-5 grid gap-4 md:grid-cols-2">
+          <BreakdownItem label="Speed control" value={exam.speed} />
+          <BreakdownItem label="Lane discipline" value={exam.lane} />
+          <BreakdownItem label="Braking" value={exam.braking} />
+          <BreakdownItem label="Traffic signs" value={exam.trafficSigns} />
+        </div>
+      </Card>
+
+      <Card padding="lg">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-[18px] font-semibold text-[var(--text-primary)]">Notes</h2>
+            <p className="mt-2 text-[14px] leading-6 text-[var(--text-secondary)]">{exam.notes}</p>
+          </div>
+          <Link href="/contact" className="text-[14px] font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-hover)]">
+            Contact support
           </Link>
         </div>
-        <p className="mt-4 text-sm leading-relaxed text-[var(--adlts-ink-600)]">{exam.notes}</p>
       </Card>
     </PageContainer>
   );
 }
 
-const DetailCard = ({ label, value }: { label: string; value: string }) => (
-  <Card>
-    <p className="text-[12px] font-medium uppercase tracking-widest text-[var(--adlts-ink-500)] mb-2">{label}</p>
-    <p className="text-xl font-semibold text-[var(--adlts-ink-950)]">{value}</p>
-  </Card>
-);
+function BreakdownItem({ label, value }: { label: string; value: string }) {
+  const numericValue = Number.parseInt(value, 10);
+  const progress = Number.isNaN(numericValue) ? 0 : Math.max(0, Math.min(100, numericValue));
+
+  return (
+    <div className="rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)] p-4">
+      <div className="flex items-center justify-between gap-3">
+        <p className="text-[14px] font-medium text-[var(--text-primary)]">{label}</p>
+        <p className="text-[14px] font-semibold text-[var(--text-primary)]">{value}</p>
+      </div>
+      <ProgressBar value={progress} className="mt-3" />
+    </div>
+  );
+}

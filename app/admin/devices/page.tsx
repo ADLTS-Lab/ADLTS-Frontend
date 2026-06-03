@@ -1,32 +1,33 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
+import {
+  AlertTriangle,
+  Battery,
+  CalendarClock,
+  Megaphone,
+  Power,
+  RefreshCcw,
+  Settings,
+  Thermometer,
+  Ticket,
+  Wifi,
+} from "lucide-react";
+import { useAuthStore } from "@/store/authStore";
+import { listDevicesSafe, type DeviceRecord, type DeviceSummary } from "@/services/devices.service";
 import {
   Alert,
   Button,
   Card,
   CardHeader,
+  EmptyState,
   PageContainer,
   PageHeader,
+  ProgressBar,
+  StatBlock,
   StatusBadge,
   ui,
 } from "@/app/components/ui";
-import {
-  Battery,
-  CalendarClock,
-  Megaphone,
-  Plus,
-  RefreshCcw,
-  Settings,
-  Ticket,
-  Thermometer,
-  Wifi,
-  AlertTriangle,
-  Power,
-  User,
-} from "lucide-react";
-import { useAuthStore } from "@/store/authStore";
-import { listDevicesSafe, type DeviceRecord, type DeviceSummary } from "@/services/devices.service";
 
 function isAdminPortalRole(role: string | null | undefined) {
   return role === "admin" || role === "super_admin";
@@ -38,16 +39,23 @@ function getStatusTone(status: DeviceRecord["status"] | string) {
   return "inactive";
 }
 
-function getStatusLabel(status: DeviceRecord["status"] | string) {
-  return status || "Unknown";
-}
-
 export default function AdminDeviceDashboard() {
   const { isAuthenticated, user } = useAuthStore();
   const [devices, setDevices] = useState<DeviceRecord[]>([]);
   const [summary, setSummary] = useState<DeviceSummary>({ total: 0, online: 0, warning: 0, offline: 0 });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const loadDevices = async () => {
+    setIsLoading(true);
+    setError("");
+
+    const { devices: data, summary: nextSummary, error: nextError } = await listDevicesSafe();
+    setDevices(data);
+    setSummary(nextSummary);
+    setError(nextError ?? "");
+    setIsLoading(false);
+  };
 
   useEffect(() => {
     if (!isAuthenticated || !isAdminPortalRole(user?.role)) return;
@@ -76,52 +84,70 @@ export default function AdminDeviceDashboard() {
     return null;
   }
 
-  const { total: totalDevices, online: onlineCount, warning: warningCount, offline: offlineCount } = summary;
+  const displayUnavailable = Boolean(error) && devices.length === 0;
+  const metricValue = (value: number) => (displayUnavailable ? "-" : value);
 
   return (
     <PageContainer width="wide" className="space-y-6">
       <PageHeader
-        eyebrow="Admin Portal"
-        title="Device Management"
-        description={`${totalDevices} connected biometric units tracked in real time.`}
+        title="Device management"
+        description="Track connected biometric units, status, utilization, connectivity, and operational warnings."
         action={
           <Button variant="outline" size="sm">
-            <Megaphone size={16} className="mr-2" />
+            <Megaphone size={16} />
             Register device
           </Button>
         }
       />
 
-      <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-        <SummaryCard label="Total devices" value={totalDevices.toString()} sub="Connected units" tone="info" />
-        <SummaryCard label="Online" value={onlineCount.toString()} sub="Healthy" tone="success" />
-        <SummaryCard label="Warning" value={warningCount.toString()} sub="Needs action" tone="warning" />
-        <SummaryCard label="Offline" value={offlineCount.toString()} sub="Needs follow-up" tone="error" />
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <SummaryCard label="Total devices" value={isLoading ? "-" : metricValue(summary.total)} sub="Registered biometric units" />
+        <SummaryCard label="Online" value={isLoading ? "-" : metricValue(summary.online)} sub="Available devices" />
+        <SummaryCard label="Warning" value={isLoading ? "-" : metricValue(summary.warning)} sub="Needs review" />
+        <SummaryCard label="Offline" value={isLoading ? "-" : metricValue(summary.offline)} sub="Needs follow-up" />
       </section>
 
-      {error && <Alert variant="error">{error}</Alert>}
+      {error ? <Alert variant="error">{error}</Alert> : null}
+
+      <Card padding="md" variant="soft">
+        <p className="text-[14px] leading-6 text-[var(--text-secondary)]">
+          Warnings should be reviewed before the next exam session. Offline devices may require remote wake, ticket creation, or local inspection.
+        </p>
+      </Card>
 
       <Card className="overflow-hidden p-0">
         <CardHeader
-          title="Biometric devices"
-          description="Status, battery, and connectivity details for exam devices."
+          title="Device grid"
+          description="Registered biometric units will appear here after the backend returns device data."
+          action={
+            <Button type="button" variant="secondary" size="sm" onClick={() => void loadDevices()} disabled={isLoading} state={isLoading ? { loading: true } : undefined}>
+              <RefreshCcw size={16} />
+              Refresh
+            </Button>
+          }
         />
 
         {isLoading ? (
-          <div className="p-6">
-            <p className="text-sm text-[var(--adlts-ink-600)]">Loading devices…</p>
+          <div className="grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <Card key={index} padding="md" className="animate-pulse space-y-4">
+                <div className="h-5 w-40 rounded-[6px] bg-[var(--surface-2)]" />
+                <div className="h-4 w-full rounded-[6px] bg-[var(--surface-2)]" />
+                <div className="h-16 rounded-[8px] bg-[var(--surface-2)]" />
+              </Card>
+            ))}
           </div>
         ) : devices.length === 0 ? (
-          <div className="border-t border-[var(--adlts-divider)] p-6 text-center text-[var(--adlts-ink-600)]">No devices found.</div>
+          <EmptyState
+            title="No devices found"
+            description="Registered biometric units will appear here after backend data is available."
+            className="border-0 bg-transparent"
+          />
         ) : (
           <div className="grid gap-4 p-4 md:grid-cols-2 xl:grid-cols-3">
             {devices.map((device) => (
-              <DeviceNode key={device.name} {...device} />
+              <DeviceNode key={device.id || device.name} {...device} />
             ))}
-            <Button variant="secondary" className="h-auto justify-center border-dashed py-6">
-              <Plus size={16} />
-              Add Device
-            </Button>
           </div>
         )}
       </Card>
@@ -129,28 +155,24 @@ export default function AdminDeviceDashboard() {
   );
 }
 
-const SummaryCard = ({
+function SummaryCard({
   label,
   value,
   sub,
-  tone,
 }: {
   label: string;
-  value: string;
+  value: string | number;
   sub: string;
-  tone: "info" | "success" | "warning" | "error";
-}) => {
+}) {
   return (
     <Card padding="md" className="space-y-1">
-      <p className={ui.statLabel}>{label}</p>
-      <p className="text-3xl font-semibold">{value}</p>
-      <p className="text-sm text-[var(--adlts-ink-600)]">{sub}</p>
-      <StatusBadge status={label} tone={tone} />
+      <StatBlock label={label} value={value} />
+      <p className="text-[13px] text-[var(--text-secondary)]">{sub}</p>
     </Card>
   );
-};
+}
 
-const DeviceNode = ({
+function DeviceNode({
   type,
   name,
   location,
@@ -159,16 +181,7 @@ const DeviceNode = ({
   detailLabel,
   detailValue,
   status,
-}: {
-  type: string;
-  name: string;
-  location: string;
-  utilization: number;
-  battery: number;
-  detailLabel: string;
-  detailValue: string;
-  status: string;
-}) => {
+}: DeviceRecord) {
   const isOffline = status === "Offline";
 
   return (
@@ -176,73 +189,64 @@ const DeviceNode = ({
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className={ui.statLabel}>{type}</p>
-          <h3 className="text-lg font-semibold text-[var(--adlts-ink-900)]">{name}</h3>
-          <p className="mt-1 text-xs text-[var(--adlts-ink-500)]">📍 {location}</p>
+          <h3 className="text-[18px] font-semibold text-[var(--text-primary)]">{name}</h3>
+          <p className="mt-1 text-[12px] text-[var(--text-tertiary)]">{location}</p>
         </div>
-        <StatusBadge status={getStatusLabel(status)} tone={getStatusTone(status)} />
+        <StatusBadge status={status || "Unknown"} tone={getStatusTone(status)} />
       </div>
 
-      <div className="space-y-2">
-        <div className="flex justify-between text-xs font-semibold uppercase tracking-wide text-[var(--adlts-ink-500)]">
-          <span>Storage utilization</span>
-          <span>{utilization}%</span>
-        </div>
-        <div className="h-1.5 w-full bg-[var(--adlts-surface-soft)] rounded-full">
-          <div
-            className={`h-full rounded-full ${utilization > 80 ? "bg-[var(--adlts-warning-600)]" : "bg-[var(--adlts-blue-600)]"}`}
-            style={{ width: `${utilization}%` }}
-          />
-        </div>
-      </div>
+      <ProgressBar value={utilization} label="Storage utilization" />
 
       <div className="grid grid-cols-2 gap-3">
-        <div className="rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-3 flex items-center gap-3">
-          <CalendarClock
-            size={18}
-            className={isOffline ? "text-[var(--adlts-ink-400)]" : "text-[var(--adlts-blue-700)]"}
-          />
-          <div>
-            <p className={ui.statLabel}>Uptime</p>
-            <p className="text-sm font-semibold text-[var(--adlts-ink-900)]">{isOffline ? "—" : `${battery}%`}</p>
-          </div>
-        </div>
-
-        <div className="rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-3 flex items-center gap-3">
-          {detailLabel === "Latency" ? (
-            <RefreshCcw size={18} className="text-[var(--adlts-blue-700)]" />
-          ) : detailLabel === "Signal" ? (
-            <Wifi size={18} className="text-[var(--adlts-blue-700)]" />
-          ) : (
-            <Thermometer size={18} className="text-[var(--adlts-blue-700)]" />
-          )}
-          <div>
-            <p className={ui.statLabel}>{detailLabel}</p>
-            <p className="text-sm font-semibold text-[var(--adlts-ink-900)]">{detailValue}</p>
-          </div>
-        </div>
+        <MetricCard
+          icon={<CalendarClock size={18} className={isOffline ? "text-[var(--text-tertiary)]" : "text-[var(--accent)]"} />}
+          label="Uptime"
+          value={isOffline ? "-" : `${battery}%`}
+        />
+        <MetricCard
+          icon={detailLabel === "Latency" ? <RefreshCcw size={18} className="text-[var(--accent)]" /> : detailLabel === "Signal" ? <Wifi size={18} className="text-[var(--accent)]" /> : <Thermometer size={18} className="text-[var(--accent)]" />}
+          label={detailLabel}
+          value={detailValue}
+        />
       </div>
 
       <div className="flex gap-2">
         {isOffline ? (
           <>
             <Button variant="primary" size="sm" className="flex-1">
-              <Power size={12} /> Wake remote
+              <Power size={12} />
+              Wake remote
             </Button>
             <Button variant="secondary" size="sm" className="flex-1">
-              <Ticket size={12} /> Ticket
+              <Ticket size={12} />
+              Ticket
             </Button>
           </>
         ) : (
           <>
             <Button variant="secondary" size="sm" className="flex-1">
-              <Settings size={12} /> Configure
+              <Settings size={12} />
+              Configure
             </Button>
             <Button variant="danger" size="sm" className="flex-1">
-              <AlertTriangle size={12} /> Emergency stop
+              <AlertTriangle size={12} />
+              Emergency stop
             </Button>
           </>
         )}
       </div>
     </Card>
   );
-};
+}
+
+function MetricCard({ icon, label, value }: { icon: ReactNode; label: string; value: string }) {
+  return (
+    <div className="flex items-center gap-3 rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)] p-3">
+      {icon}
+      <div>
+        <p className={ui.statLabel}>{label}</p>
+        <p className="text-[14px] font-semibold text-[var(--text-primary)]">{value}</p>
+      </div>
+    </div>
+  );
+}

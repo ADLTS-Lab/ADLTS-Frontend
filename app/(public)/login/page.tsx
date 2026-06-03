@@ -3,13 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, LockKeyhole, Route, ShieldCheck, Users } from "lucide-react";
 import { login } from "@/services/auth.service";
 import { useAuthStore } from "@/store/authStore";
 import { useI18n } from "@/i18n/useI18n";
 import { getHomeRouteForRole } from "@/config/routes";
 import { extractApiError } from "@/services/api-utils";
-import { Alert, AuthCard, AuthForm, AuthLink, Button, Input, LabelRow } from "@/app/components/ui";
+import { Alert, AuthCard, AuthForm, AuthLink, Button, Input, LabelRow, PublicCard } from "@/app/components/ui";
 
 export default function UnifiedLoginPage() {
   const router = useRouter();
@@ -53,8 +53,8 @@ export default function UnifiedLoginPage() {
       setUser(user, access_token, entity_type, refresh_token);
 
       const nextRoute = getHomeRouteForRole(entity_type ?? user.role);
-      if (nextRoute === '/login') {
-        setError('Login succeeded, but your account role is not recognized for portal routing. Contact support.');
+      if (nextRoute === "/login") {
+        setError("Login succeeded, but your account role is not recognized for portal routing. Contact support.");
         return;
       }
 
@@ -67,63 +67,86 @@ export default function UnifiedLoginPage() {
   };
 
   return (
-    <AuthCard
-      icon={<span className="text-xl leading-none">🚗</span>}
-      title={t("loginTitle")}
-      footer={
-        <>
-          <AuthLink href="/candidate/register">{t("registerPrompt")}</AuthLink>
-        </>
-      }
-    >
-      <form onSubmit={handleLogin}>
-        <AuthForm>
-          <Input
-            label={t("emailLabel")}
-            type="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            autoComplete="email"
-          />
+    <main className="bg-[var(--bg)] px-6 py-20">
+      <div className="mx-auto grid w-full max-w-container-public gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+        <AuthCard
+          icon={<LockKeyhole size={20} />}
+          title="Login to ADLTS"
+          subtitle="Use the email and password connected to your ADLTS account. After login, you will be sent to the portal for your role."
+          footer={<AuthLink href="/candidate/register">{t("registerPrompt")}</AuthLink>}
+        >
+          <form onSubmit={handleLogin}>
+            <AuthForm>
+              <Input
+                label={t("emailLabel")}
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                autoComplete="email"
+              />
 
-          <div>
-            <LabelRow
-              label={t("passwordLabel")}
-              action={
-                <Link href="/forgot-password" className="text-xs font-medium text-blue-900 hover:text-blue-800">
-                  {t("forgotPassword")}
-                </Link>
-              }
-            />
-            <Input
-              type={showPassword ? "text" : "password"}
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              autoComplete="current-password"
-              suffix={
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
-                  aria-label={showPassword ? "Hide password" : "Show password"}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              }
-            />
-          </div>
+              <div>
+                <LabelRow
+                  label={t("passwordLabel")}
+                  action={
+                    <Link href="/forgot-password" className="text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-hover)]">
+                      {t("forgotPassword")}
+                    </Link>
+                  }
+                />
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password"
+                  autoComplete="current-password"
+                  suffix={
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="rounded-[6px] p-1.5 text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
+                      aria-label={showPassword ? "Hide password" : "Show password"}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  }
+                />
+              </div>
 
-          {error ? <Alert variant="error">{error}</Alert> : null}
+              {error ? <Alert variant="error">{error}</Alert> : null}
 
-          <Button type="submit" fullWidth disabled={isLoading}>
-            {isLoading ? t("loginLoading") : t("loginButton")}
-          </Button>
-        </AuthForm>
-      </form>
-    </AuthCard>
+              <Button type="submit" fullWidth disabled={isLoading} state={isLoading ? { loading: true } : undefined}>
+                {isLoading ? t("loginLoading") : t("loginButton")}
+              </Button>
+            </AuthForm>
+          </form>
+        </AuthCard>
+
+        <div className="grid gap-4">
+          <PublicCard icon={Route} title="Role routing helper">
+            Candidates, institutes, admins, experts, super admins, and transport authority users all use this login page. Your account role controls which portal opens after login.
+          </PublicCard>
+          <PublicCard icon={ShieldCheck} title="Security reminder">
+            Keep your password private. ADLTS support will never ask for your password.
+          </PublicCard>
+          <PublicCard icon={Users} title="Help links">
+            <div className="flex flex-wrap gap-3">
+              <Link href="/forgot-password" className="text-[14px] font-medium text-[var(--accent)] hover:text-[var(--accent-hover)]">
+                Reset your password
+              </Link>
+              <Link href="/candidate/register" className="text-[14px] font-medium text-[var(--accent)] hover:text-[var(--accent-hover)]">
+                Create candidate account
+              </Link>
+              <Link href="/contact" className="text-[14px] font-medium text-[var(--accent)] hover:text-[var(--accent-hover)]">
+                Contact ADLTS support
+              </Link>
+            </div>
+          </PublicCard>
+        </div>
+      </div>
+    </main>
   );
 }

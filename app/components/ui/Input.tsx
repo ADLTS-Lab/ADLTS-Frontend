@@ -23,7 +23,7 @@ export function Input({ label, error, hint, suffix, className = "", id, ...props
           id={inputId}
           aria-invalid={Boolean(error)}
           aria-describedby={error ? errorId : hint ? hintId : undefined}
-          className={`${ui.input} ${suffix ? "pr-10" : ""} ${error ? "border-[var(--adlts-error-600)] focus:border-[var(--adlts-error-600)] focus:ring-[color:rgba(220,38,38,0.2)]" : ""} ${className}`}
+          className={`${ui.input} ${suffix ? "pr-10" : ""} ${error ? "border-[var(--danger)] focus:border-[var(--danger)] focus:ring-[var(--danger-subtle)]" : ""} ${className}`}
           {...props}
         />
         {suffix ? <div className="absolute inset-y-0 right-0 flex items-center pr-2">{suffix}</div> : null}

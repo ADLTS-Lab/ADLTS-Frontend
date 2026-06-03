@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { Alert, Card, CardHeader, PageContainer, PageHeader } from "@/app/components/ui";
-import { useI18n } from "@/i18n/useI18n";
 import { useAuthStore } from "@/store/authStore";
 import { uploadExpertPhoto } from "@/services/expert.service";
 import { extractApiError } from "@/services/api-utils";
@@ -42,7 +41,6 @@ function readProfileImage(user: unknown): string {
 }
 
 export default function ExpertProfilePage() {
-  const { t } = useI18n();
   const { user, setUser, token, role } = useAuthStore();
   const [photoUrl, setPhotoUrl] = useState(() => readProfileImage(user));
   const [uploadError, setUploadError] = useState("");
@@ -70,7 +68,7 @@ export default function ExpertProfilePage() {
       }
 
       setPhotoUrl(nextPhotoUrl);
-      setUploadSuccess(t("uploadSuccess") || "Profile photo uploaded successfully.");
+      setUploadSuccess("Profile photo uploaded successfully.");
       setTimeout(() => {
         setUploadSuccess("");
       }, 5000);
@@ -86,9 +84,8 @@ export default function ExpertProfilePage() {
   return (
     <PageContainer width="wide" className="space-y-6">
       <PageHeader
-        eyebrow={t("expertPortal") || "Expert Portal"}
-        title={t("profile") || "Profile"}
-        description={t("profileDescription") || "Update identity and visual profile settings."}
+        title="Expert profile"
+        description="Keep your expert profile accurate so review actions can be associated with the correct account."
       />
 
       <RoleProfileView avatarUrl={photoUrl || undefined} />
@@ -98,8 +95,8 @@ export default function ExpertProfilePage() {
 
       <Card>
         <CardHeader
-          title={t("profilePhoto") || "Profile Photo"}
-          description={t("uploadProfilePhoto") || "Upload profile photo"}
+          title="Profile photo"
+          description="Profile identity and photo upload."
         />
         <ProfilePhotoUpload
           imageUrl={photoUrl}

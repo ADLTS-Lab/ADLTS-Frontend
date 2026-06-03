@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Mail, Save, RefreshCw } from "lucide-react";
+import { Mail, RefreshCw, Save } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
-import { getCurrentUser, changePassword, type User as AuthUser } from "@/services/auth.service";
+import { changePassword, getCurrentUser, type User as AuthUser } from "@/services/auth.service";
 import { updateMyCandidateProfile, uploadMyCandidatePhoto } from "@/services/candidates.service";
-import { useI18n } from "@/i18n/useI18n";
 import { extractApiError } from "@/services/api-utils";
 import {
   Alert,
@@ -16,6 +15,7 @@ import {
   PageContainer,
   PageHeader,
   Select,
+  StatBlock,
   StatusBadge,
   ui,
 } from "@/app/components/ui";
@@ -65,7 +65,6 @@ export default function CandidateProfile() {
   const [isProfileLoading, setIsProfileLoading] = useState(true);
   const didInitRef = useRef(false);
 
-  // Form State
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
@@ -74,7 +73,6 @@ export default function CandidateProfile() {
   const [gender, setGender] = useState("");
   const [address, setAddress] = useState("");
 
-  // Password State
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -82,13 +80,10 @@ export default function CandidateProfile() {
   const [passwordSuccess, setPasswordSuccess] = useState("");
   const [passwordError, setPasswordError] = useState("");
 
-  // UI feedback states
   const [isSaving, setIsSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [photoUrl, setPhotoUrl] = useState(readProfileImage(storedUser));
-
-  const { t, lang } = useI18n();
 
   useEffect(() => {
     if (didInitRef.current) return;
@@ -96,17 +91,21 @@ export default function CandidateProfile() {
 
     let isMounted = true;
 
+    const applyProfile = (currentUser: CandidateUser) => {
+      setProfile(currentUser);
+      setFirstName(currentUser.first_name || "");
+      setLastName(currentUser.last_name || "");
+      setPhone(currentUser.phone || "");
+      setEmail(currentUser.email || "");
+      setBirthDate(currentUser.birth_date || "");
+      setGender(currentUser.gender || "");
+      setAddress(currentUser.address || "");
+      setPhotoUrl(readProfileImage(currentUser));
+    };
+
     const loadProfileOnce = async () => {
       if (storedUser) {
-        setProfile(storedUser);
-        setFirstName(storedUser.first_name || "");
-        setLastName(storedUser.last_name || "");
-        setPhone(storedUser.phone || "");
-        setEmail(storedUser.email || "");
-        setBirthDate(storedUser.birth_date || "");
-        setGender(storedUser.gender || "");
-        setAddress(storedUser.address || "");
-        setPhotoUrl(readProfileImage(storedUser));
+        applyProfile(storedUser);
         setIsProfileLoading(false);
         return;
       }
@@ -117,20 +116,12 @@ export default function CandidateProfile() {
         if (!isMounted) return;
 
         if (currentUser) {
-          setProfile(currentUser as CandidateUser);
+          applyProfile(currentUser as CandidateUser);
           setUser(currentUser, storedToken || undefined, storedRole || undefined);
-          setFirstName(currentUser.first_name || "");
-          setLastName(currentUser.last_name || "");
-          setPhone(currentUser.phone || "");
-          setEmail(currentUser.email || "");
-          setBirthDate(currentUser.birth_date || "");
-          setGender(currentUser.gender || "");
-          setAddress(currentUser.address || "");
-          setPhotoUrl(readProfileImage(currentUser as CandidateUser));
         }
       } catch (err) {
         if (isMounted) {
-          setErrorMessage(extractApiError(err, t("profileUpdateError")));
+          setErrorMessage(extractApiError(err, "Unable to load this data right now. Refresh the page or contact support if the issue continues."));
         }
       } finally {
         if (isMounted) {
@@ -139,14 +130,13 @@ export default function CandidateProfile() {
       }
     };
 
-    loadProfileOnce();
+    void loadProfileOnce();
 
     return () => {
       isMounted = false;
     };
-  }, [storedUser, setUser, t, storedToken, storedRole]);
+  }, [storedUser, setUser, storedToken, storedRole]);
 
-  // Sync state if storedUser updates from outside
   useEffect(() => {
     if (storedUser && !isSaving) {
       setProfile(storedUser as CandidateUser);
@@ -171,10 +161,10 @@ export default function CandidateProfile() {
       const updated = await updateMyCandidateProfile({
         first_name: firstName,
         last_name: lastName,
-        phone: phone,
+        phone,
         birth_date: birthDate,
-        gender: gender,
-        address: address,
+        gender,
+        address,
       });
 
       if (updated) {
@@ -193,16 +183,16 @@ export default function CandidateProfile() {
         };
         setProfile(updatedUser);
         setUser(updatedUser as typeof storedUser, storedToken || undefined, storedRole || undefined);
-        setSuccessMessage(t("profileUpdatedSuccess"));
+        setSuccessMessage("Profile details updated.");
 
         setTimeout(() => {
           setSuccessMessage("");
         }, 5000);
       } else {
-        setErrorMessage(t("profileUpdateError"));
+        setErrorMessage("Unable to update profile details.");
       }
     } catch (err) {
-      setErrorMessage(extractApiError(err, t("profileUpdateError")));
+      setErrorMessage(extractApiError(err, "Unable to update profile details."));
     } finally {
       setIsSaving(false);
     }
@@ -214,14 +204,14 @@ export default function CandidateProfile() {
     setPasswordError("");
 
     if (newPassword !== confirmPassword) {
-      setPasswordError(t("passwordMismatch"));
+      setPasswordError("Passwords do not match.");
       return;
     }
 
     setIsChangingPassword(true);
     try {
       await changePassword(currentPassword, newPassword);
-      setPasswordSuccess(t("passwordChangedSuccessfully"));
+      setPasswordSuccess("Password changed successfully.");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -272,11 +262,11 @@ export default function CandidateProfile() {
     return (
       <PageContainer width="narrow">
         <Card padding="lg" className="animate-pulse space-y-4">
-          <div className="h-5 w-40 rounded bg-[var(--adlts-surface-soft)]" />
-          <div className="h-5 w-72 rounded bg-[var(--adlts-surface-soft)]" />
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="h-11 rounded bg-[var(--adlts-surface-soft)]" />
-            <div className="h-11 rounded bg-[var(--adlts-surface-soft)]" />
+          <div className="h-5 w-40 rounded-[6px] bg-[var(--surface-2)]" />
+          <div className="h-5 w-72 rounded-[6px] bg-[var(--surface-2)]" />
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="h-11 rounded-[6px] bg-[var(--surface-2)]" />
+            <div className="h-11 rounded-[6px] bg-[var(--surface-2)]" />
           </div>
         </Card>
       </PageContainer>
@@ -284,32 +274,28 @@ export default function CandidateProfile() {
   }
 
   const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase() || "C";
+  const displayName = `${firstName} ${lastName}`.trim() || "Candidate";
 
   return (
     <PageContainer width="narrow" className="space-y-6">
       <PageHeader
-        eyebrow={t("profileTitle") || "Profile"}
-        title={t("profileHeader") || `${firstName} ${lastName}`}
-        description={t("profileDescription") || "Update account details, photo, and security settings."}
-        action={
-          <StatusBadge
-            status={lang === "en" ? "Active" : "ንቁ"}
-            tone="success"
-          />
-        }
+        title="Candidate profile"
+        description="Keep your contact and identity details accurate so institutions and support teams can review your booking without delays."
+        action={<StatusBadge status="Active" tone="success" />}
       />
 
+      {successMessage ? <Alert variant="success">{successMessage}</Alert> : null}
+      {errorMessage ? <Alert variant="error">{errorMessage}</Alert> : null}
+
       <Card>
-        <CardHeader title={t("profileSummary") || "Profile summary"} />
-        <div className="flex flex-col items-center gap-4 border-b border-[var(--adlts-divider)] pb-4 sm:flex-row sm:items-start">
-          <div className="grid h-16 w-16 shrink-0 place-items-center rounded-full bg-[var(--adlts-blue-50)] text-xl font-semibold text-[var(--adlts-blue-700)]">
+        <CardHeader title="Profile summary" description="Profile details help ADLTS show the correct identity and contact information across role-based workflows." />
+        <div className="flex flex-col items-center gap-4 border-b border-[var(--border)] pb-4 sm:flex-row sm:items-start">
+          <div className="grid h-16 w-16 shrink-0 place-items-center rounded-[50%] bg-[var(--accent-subtle)] text-[20px] font-semibold text-[var(--accent)]">
             {initials}
           </div>
-          <div className="space-y-1 text-center sm:text-left">
-            <h2 className="text-xl font-semibold text-[var(--adlts-ink-950)]">
-              {firstName} {lastName}
-            </h2>
-            <p className={`mt-1 inline-flex items-center gap-2 text-sm ${ui.statLabel}`}>
+          <div className="space-y-2 text-center sm:text-left">
+            <h2 className="text-[20px] font-semibold text-[var(--text-primary)]">{displayName}</h2>
+            <p className={`inline-flex items-center gap-2 text-[14px] ${ui.statLabel}`}>
               <Mail size={16} /> {email}
             </p>
           </div>
@@ -324,87 +310,96 @@ export default function CandidateProfile() {
         </div>
       </Card>
 
-      {successMessage ? <Alert variant="success">{successMessage}</Alert> : null}
-      {errorMessage ? <Alert variant="error">{errorMessage}</Alert> : null}
+      <Card>
+        <CardHeader title="Account details" />
+        <div className="grid gap-3 md:grid-cols-3">
+          <StatBlock label="Email" value={email || "-"} />
+          <StatBlock label="Role" value="Candidate" />
+          <StatBlock label="Phone" value={phone || "-"} />
+        </div>
+      </Card>
 
       <Card>
-        <CardHeader title={t("personalInfo")} />
+        <CardHeader title="Personal information" />
 
         <form onSubmit={handleUpdate} className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Input label={t("firstNameLabel")} type="text" required value={firstName} onChange={(e) => setFirstName(e.target.value)} />
-            <Input label={t("lastNameLabel")} type="text" required value={lastName} onChange={(e) => setLastName(e.target.value)} />
+          <div className="grid gap-4 md:grid-cols-2">
+            <Input label="First name" type="text" required value={firstName} onChange={(e) => setFirstName(e.target.value)} />
+            <Input label="Last name" type="text" required value={lastName} onChange={(e) => setLastName(e.target.value)} />
           </div>
 
-          <Input label={`${t("emailLabel")} (${t("readOnly")})`} type="email" disabled value={email} />
+          <Input label="Email address (read only)" type="email" disabled value={email} />
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Input label={t("phoneNumberLabel")} type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} />
-            <Input label={t("dateOfBirthLabel")} type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
+          <div className="grid gap-4 md:grid-cols-2">
+            <Input label="Phone number" type="tel" required value={phone} onChange={(e) => setPhone(e.target.value)} />
+            <Input label="Birth date" type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} />
           </div>
 
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Select label={t("genderLabel")} value={gender} onChange={(e) => setGender(e.target.value)}>
-              <option value="">{t("selectGender")}</option>
-              <option value="male">{t("male")}</option>
-              <option value="female">{t("female")}</option>
-              <option value="other">{t("other")}</option>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Select label="Gender" value={gender} onChange={(e) => setGender(e.target.value)}>
+              <option value="">Select gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other</option>
             </Select>
-            <Input label={t("addressLabel")} type="text" value={address} onChange={(e) => setAddress(e.target.value)} />
+            <Input label="Address" type="text" value={address} onChange={(e) => setAddress(e.target.value)} />
           </div>
 
-          <div className="flex flex-col gap-3 border-t border-[var(--adlts-divider)] pt-4 sm:flex-row">
+          <div className="flex flex-col gap-3 border-t border-[var(--border)] pt-4 sm:flex-row">
             <Button type="submit" disabled={isSaving} className="sm:flex-1" state={isSaving ? { loading: true } : undefined}>
               {isSaving ? (
                 <>
                   <RefreshCw className="mr-2 inline animate-spin" size={16} />
-                  {t("updatingProfile")}
+                  Updating profile
                 </>
               ) : (
                 <>
                   <Save className="mr-2 inline" size={16} />
-                  {t("updateProfileButton")}
+                  Update profile
                 </>
               )}
             </Button>
             <Button type="button" variant="secondary" onClick={handleReset} disabled={isSaving}>
-              {t("reset")}
+              Reset
             </Button>
           </div>
         </form>
       </Card>
 
       <Card>
-        <CardHeader title={t("changePassword")} description={t("passwordHelp") || "Update your account password."} />
+        <CardHeader
+          title="Security"
+          description="Use a strong password and update it immediately if you think your account has been exposed."
+        />
 
         {passwordSuccess ? <Alert variant="success">{passwordSuccess}</Alert> : null}
         {passwordError ? <Alert variant="error">{passwordError}</Alert> : null}
 
         <form onSubmit={handlePasswordChange} className="space-y-4">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="grid gap-4 md:grid-cols-3">
             <Input
-              label={t("currentPassword")}
+              label="Current password"
               type="password"
               required
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
             />
             <Input
-              label={t("newPassword")}
+              label="New password"
               type="password"
               required
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
             />
             <Input
-              label={t("confirmPassword")}
+              label="Confirm password"
               type="password"
               required
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
             />
           </div>
-          <div className="border-t border-[var(--adlts-divider)] pt-4">
+          <div className="border-t border-[var(--border)] pt-4">
             <Button
               type="submit"
               disabled={isChangingPassword || !currentPassword || !newPassword || !confirmPassword}
@@ -414,12 +409,12 @@ export default function CandidateProfile() {
               {isChangingPassword ? (
                 <>
                   <RefreshCw className="mr-2 inline animate-spin" size={16} />
-                  {t("updating")}
+                  Updating
                 </>
               ) : (
                 <>
                   <Save className="mr-2 inline" size={16} />
-                  {t("updatePassword")}
+                  Update password
                 </>
               )}
             </Button>

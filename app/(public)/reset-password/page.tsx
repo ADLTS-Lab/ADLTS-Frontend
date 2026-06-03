@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, LockKeyhole, ShieldCheck } from "lucide-react";
 import { resetPassword } from "@/services/password.service";
 import { useI18n } from "@/i18n/useI18n";
 import { extractApiError } from "@/services/api-utils";
+import { Alert, AuthCard, AuthForm, Button, Input, PublicCard } from "@/app/components/ui";
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -23,7 +24,7 @@ function ResetPasswordForm() {
 
   useEffect(() => {
     if (!token) {
-      setError("This reset link is missing a valid token. Please request a new password reset link.");
+      setError("This reset link is missing a valid token. Request a new password reset link.");
     }
   }, [token]);
 
@@ -33,7 +34,7 @@ function ResetPasswordForm() {
     setSuccess("");
 
     if (!token) {
-      setError("This reset link is missing a valid token. Please request a new password reset link.");
+      setError("This reset link is missing a valid token. Request a new password reset link.");
       return;
     }
 
@@ -56,7 +57,7 @@ function ResetPasswordForm() {
         confirm_password: confirmPassword,
       });
 
-      setSuccess(message);
+      setSuccess(message || "Your password has been updated. Redirecting you to login.");
       setPassword("");
       setConfirmPassword("");
 
@@ -71,98 +72,92 @@ function ResetPasswordForm() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F5F7FA] flex items-center justify-center px-4 py-8">
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-lg border border-[#E5E7EB] p-6 sm:p-8">
-        <div className="text-center mb-6">
-          <div className="mx-auto w-12 h-12 bg-[#F5F7FA] rounded-full flex items-center justify-center mb-3">
-            <ShieldCheck className="text-[#1E3A8A]" size={22} />
-          </div>
-          <h1 className="text-xl font-bold text-[#1F2937]">{t('resetTitle')}</h1>
-          <p className="mt-2 text-sm text-[#6B7280]">{t('resetSubtitle')}</p>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-semibold text-[#1F2937] mb-1">{t('newPasswordLabel')}</label>
-            <div className="relative">
-              <input
+    <main className="bg-[var(--bg)] px-6 py-20">
+      <div className="mx-auto grid w-full max-w-container-public gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+        <AuthCard
+          icon={<LockKeyhole size={20} />}
+          title="Create a new password"
+          subtitle="Choose a password with at least 8 characters. Use a password you do not use on shared or public systems."
+        >
+          <form onSubmit={handleSubmit}>
+            <AuthForm>
+              <Input
+                label={t("newPasswordLabel")}
                 type={showPassword ? "text" : "password"}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent outline-none transition bg-[#F9FAFB] text-black"
+                placeholder="Password"
+                autoComplete="new-password"
+                suffix={
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword((value) => !value)}
+                    className="rounded-[6px] p-1.5 text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                }
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword((value) => !value)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B7280] hover:text-[#1F2937]"
-              >
-                {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-semibold text-[#1F2937] mb-1">{t('confirmPasswordLabel')}</label>
-            <div className="relative">
-              <input
+              <Input
+                label={t("confirmPasswordLabel")}
                 type={showConfirmPassword ? "text" : "password"}
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full px-4 py-3 rounded-xl border border-[#E5E7EB] focus:ring-2 focus:ring-[#3B82F6] focus:border-transparent outline-none transition bg-[#F9FAFB] text-black"
+                placeholder="Confirm password"
+                autoComplete="new-password"
+                suffix={
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPassword((value) => !value)}
+                    className="rounded-[6px] p-1.5 text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
+                    aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                  >
+                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                }
               />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword((value) => !value)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-[#6B7280] hover:text-[#1F2937]"
-              >
-                {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-              </button>
-            </div>
-          </div>
 
-          {error && (
-            <div className="p-3 bg-red-50 text-[#DC2626] rounded-xl text-sm">
-              {error}
-            </div>
-          )}
+              {error ? <Alert variant="error">{error}</Alert> : null}
+              {success ? <Alert variant="success">{success}</Alert> : null}
 
-          {success && (
-            <div className="p-3 bg-emerald-50 text-emerald-700 rounded-xl text-sm">
-              {success}
-            </div>
-          )}
+              <Button type="submit" fullWidth disabled={isLoading || !token} state={isLoading ? { loading: true } : undefined}>
+                {isLoading ? t("sendResetSending") : t("resetButton")}
+              </Button>
 
-          <button
-            type="submit"
-            disabled={isLoading || !token}
-            className="w-full bg-[#1E3A8A] text-white py-3.5 rounded-xl font-bold text-lg hover:bg-[#1E40AF] transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
-          >
-            {isLoading ? t('sendResetSending') : t('resetButton')}
-          </button>
+              <p className="text-center text-sm text-[var(--text-secondary)]">
+                {t("rememberPasswordPrompt")}{" "}
+                <button
+                  type="button"
+                  onClick={() => router.push("/login")}
+                  className="font-medium text-[var(--accent)] hover:text-[var(--accent-hover)]"
+                >
+                  {t("backToLogin")}
+                </button>
+              </p>
+            </AuthForm>
+          </form>
+        </AuthCard>
 
-          <p className="text-center text-sm text-[#6B7280]">
-            {t('rememberPasswordPrompt')} {" "}
-            <button
-              type="button"
-              onClick={() => router.push("/login")}
-              className="text-[#1E3A8A] font-semibold hover:underline"
-            >
-              {t('backToLogin')}
-            </button>
-          </p>
-        </form>
+        <div className="grid gap-4">
+          <PublicCard icon={ShieldCheck} title="Password guidance">
+            Choose a password with at least 8 characters. Use a password you do not use on shared or public systems.
+          </PublicCard>
+          <PublicCard icon={LockKeyhole} title="Missing token error">
+            This reset link is missing a valid token. Request a new password reset link.
+          </PublicCard>
+        </div>
       </div>
-    </div>
+    </main>
   );
 }
 
 export default function ResetPasswordPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div className="px-6 py-20 text-[14px] text-[var(--text-secondary)]">Loading latest data...</div>}>
       <ResetPasswordForm />
     </Suspense>
   );

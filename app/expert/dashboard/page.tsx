@@ -1,22 +1,27 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { CircleX, RefreshCw } from "lucide-react";
 import {
-  AlertTriangle,
-  CheckCircle2,
-  CircleDashed,
-  CircleX,
-} from "lucide-react";
-import {
-  getReviewMetrics,
   getFlaggedCandidates,
+  getReviewMetrics,
   resolveAppeal,
-  ReviewMetrics,
-  ExamReview,
+  type ExamReview,
+  type ReviewMetrics,
 } from "@/services/expert.service";
 import { extractApiError } from "@/services/api-utils";
-import { Alert, Button, Card, CardHeader, PageContainer, PageHeader, StatusBadge, ui } from "@/app/components/ui";
-import { useI18n } from "@/i18n/useI18n";
+import {
+  Alert,
+  Button,
+  Card,
+  CardHeader,
+  DataTable,
+  PageContainer,
+  PageHeader,
+  StatBlock,
+  StatusBadge,
+  type DataTableColumn,
+} from "@/app/components/ui";
 
 function getTone(status: ExamReview["status"]) {
   if (status === "Resolved") return "success";
@@ -24,18 +29,13 @@ function getTone(status: ExamReview["status"]) {
   return "neutral";
 }
 
-function getIcon(status: ExamReview["status"]) {
-  if (status === "Resolved") return CheckCircle2;
-  if (status === "In Progress") return AlertTriangle;
-  return CircleDashed;
-}
-
-function statusLabel(status: ExamReview["status"]) {
-  return status.replace("_", " ");
+function formatTimestamp(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
 export default function ExpertDashboard() {
-  const { t } = useI18n();
   const [metrics, setMetrics] = useState<ReviewMetrics | null>(null);
   const [reviews, setReviews] = useState<ExamReview[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,6 +60,8 @@ export default function ExpertDashboard() {
         setReviews([]);
       }
     } catch (err) {
+      setMetrics(null);
+      setReviews([]);
       setError(extractApiError(err, "Failed to load expert dashboard data"));
     } finally {
       setLoading(false);
@@ -67,7 +69,7 @@ export default function ExpertDashboard() {
   };
 
   useEffect(() => {
-    loadData();
+    void loadData();
   }, []);
 
   const resolveReview = async (reviewId: string) => {
@@ -85,31 +87,66 @@ export default function ExpertDashboard() {
 
   const metricCards = [
     {
-      label: "Pending Reviews",
-      value: metrics?.pendingReviews ?? "—",
-      tone: "warning" as const,
+      label: "Pending reviews",
+      value: metrics?.pendingReviews,
     },
     {
-      label: "Completed Today",
-      value: metrics?.completedToday ?? "—",
-      tone: "success" as const,
+      label: "Completed today",
+      value: metrics?.completedToday,
     },
     {
-      label: "Flagged Issues",
-      value: metrics?.flaggedIssues ?? "—",
-      tone: "info" as const,
+      label: "Flagged issues",
+      value: metrics?.flaggedIssues,
+    },
+  ];
+
+  const columns: Array<DataTableColumn<ExamReview>> = [
+    {
+      key: "candidate",
+      header: "Candidate name",
+      cell: (review) => review.candidateName,
+    },
+    {
+      key: "examDate",
+      header: "Exam date",
+      cell: (review) => formatTimestamp(review.examDate),
+    },
+    {
+      key: "issue",
+      header: "Issue type",
+      cell: (review) => review.issueType,
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (review) => <StatusBadge status={review.status} tone={getTone(review.status)} />,
+    },
+    {
+      key: "action",
+      header: "Action",
+      cell: (review) => (
+        <Button
+          variant="secondary"
+          size="sm"
+          disabled={resolvingId === review.id}
+          state={resolvingId === review.id ? { loading: true } : undefined}
+          onClick={() => void resolveReview(review.id)}
+        >
+          Resolve
+        </Button>
+      ),
     },
   ];
 
   return (
-    <PageContainer width="wide" className="space-y-7">
+    <PageContainer width="wide" className="space-y-6">
       <PageHeader
-        eyebrow={t("expertPortal") || "Expert Portal"}
-        title={t("expertReview") || "Expert Review Portal"}
-        description={t("expertReviewDescription") || "Review flagged appeals and resolve exam concerns."}
+        title="Expert review portal"
+        description="Review flagged appeals and resolve exam concerns."
         action={
-          <Button variant="secondary" onClick={() => void loadData()} disabled={loading}>
-            {loading ? "Refreshing..." : "Refresh"}
+          <Button variant="secondary" onClick={() => void loadData()} disabled={loading} state={loading ? { loading: true } : undefined}>
+            <RefreshCw className="h-4 w-4" />
+            Refresh
           </Button>
         }
       />
@@ -117,95 +154,40 @@ export default function ExpertDashboard() {
       {error ? (
         <Alert variant="error">
           <div className="flex items-center gap-3">
-            <CircleX className="h-4 w-4 text-[var(--adlts-error-700)]" />
+            <CircleX className="h-4 w-4 text-[var(--danger)]" />
             {error}
           </div>
         </Alert>
       ) : null}
 
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-4 sm:grid-cols-3">
         {metricCards.map((card) => (
-          <Card key={card.label} padding="md" className="space-y-2">
-            <p className={ui.statLabel}>{card.label}</p>
-            {loading ? (
-              <div className="h-9 w-20 rounded bg-[var(--adlts-surface-soft)] animate-pulse" />
-            ) : (
-              <p className="text-3xl font-semibold text-[var(--adlts-ink-900)]">{card.value}</p>
-            )}
+          <Card key={card.label} padding="md">
+            <StatBlock label={card.label} value={loading ? "-" : card.value ?? "-"} />
           </Card>
         ))}
       </section>
 
-      <Card className="overflow-hidden p-0">
+      <Card padding="md" variant="soft">
+        <p className="text-[14px] leading-6 text-[var(--text-secondary)]">
+          Resolve only after reviewing the available exam context and issue type.
+        </p>
+      </Card>
+
+      <Card padding="none" className="overflow-hidden">
         <CardHeader
-          title="Exam Review Queue"
-          description="Resolve open issues on flagged examinations."
+          title="Review queue"
+          description="Experts see pending reviews, completed work, flagged issues, candidate names, exam dates, issue types, statuses, and resolve actions."
         />
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-[var(--adlts-surface-soft)] text-sm text-[var(--adlts-ink-500)] border-b border-[var(--adlts-divider)]">
-              <tr>
-                <th className="px-6 py-4">Candidate Name</th>
-                <th className="px-6 py-4">Exam Date</th>
-                <th className="px-6 py-4">Issue Type</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--adlts-divider)]">
-              {loading ? (
-                Array.from({ length: 3 }).map((_, index) => (
-                  <tr key={index}>
-                    <td className="px-6 py-4"><div className="h-5 w-36 rounded bg-[var(--adlts-surface-soft)] animate-pulse" /></td>
-                    <td className="px-6 py-4"><div className="h-5 w-28 rounded bg-[var(--adlts-surface-soft)] animate-pulse" /></td>
-                    <td className="px-6 py-4"><div className="h-5 w-44 rounded bg-[var(--adlts-surface-soft)] animate-pulse" /></td>
-                    <td className="px-6 py-4"><div className="h-5 w-20 rounded bg-[var(--adlts-surface-soft)] animate-pulse" /></td>
-                    <td className="px-6 py-4"><div className="h-8 w-20 rounded bg-[var(--adlts-surface-soft)] animate-pulse" /></td>
-                  </tr>
-                ))
-              ) : reviews.length === 0 ? (
-                <tr>
-                  <td className="px-6 py-12 text-center text-[var(--adlts-ink-500)]" colSpan={5}>
-                    All caught up! No pending reviews.
-                  </td>
-                </tr>
-              ) : (
-                reviews.map((review) => {
-                  const StatusIcon = getIcon(review.status);
-                  return (
-                    <tr key={review.id} className="hover:bg-[var(--adlts-surface-soft)]">
-                      <td className="px-6 py-4 font-medium text-[var(--adlts-ink-900)]">{review.candidateName}</td>
-                      <td className="px-6 py-4 text-[var(--adlts-ink-700)]">
-                        {new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(
-                          new Date(review.examDate),
-                        )}
-                      </td>
-                      <td className="px-6 py-4 text-[var(--adlts-ink-700)]">{review.issueType}</td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex items-center gap-1.5">
-                          <StatusIcon className="h-3.5 w-3.5 text-[var(--adlts-ink-500)]" />
-                          <StatusBadge status={statusLabel(review.status)} tone={getTone(review.status)} />
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          disabled={resolvingId === review.id}
-                          onClick={() => {
-                            void resolveReview(review.id);
-                          }}
-                        >
-                          {resolvingId === review.id ? "Resolving..." : "Resolve"}
-                        </Button>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          columns={columns}
+          data={reviews}
+          getRowKey={(review) => review.id}
+          loading={loading}
+          emptyTitle="All caught up"
+          emptyDescription="No pending reviews."
+          className="rounded-none border-x-0 border-b-0"
+        />
       </Card>
     </PageContainer>
   );

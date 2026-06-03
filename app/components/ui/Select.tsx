@@ -22,7 +22,7 @@ export function Select({ label, error, hint, className = "", id, children, ...pr
         id={selectId}
         aria-invalid={Boolean(error)}
         aria-describedby={error ? errorId : hint ? hintId : undefined}
-        className={`${ui.select} ${error ? "border-[var(--adlts-error-600)] focus:border-[var(--adlts-error-600)] focus:ring-[color:rgba(220,38,38,0.2)]" : ""} ${className}`}
+        className={`${ui.select} ${error ? "border-[var(--danger)] focus:border-[var(--danger)] focus:ring-[var(--danger-subtle)]" : ""} ${className}`}
         {...props}
       >
         {children}

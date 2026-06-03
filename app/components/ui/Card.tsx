@@ -46,23 +46,41 @@ const variantClasses: Record<CardVariant, string> = {
   surface: ui.card,
   muted: ui.cardMuted,
   soft: ui.cardSoft,
-  metric: `${ui.card} grid gap-1 border-l-4 border-l-[var(--adlts-blue-600)] bg-[var(--adlts-surface)]`,
+  metric: `${ui.card} grid gap-1`,
   interactive: ui.cardInteractive,
-  outline: "rounded-md border border-[var(--adlts-border-strong)] bg-transparent",
-  warning: "rounded-md border border-[var(--adlts-warning-700)]/40 bg-[var(--adlts-warning-50)] text-[var(--adlts-ink-900)]",
-  success: "rounded-md border border-[var(--adlts-success-700)]/40 bg-[var(--adlts-success-50)] text-[var(--adlts-ink-900)]",
-  danger: "rounded-md border border-[var(--adlts-error-700)]/40 bg-[var(--adlts-error-50)] text-[var(--adlts-ink-900)]",
-  info: "rounded-md border border-[var(--adlts-blue-600)]/40 bg-[var(--adlts-blue-50)] text-[var(--adlts-ink-900)]",
+  outline: "rounded-[8px] border border-[var(--border-strong)] bg-transparent",
+  warning:
+    "rounded-[8px] border border-[var(--warning)] bg-[var(--warning-subtle)] text-[var(--text-primary)]",
+  success:
+    "rounded-[8px] border border-[var(--success)] bg-[var(--success-subtle)] text-[var(--text-primary)]",
+  danger:
+    "rounded-[8px] border border-[var(--danger)] bg-[var(--danger-subtle)] text-[var(--text-primary)]",
+  info:
+    "rounded-[8px] border border-[var(--accent)] bg-[var(--accent-subtle)] text-[var(--text-primary)]",
 };
 
-export function Card({ children, className = "", padding = "md", variant = "surface" }: CardProps) {
-  return <div className={`${variantClasses[variant]} ${paddingClasses[padding]} ${className}`}>{children}</div>;
+export function Card({
+  children,
+  className = "",
+  padding = "md",
+  variant = "surface",
+}: CardProps) {
+  return (
+    <div className={`${variantClasses[variant]} ${paddingClasses[padding]} ${className}`}>
+      {children}
+    </div>
+  );
 }
 
-export function CardHeader({ title, description, action, className = "" }: CardHeaderProps) {
+export function CardHeader({
+  title,
+  description,
+  action,
+  className = "",
+}: CardHeaderProps) {
   return (
     <div
-      className={`mb-5 flex flex-col gap-3 border-b border-[var(--adlts-divider)] pb-4 sm:flex-row sm:items-start sm:justify-between ${className}`}
+      className={`mb-5 flex flex-col gap-3 border-b border-[var(--border)] pb-4 sm:flex-row sm:items-start sm:justify-between ${className}`}
     >
       <div className="space-y-1">
         <h2 className={ui.sectionTitle}>{title}</h2>
@@ -74,11 +92,11 @@ export function CardHeader({ title, description, action, className = "" }: CardH
 }
 
 export function CardTitle({ children, className = "" }: CardSectionProps) {
-  return <h3 className={`text-base font-semibold text-[var(--adlts-ink-950)] ${className}`}>{children}</h3>;
+  return <h3 className={`${ui.cardTitle} ${className}`}>{children}</h3>;
 }
 
 export function CardDescription({ children, className = "" }: CardSectionProps) {
-  return <p className={`mt-1 text-sm text-[var(--adlts-ink-600)] ${className}`}>{children}</p>;
+  return <p className={`mt-1 text-[14px] text-[var(--text-secondary)] ${className}`}>{children}</p>;
 }
 
 export function CardContent({ children, className = "" }: CardSectionProps) {
@@ -86,5 +104,5 @@ export function CardContent({ children, className = "" }: CardSectionProps) {
 }
 
 export function CardFooter({ children, className = "" }: CardSectionProps) {
-  return <div className={`mt-5 border-t border-[var(--adlts-divider)] pt-5 ${className}`}>{children}</div>;
+  return <div className={`mt-5 border-t border-[var(--border)] pt-5 ${className}`}>{children}</div>;
 }

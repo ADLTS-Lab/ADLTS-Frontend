@@ -1,9 +1,7 @@
 "use client";
 
 import { useAuthStore } from "@/store/authStore";
-import { useI18n } from "@/i18n/useI18n";
-import { Card } from "@/app/components/ui/Card";
-import { CardHeader } from "@/app/components/ui/Card";
+import { Card, CardHeader, StatBlock, StatusBadge } from "@/app/components/ui";
 
 type RoleProfileViewProps = {
   avatarUrl?: string | null;
@@ -40,47 +38,46 @@ function getAvatarUrl(user: unknown, avatarUrl?: string | null): string | null {
   );
 }
 
+function formatRole(value?: string | null) {
+  return value ? value.replace(/_/g, " ") : "-";
+}
+
 export default function RoleProfileView({ avatarUrl }: RoleProfileViewProps) {
   const { user } = useAuthStore();
-  const { t } = useI18n();
   const displayAvatar = getAvatarUrl(user, avatarUrl);
-
   const displayName =
-    user?.name || `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "—";
+    user?.name || `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || "-";
 
   return (
-    <Card className="max-w-lg space-y-4 p-0">
+    <Card className="max-w-[720px] space-y-4 p-0">
       <CardHeader
-        title={t("roleProfile_title")}
-        description={t("profile") || "Profile overview"}
+        title="Profile summary"
+        description="Profile details help ADLTS show the correct identity and contact information across role-based workflows."
+        action={<StatusBadge status={formatRole(user?.role)} tone="neutral" />}
       />
 
-      <div className="px-6 pb-6 space-y-4">
-        {Boolean(displayAvatar) ? (
-          <div className="mb-2">
-            <div className="h-16 w-16 overflow-hidden rounded-full border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)]">
-              <img
-                src={displayAvatar || ""}
-                alt={t("profilePhoto") || "Profile"}
-                className="h-full w-full object-cover"
-              />
-            </div>
+      <div className="space-y-4 px-6 pb-6">
+        {displayAvatar ? (
+          <div className="h-16 w-16 overflow-hidden rounded-[50%] border border-[var(--border)] bg-[var(--surface-2)]">
+            <img
+              src={displayAvatar}
+              alt="Profile"
+              className="h-full w-full object-cover"
+            />
           </div>
         ) : null}
-        <dl className="grid gap-3 text-sm">
-          <div className="grid gap-1 rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-3">
-            <dt className="text-[11px] font-semibold uppercase tracking-wide text-[var(--adlts-ink-500)]">{t("roleProfile_name")}</dt>
-            <dd className="font-medium text-[var(--adlts-ink-900)]">{displayName}</dd>
-          </div>
-          <div className="grid gap-1 rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-3">
-            <dt className="text-[11px] font-semibold uppercase tracking-wide text-[var(--adlts-ink-500)]">{t("roleProfile_email")}</dt>
-            <dd className="font-medium text-[var(--adlts-ink-900)]">{user?.email || "—"}</dd>
-          </div>
-          <div className="grid gap-1 rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-3">
-            <dt className="text-[11px] font-semibold uppercase tracking-wide text-[var(--adlts-ink-500)]">{t("roleProfile_role")}</dt>
-            <dd className="font-medium text-[var(--adlts-ink-900)]">{user?.role || "—"}</dd>
-          </div>
-        </dl>
+
+        <div className="grid gap-4 md:grid-cols-3">
+          <StatBlock label="Name" value={displayName} />
+          <StatBlock label="Email" value={user?.email || "-"} />
+          <StatBlock label="Role" value={formatRole(user?.role)} />
+        </div>
+
+        <div className="rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)] p-4">
+          <p className="text-[14px] leading-6 text-[var(--text-secondary)]">
+            Keep your profile accurate so account actions can be associated with the correct identity.
+          </p>
+        </div>
       </div>
     </Card>
   );

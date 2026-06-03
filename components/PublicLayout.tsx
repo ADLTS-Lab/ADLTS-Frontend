@@ -9,7 +9,6 @@ import { logout as logoutService } from "@/services/auth.service";
 import { useI18n } from "@/i18n/useI18n";
 import { usePathname } from "next/navigation";
 import { getHomeRouteForRole } from "@/config/routes";
-import { ui } from "@/app/components/ui/design-tokens";
 import UserMenu from "@/components/UserMenu";
 import { BrandMark } from "./BrandMark";
 
@@ -47,25 +46,25 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
     user?.name || `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || user?.email;
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--adlts-page)]">
-      <a href="#main-content" className="skip-link text-sm font-medium text-[var(--adlts-ink-900)]">
+    <div className="min-h-screen flex flex-col bg-[var(--bg)]">
+      <a href="#main-content" className="skip-link text-sm font-medium text-[var(--text-primary)]">
         Skip to content
       </a>
 
-      <header className="sticky top-0 z-40 border-b border-[var(--adlts-divider)] bg-[color:rgba(255,255,255,.92)] backdrop-blur">
-        <div className={`${ui.shellPanelPublic} h-16 items-center justify-between`}>
+      <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface)]">
+        <div className="mx-auto flex h-16 w-full max-w-container-public items-center justify-between px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(true)}
-              className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--adlts-border)] text-[var(--adlts-ink-700)] lg:hidden"
+              className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--border)] text-[var(--text-secondary)]"
               aria-label="Open menu"
             >
               <Menu size={20} />
             </button>
-            <Link href="/" className="inline-flex items-center gap-2 text-[var(--adlts-ink-950)]">
+            <Link href="/" className="inline-flex items-center gap-2 text-[var(--text-primary)]">
               <BrandMark label="ADLTS" />
-              <span className="hidden sm:inline text-base font-semibold tracking-tight">ADLTS</span>
+              <span className="hidden sm:inline text-base font-semibold">ADLTS</span>
             </Link>
           </div>
 
@@ -77,8 +76,8 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
                 aria-current={pathname === item.href ? "page" : undefined}
                 className={`font-medium transition-colors ${
                   pathname === item.href
-                    ? "text-[var(--adlts-blue-700)]"
-                    : "text-[var(--adlts-ink-700)] hover:text-[var(--adlts-blue-700)]"
+                    ? "text-[var(--accent)]"
+                    : "text-[var(--text-secondary)] hover:text-[var(--accent)]"
                 }`}
               >
                 {t(item.labelKey)}
@@ -87,7 +86,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
             {showAuthed ? (
               <Link
                 href={dashboardHref}
-                className="font-semibold text-[var(--adlts-blue-700)] transition-colors hover:text-[var(--adlts-blue-800)]"
+                className="font-semibold text-[var(--accent)] transition-colors hover:text-[var(--accent-hover)]"
               >
                 {t("dashboard")}
               </Link>
@@ -97,7 +96,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setLang(lang === "en" ? "am" : "en")}
-              className="inline-flex h-9 items-center rounded-md border border-[var(--adlts-border)] px-2.5 text-xs font-semibold text-[var(--adlts-ink-700)] transition-colors hover:border-[var(--adlts-blue-600)] hover:text-[var(--adlts-blue-700)]"
+              className="inline-flex h-9 items-center rounded-md border border-[var(--border)] px-2.5 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
               aria-label="Toggle language"
             >
               {lang === "en" ? "አማ" : "EN"}
@@ -112,7 +111,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
             ) : (
               <Link
                 href="/login"
-                className="inline-flex h-9 items-center rounded-md bg-[var(--adlts-blue-600)] px-3 text-sm font-medium text-white transition-colors hover:bg-[var(--adlts-blue-700)]"
+                className="inline-flex h-9 items-center rounded-md bg-[var(--accent)] px-3 text-sm font-medium text-[var(--surface)] transition-colors hover:bg-[var(--accent-hover)]"
               >
                 {t("login")}
               </Link>
@@ -124,23 +123,23 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
       {isMobileMenuOpen ? (
         <>
           <div
-            className="fixed inset-0 z-50 bg-[var(--adlts-navy-950)]/40"
+            className="fixed inset-0 z-50 bg-[var(--overlay)]"
             onClick={() => setIsMobileMenuOpen(false)}
           />
-          <div className="fixed left-0 right-0 top-16 z-50 border-t border-[var(--adlts-border)] bg-[var(--adlts-surface)]">
+          <div className="fixed left-0 right-0 top-16 z-50 border-t border-[var(--border)] bg-[var(--surface)]">
             <div className="mx-auto flex w-full max-w-[75rem] flex-col p-4">
               <div className="flex items-center justify-between pb-3">
-                <span className="text-sm font-semibold text-[var(--adlts-ink-950)]">{t("menu") || "Menu"}</span>
+                <span className="text-sm font-semibold text-[var(--text-primary)]">{t("menu") || "Menu"}</span>
                 <button
                   type="button"
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className="rounded-md p-2 text-[var(--adlts-ink-700)]"
+                  className="rounded-md p-2 text-[var(--text-secondary)]"
                   aria-label="Close menu"
                 >
                   <X size={18} />
                 </button>
               </div>
-            <div className="border-t border-[var(--adlts-divider)] pt-3">
+            <div className="border-t border-[var(--border)] pt-3">
                 {publicNav.map((item) => (
                   <Link
                     key={item.href}
@@ -149,8 +148,8 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
                     aria-current={pathname === item.href ? "page" : undefined}
                     className={`block rounded-md px-2.5 py-2 text-sm transition-colors ${
                       pathname === item.href
-                        ? "bg-[var(--adlts-blue-50)] text-[var(--adlts-blue-700)]"
-                        : "text-[var(--adlts-ink-700)] hover:bg-[var(--adlts-surface-soft)]"
+                        ? "bg-[var(--accent-subtle)] text-[var(--accent)]"
+                        : "text-[var(--text-secondary)] hover:bg-[var(--surface-2)]"
                     }`}
                   >
                     {t(item.labelKey)}
@@ -160,7 +159,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
                   <Link
                     href={dashboardHref}
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="mt-1 block rounded-md bg-[var(--adlts-blue-50)] px-2.5 py-2 text-sm font-medium text-[var(--adlts-blue-700)]"
+                    className="mt-1 block rounded-md bg-[var(--accent-subtle)] px-2.5 py-2 text-sm font-medium text-[var(--accent)]"
                   >
                     {t("dashboard")}
                   </Link>
@@ -172,16 +171,16 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
       ) : null}
 
       <main id="main-content" className="flex-1">
-        <div className={`${ui.shellPanelPublic} py-8 md:py-10`}>{children}</div>
+        {children}
       </main>
 
-      <footer className="mt-auto bg-[var(--adlts-navy-900)] text-white">
+      <footer className="mt-auto bg-[var(--text-primary)] text-[var(--surface)]">
         <div className="mx-auto w-full max-w-container-public px-4 py-10 sm:px-6 lg:px-8">
-          <div className="grid gap-10 md:grid-cols-[1.1fr_1fr_1fr_1fr]">
+          <div className="grid gap-10 md:grid-cols-[1.1fr_1fr_1fr_1fr_1fr]">
             <div>
-              <div className="font-mono text-sm font-bold tracking-[0.16em] text-white">ADLTS</div>
-              <p className="mt-3 max-w-[15rem] text-sm leading-6 text-white/45">
-                Automated Driving License Testing System. Official digital platform for Ethiopia's transport testing operations.
+              <div className="font-mono text-sm font-bold text-[var(--surface)]">ADLTS</div>
+              <p className="mt-3 max-w-[15rem] text-sm leading-6 text-[var(--text-tertiary)]">
+                Automated Driving License Testing System. Official digital workflow for candidate registration, booking, institution review, payment, examination, results, and oversight.
               </p>
             </div>
 
@@ -192,7 +191,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
                   { label: "Register", href: "/candidate/register" },
                   { label: "Book a test", href: "/candidate/booking" },
                   { label: "View results", href: "/candidate/exams" },
-                  { label: "Submit appeal", href: "/candidate/dashboard" },
+                  { label: "Candidate guidelines", href: "/guidelines" },
                 ],
               },
               {
@@ -201,27 +200,36 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
                   { label: "Institute login", href: "/login" },
                   { label: "Admin login", href: "/login" },
                   { label: "Request access", href: "/contact" },
-                  { label: "Guidelines", href: "/guidelines" },
+                  { label: "Review guidelines", href: "/guidelines" },
+                ],
+              },
+              {
+                heading: "Oversight",
+                links: [
+                  { label: "Expert review", href: "/login" },
+                  { label: "Transport authority", href: "/login" },
+                  { label: "Super admin", href: "/login" },
+                  { label: "Compliance support", href: "/contact" },
                 ],
               },
               {
                 heading: "Resources",
                 links: [
                   { label: "About ADLTS", href: "/about" },
-                  { label: "Privacy policy", href: "/privacy-policy" },
-                  { label: "Terms of service", href: "/terms" },
+                  { label: "Guidelines", href: "/guidelines" },
+                  { label: "Privacy and security", href: "/privacy-policy" },
                   { label: "Contact support", href: "/contact" },
                 ],
               },
             ].map((section) => (
               <div key={section.heading}>
-                <div className="font-mono text-[11px] font-bold uppercase tracking-[0.24em] text-white/35">
+                <div className="text-[12px] font-semibold text-[var(--surface)]">
                   {section.heading}
                 </div>
                 <ul className="mt-4 flex list-none flex-col gap-3 p-0 text-sm">
                   {section.links.map((link) => (
                     <li key={link.label}>
-                      <Link href={link.href} className="text-white/50 transition-colors hover:text-white/85">
+                      <Link href={link.href} className="text-[var(--text-tertiary)] transition-colors hover:text-[var(--surface)]">
                         {link.label}
                       </Link>
                     </li>
@@ -231,17 +239,17 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
             ))}
           </div>
 
-          <div className="mt-8 flex flex-col gap-4 border-t border-white/10 pt-6 md:flex-row md:items-center md:justify-between">
-            <span className="font-mono text-[11px] tracking-[0.08em] text-white/30">
-              © {new Date().getFullYear()} ADLTS Core Engine — Automated Driving License Testing System
+          <div className="mt-8 flex flex-col gap-4 border-t border-[var(--neutral)] pt-6 md:flex-row md:items-center md:justify-between">
+            <span className="font-mono text-[11px] text-[var(--text-tertiary)]">
+              © {new Date().getFullYear()} ADLTS Core Engine - Automated Driving License Testing System
             </span>
-            <div className="flex flex-wrap gap-5 text-xs text-white/35">
+            <div className="flex flex-wrap gap-5 text-xs text-[var(--text-tertiary)]">
               {[
                 { label: "Privacy", href: "/privacy-policy" },
                 { label: "Terms", href: "/terms" },
                 { label: "API Docs", href: "/docs" },
               ].map((link) => (
-                <Link key={link.label} href={link.href} className="transition-colors hover:text-white/75">
+                <Link key={link.label} href={link.href} className="transition-colors hover:text-[var(--surface)]">
                   {link.label}
                 </Link>
               ))}

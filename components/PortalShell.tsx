@@ -61,8 +61,8 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
         const Icon = item.icon;
         const navClass = `group relative flex items-center gap-3 rounded-md px-3 py-2.5 text-sm ${
           isActive
-            ? "bg-[var(--adlts-blue-50)] text-[var(--adlts-blue-700)]"
-            : "text-[var(--adlts-ink-700)] hover:bg-[var(--adlts-surface-soft)] hover:text-[var(--adlts-ink-900)]"
+            ? "bg-[var(--accent-subtle)] text-[var(--accent)]"
+            : "text-[var(--text-secondary)] hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
         } ${item.disabled ? "pointer-events-none opacity-55" : ""}`;
 
         return (
@@ -79,9 +79,9 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
             className={navClass}
           >
             {isActive ? (
-              <span className="absolute left-0 top-0 h-full w-1 rounded-r-full bg-[var(--adlts-blue-600)]" />
+              <span className="absolute left-0 top-0 h-full w-1 rounded-r-[4px] bg-[var(--accent)]" />
             ) : null}
-            <Icon size={18} className={isActive ? "text-[var(--adlts-blue-700)]" : "text-[var(--adlts-ink-500)]"} />
+            <Icon size={18} className={isActive ? "text-[var(--accent)]" : "text-[var(--text-secondary)]"} />
             <span>{t(item.labelKey)}</span>
           </Link>
         );
@@ -92,32 +92,32 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
           setIsMobileMenuOpen(false);
           handleLogout();
         }}
-        className="mt-3 flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm text-[var(--adlts-ink-700)] transition-colors hover:bg-[var(--adlts-surface-soft)] hover:text-[var(--adlts-ink-900)]"
+        className="mt-3 flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-sm text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
       >
-        <LogOut size={18} className="text-[var(--adlts-error-600)]" />
-        <span className="font-medium text-[var(--adlts-error-700)]">{t("logout")}</span>
+        <LogOut size={18} className="text-[var(--danger)]" />
+        <span className="font-medium text-[var(--danger)]">{t("logout")}</span>
       </button>
     </nav>
   );
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--adlts-page)]">
+    <div className="min-h-screen flex flex-col bg-[var(--bg)]">
       {isMobileMenuOpen ? (
         <>
           <div
-            className="fixed inset-0 z-50 bg-[var(--adlts-navy-950)]/40 lg:hidden"
+            className="fixed inset-0 z-50 bg-[var(--overlay)] lg:hidden"
             onClick={() => setIsMobileMenuOpen(false)}
           />
-          <div className="fixed inset-y-0 left-0 z-50 w-80 border-r border-[var(--adlts-divider)] bg-[var(--adlts-surface)] lg:hidden">
-            <div className="flex h-16 items-center justify-between border-b border-[var(--adlts-divider)] px-4">
-              <div className="flex items-center gap-2 text-[var(--adlts-ink-950)]">
+          <div className="fixed inset-y-0 left-0 z-50 w-80 border-r border-[var(--border)] bg-[var(--surface)] lg:hidden">
+            <div className="flex h-16 items-center justify-between border-b border-[var(--border)] px-4">
+              <div className="flex items-center gap-2 text-[var(--text-primary)]">
                 <BrandMark />
                 <span className="font-semibold">ADLTS</span>
               </div>
               <button
                 type="button"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[var(--adlts-ink-700)]"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-md text-[var(--text-secondary)]"
                 aria-label="Close menu"
               >
                 <X size={20} />
@@ -127,12 +127,12 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
               <Link
                 href={profileHref}
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="mb-2 flex items-center gap-3 rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-2 transition hover:bg-[var(--adlts-surface)]"
+                className="mb-2 flex items-center gap-3 rounded-md border border-[var(--border)] bg-[var(--surface-2)] p-2 transition-colors hover:bg-[var(--surface)]"
               >
-                <div className="grid h-9 w-9 place-items-center rounded-full bg-[var(--adlts-blue-600)] text-xs font-bold text-white">
+                <div className="grid h-9 w-9 place-items-center rounded-[50%] bg-[var(--accent)] text-xs font-bold text-[var(--surface)]">
                   {initialsFor(displayName)}
                 </div>
-                <span className="max-w-52 truncate text-sm font-medium text-[var(--adlts-ink-900)]">{displayName}</span>
+                <span className="max-w-52 truncate text-sm font-medium text-[var(--text-primary)]">{displayName}</span>
               </Link>
               {renderNavItems({ mobile: true })}
             </div>
@@ -140,13 +140,13 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
         </>
       ) : null}
 
-      <header className="sticky top-0 z-40 border-b border-[var(--adlts-divider)] bg-[color:rgba(255,255,255,.93)] backdrop-blur">
+      <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface)]">
         <div className={`${ui.shellPanel} h-16 items-center justify-between`}>
-          <div className="flex items-center gap-3 text-[var(--adlts-ink-950)]">
+          <div className="flex items-center gap-3 text-[var(--text-primary)]">
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(true)}
-              className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--adlts-border)] text-[var(--adlts-ink-700)]"
+              className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--border)] text-[var(--text-secondary)]"
               aria-label="Open menu"
             >
               <Menu size={20} />
@@ -158,7 +158,7 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
             {!hideTopDashboardLink ? (
               <Link
                 href={dashboardHref}
-                className="ml-3 hidden text-sm font-medium text-[var(--adlts-blue-700)] transition-colors hover:text-[var(--adlts-blue-800)] md:inline-flex"
+                className="ml-3 hidden text-sm font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-hover)] md:inline-flex"
               >
                 {t("dashboard")}
               </Link>
@@ -169,7 +169,7 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
             <button
               type="button"
               onClick={() => setLang(lang === "en" ? "am" : "en")}
-              className="inline-flex h-9 items-center rounded-md border border-[var(--adlts-border)] px-2.5 text-xs font-semibold text-[var(--adlts-ink-700)] transition-colors hover:border-[var(--adlts-blue-600)] hover:text-[var(--adlts-blue-700)]"
+              className="inline-flex h-9 items-center rounded-md border border-[var(--border)] px-2.5 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
               aria-label="Toggle language"
             >
               {lang === "en" ? "አማ" : "EN"}
@@ -185,17 +185,17 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
       </header>
 
       <div className="flex flex-1">
-        <aside className="hidden w-72 border-r border-[var(--adlts-divider)] bg-[var(--adlts-surface)] lg:block">
+        <aside className="hidden w-[248px] border-r border-[var(--border)] bg-[var(--surface)] lg:block">
           <div className="sticky top-16 max-h-[calc(100vh-4rem)] overflow-y-auto">
             <div className="px-5 py-4">
               <Link
                 href={profileHref}
-                className="mb-5 flex items-center gap-3 rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface-soft)] p-2 transition hover:bg-[var(--adlts-surface)]"
+                className="mb-5 flex items-center gap-3 rounded-md border border-[var(--border)] bg-[var(--surface-2)] p-2 transition-colors hover:bg-[var(--surface)]"
               >
-                <div className="grid h-10 w-10 place-items-center rounded-full bg-[var(--adlts-blue-600)] text-sm font-semibold text-white">
+                <div className="grid h-10 w-10 place-items-center rounded-[50%] bg-[var(--accent)] text-sm font-semibold text-[var(--surface)]">
                   {initialsFor(displayName)}
                 </div>
-                <span className="max-w-52 truncate text-sm font-medium text-[var(--adlts-ink-900)]">{displayName}</span>
+                <span className="max-w-52 truncate text-sm font-medium text-[var(--text-primary)]">{displayName}</span>
               </Link>
               {renderNavItems({ mobile: false })}
             </div>
@@ -203,12 +203,12 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
         </aside>
 
         <main id="portal-main" className="flex-1 min-w-0">
-          <div className="px-4 py-6 sm:px-6 md:py-8 lg:py-10">{children}</div>
+          <div className="p-6">{children}</div>
         </main>
       </div>
 
-      <footer className="border-t border-[var(--adlts-border)] bg-[var(--adlts-surface)]">
-        <div className={`${ui.shellPanel} py-5 text-xs text-[var(--adlts-ink-600)]`}>
+      <footer className="border-t border-[var(--border)] bg-[var(--surface)]">
+        <div className={`${ui.shellPanel} py-5 text-xs text-[var(--text-secondary)]`}>
           <p className="text-center text-[0.75rem] md:text-left">© {new Date().getFullYear()} ADLTS Ethiopia.</p>
         </div>
       </footer>

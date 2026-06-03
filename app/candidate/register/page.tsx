@@ -2,11 +2,19 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff } from "lucide-react";
-import { registerCandidate } from "@/services/auth.service";
+import { Eye, EyeOff, MailCheck, UserPlus } from "lucide-react";
+import { registerCandidate, verifyOtp } from "@/services/auth.service";
 import { useAuthStore } from "@/store/authStore";
 import { extractApiError } from "@/services/api-utils";
-import { Alert, AuthCard, AuthForm, AuthLink, Button, Input, Select } from "@/app/components/ui";
+import { Alert, AuthCard, AuthForm, AuthLink, Button, Input, PublicCard, PublicList, Select } from "@/app/components/ui";
+import { getHomeRouteForRole } from "@/config/routes";
+
+const beforeContinue = [
+  "Use your own email address.",
+  "Enter a reachable phone number.",
+  "Choose a secure password.",
+  "Add optional identity details if your institution requires them.",
+];
 
 export default function CandidateRegisterPage() {
   const router = useRouter();
@@ -23,7 +31,10 @@ export default function CandidateRegisterPage() {
   });
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState("");
+  const [otpCode, setOtpCode] = useState("");
   const setUser = useAuthStore((s) => s.setUser);
 
   const validateForm = () => {
@@ -50,11 +61,13 @@ export default function CandidateRegisterPage() {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
     setError("");
+    setSuccess("");
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setSuccess("");
 
     const validationError = validateForm();
     if (validationError) {
@@ -81,11 +94,12 @@ export default function CandidateRegisterPage() {
       const user = res?.data?.user || res?.user;
       if (token && user) {
         setUser(user, token, user.role, refreshToken);
-        router.push("/candidate/dashboard");
+        router.push(getHomeRouteForRole(user.role));
         return;
       }
 
-      router.push("/login?registered=true");
+      setPendingEmail(formData.email.trim());
+      setSuccess(res?.data?.message || res?.message || "Registration submitted. Enter the one-time code sent to your email to finish account setup.");
     } catch (err: unknown) {
       setError(extractApiError(err, "Registration failed. Please try again.", "auth-register"));
     } finally {
@@ -93,118 +107,222 @@ export default function CandidateRegisterPage() {
     }
   };
 
-  return (
-    <AuthCard
-      icon={<span className="text-xl leading-none">📝</span>}
-      title="አዲስ መጠየቂያ ይፍጠሩ / Create an Account"
-      footer={
-        <>
-          አካውንት አለህ? <AuthLink href="/login">ግባ / Login</AuthLink>
-        </>
-      }
-    >
-      <form onSubmit={handleRegister}>
-        <AuthForm>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Input
-              label="ስም / First name"
-              type="text"
-              name="first_name"
-              value={formData.first_name}
-              onChange={handleChange}
-              required
-            />
-            <Input
-              label="አያት / Last name"
-              type="text"
-              name="last_name"
-              value={formData.last_name}
-              onChange={handleChange}
-              required
-            />
-          </div>
+  const handleVerifyOtp = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError("");
+    setSuccess("");
 
-          <Input
-            label="ኢሜይል / Email"
-            type="email"
-            name="email"
-            value={formData.email}
-            onChange={handleChange}
-            required
-          />
+    if (!pendingEmail || !otpCode.trim()) {
+      setError("Enter the OTP sent to your email.");
+      return;
+    }
 
-          <Input
-            label="ስልክ ቁጥር / Phone"
-            type="tel"
-            name="phone"
-            value={formData.phone}
-            onChange={handleChange}
-            required
-          />
+    setIsLoading(true);
 
-          <Input
-            label="የይለፍ ቃል / Password"
-            type={showPassword ? "text" : "password"}
-            name="password"
-            value={formData.password}
-            onChange={handleChange}
-            required
-            suffix={
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="rounded-md p-1.5 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-700"
-                aria-label={showPassword ? "Hide password" : "Show password"}
-              >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-              </button>
+    try {
+      const res = await verifyOtp({ email: pendingEmail, code: otpCode.trim() });
+      const { access_token, refresh_token, entity_type, user } = res.data;
+      setUser(user, access_token, entity_type, refresh_token);
+      router.push(getHomeRouteForRole(entity_type ?? user.role));
+    } catch (err: unknown) {
+      setError(extractApiError(err, "Unable to verify OTP. Please try again.", "auth-session"));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (pendingEmail) {
+    return (
+      <main className="bg-[var(--bg)] px-6 py-20">
+        <div className="mx-auto grid w-full max-w-container-public gap-8 lg:grid-cols-[0.85fr_1.15fr] lg:items-start">
+          <AuthCard
+            icon={<MailCheck size={20} />}
+            title="Verify your email"
+            subtitle="Enter the one-time code sent to your email to finish account setup."
+            footer={
+              <>
+                Wrong email?{" "}
+                <button
+                  type="button"
+                  className="font-semibold text-[var(--accent)] hover:text-[var(--accent-hover)]"
+                  onClick={() => {
+                    setPendingEmail("");
+                    setOtpCode("");
+                    setError("");
+                    setSuccess("");
+                  }}
+                >
+                  Edit registration
+                </button>
+              </>
             }
-          />
+          >
+            <form onSubmit={handleVerifyOtp}>
+              <AuthForm>
+                <Input label="Email" type="email" value={pendingEmail} readOnly className="bg-[var(--surface-2)]" />
+                <Input
+                  label="OTP code"
+                  type="text"
+                  value={otpCode}
+                  onChange={(event) => {
+                    setOtpCode(event.target.value);
+                    setError("");
+                  }}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  required
+                />
 
-          <Input
-            label="የይለፍ ቃል አረጋግጥ / Confirm password"
-            type="password"
-            name="confirmPassword"
-            value={formData.confirmPassword}
-            onChange={handleChange}
-            required
-          />
+                {success ? <Alert variant="success">{success}</Alert> : null}
+                {error ? <Alert variant="error">{error}</Alert> : null}
 
-          <details className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
-            <summary className="cursor-pointer font-medium text-slate-700">
-              ተጨማሪ መረጃ (አማራጭ) / Additional info (optional)
-            </summary>
-            <div className="mt-4 space-y-4">
+                <Button type="submit" fullWidth disabled={isLoading} state={isLoading ? { loading: true } : undefined}>
+                  {isLoading ? "Verifying..." : "Verify OTP"}
+                </Button>
+              </AuthForm>
+            </form>
+          </AuthCard>
+
+          <div className="grid gap-4">
+            <PublicCard icon={MailCheck} title="Next step after registration">
+              After your account is verified, go to the candidate dashboard and start your booking request.
+            </PublicCard>
+          </div>
+        </div>
+      </main>
+    );
+  }
+
+  return (
+    <main className="bg-[var(--bg)] px-6 py-20">
+      <div className="mx-auto grid w-full max-w-container-public gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
+        <AuthCard
+          icon={<UserPlus size={20} />}
+          title="Create your candidate account"
+          subtitle="Register once, verify your account, and use the candidate portal to submit booking requests, track payment, and view exam results."
+          footer={
+            <>
+              Already have an account? <AuthLink href="/login">Login</AuthLink>
+            </>
+          }
+        >
+          <form onSubmit={handleRegister}>
+            <AuthForm>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <Input
+                  label="First name"
+                  type="text"
+                  name="first_name"
+                  value={formData.first_name}
+                  onChange={handleChange}
+                  required
+                />
+                <Input
+                  label="Last name"
+                  type="text"
+                  name="last_name"
+                  value={formData.last_name}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+
               <Input
-                label="ፋይዳ መታወቂያ / Fayda ID"
-                type="text"
-                name="fayida_id"
-                value={formData.fayida_id}
+                label="Email address"
+                type="email"
+                name="email"
+                value={formData.email}
                 onChange={handleChange}
+                required
               />
+
               <Input
-                label="የትውልድ ቀን / Birth date"
-                type="date"
-                name="birth_date"
-                value={formData.birth_date}
+                label="Phone number"
+                type="tel"
+                name="phone"
+                value={formData.phone}
                 onChange={handleChange}
+                required
               />
-              <Select label="ጾታ / Gender" name="gender" value={formData.gender} onChange={handleChange}>
-                <option value="">ምረጥ / Select</option>
-                <option value="male">ወንድ / Male</option>
-                <option value="female">ሴት / Female</option>
-                <option value="other">ሌላ / Other</option>
-              </Select>
-            </div>
-          </details>
 
-          {error ? <Alert variant="error">{error}</Alert> : null}
+              <Input
+                label="Password"
+                type={showPassword ? "text" : "password"}
+                name="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                suffix={
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="rounded-[6px] p-1.5 text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-2)] hover:text-[var(--text-primary)]"
+                    aria-label={showPassword ? "Hide password" : "Show password"}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                }
+              />
 
-          <Button type="submit" fullWidth disabled={isLoading}>
-            {isLoading ? "በምዝገባ ላይ..." : "ተመዝገብ / Register"}
-          </Button>
-        </AuthForm>
-      </form>
-    </AuthCard>
+              <Input
+                label="Confirmed password"
+                type="password"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+              />
+
+              <details className="rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--text-secondary)]">
+                <summary className="cursor-pointer font-medium text-[var(--text-primary)]">
+                  Additional info (optional)
+                </summary>
+                <div className="mt-4 space-y-4">
+                  <Input
+                    label="Fayda ID"
+                    type="text"
+                    name="fayida_id"
+                    value={formData.fayida_id}
+                    onChange={handleChange}
+                  />
+                  <Input
+                    label="Birth date"
+                    type="date"
+                    name="birth_date"
+                    value={formData.birth_date}
+                    onChange={handleChange}
+                  />
+                  <Select label="Gender" name="gender" value={formData.gender} onChange={handleChange}>
+                    <option value="">Select</option>
+                    <option value="male">Male</option>
+                    <option value="female">Female</option>
+                    <option value="other">Other</option>
+                  </Select>
+                </div>
+              </details>
+
+              {error ? <Alert variant="error">{error}</Alert> : null}
+              {success ? <Alert variant="success">{success}</Alert> : null}
+
+              <Button type="submit" fullWidth disabled={isLoading} state={isLoading ? { loading: true } : undefined}>
+                {isLoading ? "Registering..." : "Create candidate account"}
+              </Button>
+            </AuthForm>
+          </form>
+        </AuthCard>
+
+        <div className="grid gap-4">
+          <PublicCard icon={UserPlus} title="Before you continue">
+            <PublicList items={beforeContinue} />
+          </PublicCard>
+          <PublicCard icon={MailCheck} title="Verify your email">
+            Enter the one-time code sent to your email to finish account setup.
+          </PublicCard>
+          <PublicCard icon={UserPlus} title="Next step after registration">
+            After your account is verified, go to the candidate dashboard and start your booking request.
+          </PublicCard>
+        </div>
+      </div>
+    </main>
   );
 }

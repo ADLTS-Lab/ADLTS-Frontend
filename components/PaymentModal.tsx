@@ -32,17 +32,17 @@ export default function PaymentModal({ bookingId, payment, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-6 w-full max-w-md">
-        <h3 className="text-lg font-semibold mb-4">Payment for booking</h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)]">
+      <div className="w-full max-w-md rounded-[8px] bg-[var(--surface)] p-6 shadow-[var(--shadow-modal)]">
+        <h3 className="mb-4 text-lg font-semibold text-[var(--text-primary)]">Payment for booking</h3>
         <div className="mb-4">
-          <label className="block text-sm text-slate-600 mb-1">Amount (ETB)</label>
+          <label className="mb-1 block text-sm text-[var(--text-secondary)]">Amount (ETB)</label>
           <input
             type="number"
             min={0}
             value={amount}
             onChange={(e) => setAmount(Number(e.target.value))}
-            className="w-full border rounded px-3 py-2"
+            className="h-9 w-full rounded-[6px] border border-[var(--border)] bg-[var(--surface)] px-3 text-[var(--text-primary)] outline-none focus:border-[var(--accent)] focus:ring-[3px] focus:ring-[var(--focus-ring)]"
           />
         </div>
 

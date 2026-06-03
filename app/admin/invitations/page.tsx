@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { RefreshCw } from "lucide-react";
 import {
   createInvitation,
   deleteInvitation,
@@ -9,8 +10,21 @@ import {
   type InvitationEntityType,
   type InvitationRecord,
 } from "@/services/invitations.service";
-import { useI18n } from "@/i18n/useI18n";
 import { extractApiError } from "@/services/api-utils";
+import {
+  Alert,
+  Button,
+  Card,
+  CardHeader,
+  DataTable,
+  Input,
+  PageContainer,
+  PageHeader,
+  Select,
+  StatBlock,
+  StatusBadge,
+  type DataTableColumn,
+} from "@/app/components/ui";
 
 const ENTITY_OPTIONS: InvitationEntityType[] = [
   "expert",
@@ -20,8 +34,18 @@ const ENTITY_OPTIONS: InvitationEntityType[] = [
   "transport_authority",
 ];
 
+function formatRole(value: string) {
+  return value.replace(/_/g, " ");
+}
+
+function formatDate(value?: string | null) {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date);
+}
+
 export default function AdminInvitationsPage() {
-  const { t } = useI18n();
   const [invitations, setInvitations] = useState<InvitationRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -35,8 +59,22 @@ export default function AdminInvitationsPage() {
 
   const pendingCount = useMemo(
     () => invitations.filter((invitation) => (invitation.status ?? "pending") === "pending").length,
-    [invitations]
+    [invitations],
   );
+  const acceptedCount = useMemo(
+    () => invitations.filter((invitation) => invitation.status === "accepted").length,
+    [invitations],
+  );
+  const displayUnavailable = Boolean(error) && invitations.length === 0;
+
+  const loadInvitations = async () => {
+    setIsLoading(true);
+    setError("");
+    const { data, error: nextError } = await listInvitationsSafe();
+    setInvitations(data);
+    setError(nextError ?? "");
+    setIsLoading(false);
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -63,7 +101,7 @@ export default function AdminInvitationsPage() {
     setIsSubmitting(true);
     setError("");
 
-  try {
+    try {
       const response = await createInvitation(formData);
       const createdInvitation = response.data;
       if (response.success && createdInvitation) {
@@ -73,7 +111,7 @@ export default function AdminInvitationsPage() {
         setError(response.message);
       }
     } catch (err) {
-      setError(extractApiError(err, "Unable to send invitation."));
+      setError(extractApiError(err, "Unable to send invitation. Check the email address and role, then try again."));
     } finally {
       setIsSubmitting(false);
     }
@@ -109,155 +147,143 @@ export default function AdminInvitationsPage() {
     }
   };
 
+  const metricValue = (value: number) => (isLoading || displayUnavailable ? "-" : value);
+
+  const columns: Array<DataTableColumn<InvitationRecord>> = [
+    {
+      key: "email",
+      header: "Email",
+      cell: (invitation) => invitation.email,
+    },
+    {
+      key: "name",
+      header: "Name",
+      cell: (invitation) => `${invitation.first_name || ""} ${invitation.last_name || ""}`.trim() || "-",
+    },
+    {
+      key: "role",
+      header: "Role",
+      cell: (invitation) => formatRole(invitation.entity_type),
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (invitation) => <StatusBadge status={invitation.status ?? "pending"} />,
+    },
+    {
+      key: "invited",
+      header: "Invited",
+      cell: (invitation) => formatDate(invitation.invited_at),
+    },
+    {
+      key: "actions",
+      header: "Actions",
+      cell: (invitation) => (
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" variant="secondary" size="sm" onClick={() => void handleResend(invitation.id)}>
+            Resend
+          </Button>
+          <Button type="button" variant="danger" size="sm" onClick={() => void handleDelete(invitation.id)}>
+            Delete
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   return (
-    <main className="space-y-6">
-      <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-        <div>
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">{t("adminPortal")}</p>
-          <h1 className="text-2xl font-bold text-slate-900">{t("invitations_title")}</h1>
-          <p className="text-sm text-slate-500 mt-1">{t("invitations_subtitle")}</p>
-        </div>
-        <div className="rounded-3xl bg-white border border-slate-100 shadow-sm px-4 py-3 text-sm text-slate-600">
-          {pendingCount} pending · {invitations.length} total
-        </div>
+    <PageContainer width="wide" className="space-y-6">
+      <PageHeader
+        title="Invitation management"
+        description="Create, resend, and track staff invitations from the backend."
+        action={
+          <Button type="button" variant="secondary" onClick={() => void loadInvitations()} disabled={isLoading} state={isLoading ? { loading: true } : undefined}>
+            <RefreshCw className="h-4 w-4" />
+            Refresh
+          </Button>
+        }
+      />
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <Card padding="md">
+          <StatBlock label="Total invitations" value={metricValue(invitations.length)} />
+        </Card>
+        <Card padding="md">
+          <StatBlock label="Pending" value={metricValue(pendingCount)} />
+        </Card>
+        <Card padding="md">
+          <StatBlock label="Accepted" value={metricValue(acceptedCount)} />
+        </Card>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[380px,1fr]">
-        <form onSubmit={handleCreate} className="bg-white rounded-3xl border border-slate-100 shadow-sm p-4 md:p-6 space-y-4">
-          <div>
-            <h2 className="font-bold text-slate-900">{t("invitations_create_title")}</h2>
-            <p className="text-sm text-slate-500 mt-1">Use the backend invitation endpoint to onboard staff accounts.</p>
-          </div>
+      <Card padding="md" variant="soft">
+        <p className="text-[14px] leading-6 text-[var(--text-secondary)]">
+          Choose the role that matches the user's responsibility. Staff roles should not be created through candidate registration.
+        </p>
+      </Card>
 
-          <div className="space-y-3">
-            <Field
-              label={t("invitations_email")}
+      {error ? <Alert variant="error">{error}</Alert> : null}
+
+      <div className="grid gap-6 lg:grid-cols-[380px,1fr]">
+        <Card padding="lg">
+          <CardHeader title="Create invitation form" description="Create, resend, and track staff invitations from the backend." />
+
+          <form onSubmit={handleCreate} className="space-y-4">
+            <Input
+              label="Email"
               value={formData.email}
-              onChange={(value) => setFormData((current) => ({ ...current, email: value }))}
+              onChange={(event) => setFormData((current) => ({ ...current, email: event.target.value }))}
               type="email"
               required
             />
-            <Field
-              label={t("invitations_firstName")}
+            <Input
+              label="First name"
               value={formData.first_name}
-              onChange={(value) => setFormData((current) => ({ ...current, first_name: value }))}
+              onChange={(event) => setFormData((current) => ({ ...current, first_name: event.target.value }))}
               required
             />
-            <Field
-              label={t("invitations_lastName")}
+            <Input
+              label="Last name"
               value={formData.last_name}
-              onChange={(value) => setFormData((current) => ({ ...current, last_name: value }))}
+              onChange={(event) => setFormData((current) => ({ ...current, last_name: event.target.value }))}
               required
             />
-            <label className="block">
-              <span className="mb-1 block text-sm font-semibold text-slate-700">{t("invitations_entityType")}</span>
-              <select
-                value={formData.entity_type}
-                onChange={(event) => setFormData((current) => ({ ...current, entity_type: event.target.value as InvitationEntityType }))}
-                className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {ENTITY_OPTIONS.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+            <Select
+              label="Role"
+              value={formData.entity_type}
+              onChange={(event) => setFormData((current) => ({ ...current, entity_type: event.target.value as InvitationEntityType }))}
+            >
+              {ENTITY_OPTIONS.map((option) => (
+                <option key={option} value={option}>
+                  {formatRole(option)}
+                </option>
+              ))}
+            </Select>
 
-          {error && <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">{error}</div>}
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+              state={isSubmitting ? { loading: true } : undefined}
+              fullWidth
+            >
+              Send invitation
+            </Button>
+          </form>
+        </Card>
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full rounded-2xl bg-blue-900 px-4 py-3 text-sm font-bold text-white hover:bg-blue-800 disabled:opacity-50"
-          >
-            {isSubmitting ? t("loadingCandidates") : t("invitations_send")}
-          </button>
-        </form>
-
-        <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="border-b border-slate-100 px-4 md:px-6 py-4 flex items-center justify-between">
-            <div>
-              <h2 className="font-bold text-slate-900">Invitations</h2>
-              <p className="text-sm text-slate-500">Resend or remove staff invitations from the backend.</p>
-            </div>
-          </div>
-
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-190 text-left">
-              <thead className="bg-slate-50 text-xs uppercase tracking-widest text-slate-400">
-                <tr>
-                  <th className="px-6 py-4">Email</th>
-                  <th className="px-6 py-4">Role</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {isLoading ? (
-                  <tr>
-                    <td className="px-6 py-8 text-slate-500" colSpan={4}>{t("invitations_loading")}</td>
-                  </tr>
-                ) : invitations.length === 0 ? (
-                  <tr>
-                    <td className="px-6 py-8 text-slate-500" colSpan={4}>{t("invitations_empty")}</td>
-                  </tr>
-                ) : (
-                  invitations.map((invitation) => (
-                    <tr key={invitation.id} className="text-sm hover:bg-slate-50/70">
-                      <td className="px-6 py-4 font-medium text-slate-900">{invitation.email}</td>
-                      <td className="px-6 py-4 text-slate-600">{invitation.entity_type}</td>
-                      <td className="px-6 py-4">
-                        <span className="inline-flex rounded-full bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700">
-                          {invitation.status ?? "pending"}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-wrap gap-2">
-                          <button onClick={() => handleResend(invitation.id)} className="rounded-full border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-50">
-                            {t("invitations_resend")}
-                          </button>
-                          <button onClick={() => handleDelete(invitation.id)} className="rounded-full border border-rose-200 px-3 py-1.5 text-xs font-bold text-rose-700 hover:bg-rose-50">
-                            {t("invitations_delete")}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <Card padding="none" className="overflow-hidden">
+          <CardHeader title="Invitations table" description="Resend or delete staff invitations from the backend." />
+          <DataTable
+            columns={columns}
+            data={invitations}
+            getRowKey={(invitation) => invitation.id}
+            loading={isLoading}
+            emptyTitle="No invitations found"
+            emptyDescription="No invitations found."
+            className="rounded-none border-x-0 border-b-0"
+          />
+        </Card>
       </div>
-    </main>
-  );
-}
-
-function Field({
-  label,
-  value,
-  onChange,
-  type = "text",
-  required = false,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  type?: string;
-  required?: boolean;
-}) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-sm font-semibold text-slate-700">{label}</span>
-      <input
-        type={type}
-        required={required}
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none focus:ring-2 focus:ring-blue-500"
-      />
-    </label>
+    </PageContainer>
   );
 }

@@ -66,22 +66,22 @@ export default function UserMenu({ displayName, profileHref, settingsHref, onSig
         aria-expanded={open}
         aria-haspopup="menu"
         aria-controls="user-account-menu"
-        className="hidden sm:inline-flex items-center gap-2.5 rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface)] px-2.5 py-1.5 transition-colors hover:border-[var(--adlts-blue-700)] hover:bg-[var(--adlts-surface-soft)]"
+        className="hidden sm:inline-flex items-center gap-2.5 rounded-md border border-[var(--border)] bg-[var(--surface)] px-2.5 py-1.5 transition-colors hover:border-[var(--accent)] hover:bg-[var(--surface-2)]"
       >
-        <span className="grid h-7 w-7 place-items-center rounded-full bg-[var(--adlts-blue-600)] text-xs font-semibold text-white">
+        <span className="grid h-7 w-7 place-items-center rounded-[50%] bg-[var(--accent)] text-xs font-semibold text-[var(--surface)]">
           {avatar}
         </span>
-        <span className="text-sm font-medium text-[var(--adlts-ink-800)]">{name}</span>
-        <ChevronDown size={16} className="text-[var(--adlts-ink-500)]" />
+        <span className="text-sm font-medium text-[var(--text-primary)]">{name}</span>
+        <ChevronDown size={16} className="text-[var(--text-secondary)]" />
       </button>
 
       {open ? (
-        <div id="user-account-menu" role="menu" aria-label={t("profile") || "Profile menu"} className="absolute right-0 z-50 mt-2 w-56 rounded-md border border-[var(--adlts-border)] bg-[var(--adlts-surface)] shadow-popover py-2">
+        <div id="user-account-menu" role="menu" aria-label={t("profile") || "Profile menu"} className="absolute right-0 z-50 mt-2 w-56 rounded-md border border-[var(--border)] bg-[var(--surface)] shadow-popover py-2">
           <Link
             href={profileHref}
             onClick={closeAndFocus}
             role="menuitem"
-            className="block px-4 py-2 text-sm text-[var(--adlts-ink-800)] transition-colors hover:bg-[var(--adlts-surface-soft)]"
+            className="block px-4 py-2 text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-2)]"
           >
             {t("profile") || "Profile"}
           </Link>
@@ -89,7 +89,7 @@ export default function UserMenu({ displayName, profileHref, settingsHref, onSig
             href={settingsHref}
             onClick={closeAndFocus}
             role="menuitem"
-            className="block px-4 py-2 text-sm text-[var(--adlts-ink-800)] transition-colors hover:bg-[var(--adlts-surface-soft)]"
+            className="block px-4 py-2 text-sm text-[var(--text-primary)] transition-colors hover:bg-[var(--surface-2)]"
           >
             {t("settings") || "Settings"}
           </Link>
@@ -97,7 +97,7 @@ export default function UserMenu({ displayName, profileHref, settingsHref, onSig
             type="button"
             onClick={handleSignOut}
             role="menuitem"
-            className="w-full text-left px-4 py-2 text-sm text-[var(--adlts-error-700)] transition-colors hover:bg-[var(--adlts-error-50)]"
+            className="w-full text-left px-4 py-2 text-sm text-[var(--danger)] transition-colors hover:bg-[var(--danger-subtle)]"
           >
             <span className="inline-flex items-center gap-2">
               <LogOut size={14} />
@@ -114,7 +114,7 @@ export default function UserMenu({ displayName, profileHref, settingsHref, onSig
           aria-haspopup="menu"
           aria-controls="user-account-menu"
           ref={buttonRef}
-          className="sm:hidden h-10 w-10 rounded-full bg-[var(--adlts-blue-600)] text-sm font-semibold text-white"
+          className="sm:hidden h-10 w-10 rounded-[6px] bg-[var(--accent)] text-sm font-semibold text-[var(--surface)]"
           aria-label={`Open account menu for ${name}`}
         >
         {avatar}

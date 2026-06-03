@@ -18,20 +18,20 @@ export function AuthCard({
 }) {
   return (
     <div className="mx-auto w-full max-w-md py-6 md:py-10">
-      <Card padding="lg" className="shadow-sm">
+      <Card padding="lg">
         <div className="mb-6 space-y-3 text-center">
           {icon ? (
-            <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-blue-900">
+            <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)] text-[var(--accent)]">
               {icon}
             </div>
           ) : null}
           <div className="space-y-1">
-            <h1 className="text-xl font-semibold tracking-tight text-blue-950">{title}</h1>
-            {subtitle ? <p className="text-sm text-slate-600">{subtitle}</p> : null}
+            <h1 className="text-[24px] font-bold leading-tight text-[var(--text-primary)]">{title}</h1>
+            {subtitle ? <p className="text-[14px] text-[var(--text-secondary)]">{subtitle}</p> : null}
           </div>
         </div>
         {children}
-        {footer ? <div className="mt-6 border-t border-slate-100 pt-5 text-center text-sm text-slate-600">{footer}</div> : null}
+        {footer ? <div className="mt-6 border-t border-[var(--border)] pt-5 text-center text-[14px] text-[var(--text-secondary)]">{footer}</div> : null}
       </Card>
     </div>
   );
@@ -43,7 +43,7 @@ export function AuthForm({ children, className = "" }: { children: ReactNode; cl
 
 export function AuthLink({ href, children }: { href: string; children: ReactNode }) {
   return (
-    <a href={href} className="font-medium text-blue-900 transition-colors hover:text-blue-800">
+    <a href={href} className="font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-hover)]">
       {children}
     </a>
   );

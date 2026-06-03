@@ -1,22 +1,38 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { getSystemMetrics, getRecentAudits, SystemMetrics, AuditLog } from "@/services/super-admin.service";
-import { useI18n } from "@/i18n/useI18n";
+import { getRecentAudits, getSystemMetrics, type AuditLog, type SystemMetrics } from "@/services/super-admin.service";
 import { extractApiError } from "@/services/api-utils";
 import {
   Alert,
   Button,
+  ButtonLink,
   Card,
   CardHeader,
+  DataTable,
   PageContainer,
   PageHeader,
+  StatBlock,
   StatusBadge,
-  ui,
+  type DataTableColumn,
 } from "@/app/components/ui";
 
+function formatAuditStatus(status: string) {
+  if (status === "success") return "success";
+  if (status === "error") return "error";
+  return "warning";
+}
+
+function formatTimestamp(timestamp: string) {
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return "-";
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
+
 export default function SuperAdminDashboard() {
-  const { t } = useI18n();
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
   const [audits, setAudits] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,76 +41,99 @@ export default function SuperAdminDashboard() {
   const metricCards = useMemo(
     () => [
       {
-        label: "Total Active Candidates",
+        label: "Total active candidates",
         value: metrics?.totalActiveCandidates,
       },
       {
-        label: "Registered Institutes",
+        label: "Registered institutes",
         value: metrics?.registeredInstitutes,
       },
       {
-        label: "Active Biometric Devices",
+        label: "Active devices",
         value: metrics?.activeDevices,
       },
       {
-        label: "System Health",
+        label: "System health",
         value: metrics ? `${metrics.systemHealth}%` : undefined,
       },
     ],
-    [metrics]
+    [metrics],
   );
 
-  const formatAuditStatus = (status: string) => {
-    switch (status) {
-      case "success":
-        return "success";
-      case "error":
-        return "error";
-      default:
-        return "warning";
+  const loadData = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const [metricsRes, auditsRes] = await Promise.all([getSystemMetrics(), getRecentAudits()]);
+      if (metricsRes.success) {
+        setMetrics(metricsRes.data ?? null);
+      } else {
+        setMetrics(null);
+      }
+      if (auditsRes.success) {
+        setAudits(auditsRes.data ?? []);
+      } else {
+        setAudits([]);
+      }
+    } catch (err) {
+      setMetrics(null);
+      setAudits([]);
+      setError(extractApiError(err, "Unable to load dashboard data."));
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const [metricsRes, auditsRes] = await Promise.all([getSystemMetrics(), getRecentAudits()]);
-        if (metricsRes.success) {
-          setMetrics(metricsRes.data ?? null);
-        } else {
-          setMetrics(null);
-        }
-        if (auditsRes.success) {
-          setAudits(auditsRes.data ?? []);
-        } else {
-          setAudits([]);
-        }
-      } catch (err) {
-        setError(extractApiError(err, "Unable to load dashboard data."));
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadData();
+    void loadData();
   }, []);
 
+  const columns: Array<DataTableColumn<AuditLog>> = [
+    {
+      key: "action",
+      header: "Action",
+      cell: (audit) => audit.action,
+    },
+    {
+      key: "user",
+      header: "User",
+      cell: (audit) => audit.user,
+    },
+    {
+      key: "timestamp",
+      header: "Timestamp",
+      cell: (audit) => formatTimestamp(audit.timestamp),
+    },
+    {
+      key: "status",
+      header: "Status",
+      cell: (audit) => <StatusBadge status={audit.status} tone={formatAuditStatus(audit.status)} />,
+    },
+  ];
+
   return (
-    <PageContainer width="wide">
+    <PageContainer width="wide" className="space-y-6">
       <PageHeader
-        eyebrow={t("superAdmin") || "Super Admin"}
-        title={t("superAdminDashboardTitle") || "Super Admin Portal"}
-        description={t("superAdminDashboardDescription") || "System oversight and configuration management."}
-        action={<Button variant="primary">Generate System Report</Button>}
+        title="Super admin portal"
+        description="Monitor system-level activity, institution onboarding, audit events, and operational health."
+        action={
+          <div className="flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => void loadData()} disabled={loading} state={loading ? { loading: true } : undefined}>
+              Refresh
+            </Button>
+            <ButtonLink href="/super-admin/audits" variant="outline">
+              Audit logs
+            </ButtonLink>
+          </div>
+        }
       />
 
       {error ? <Alert variant="error">{error}</Alert> : null}
       {!error && !loading && !metrics ? (
-        <Alert variant="warning">Super-admin metrics endpoint did not return data.</Alert>
+        <Alert variant="warning">Super admin metrics endpoint did not return data. Check backend availability before assuming zero activity.</Alert>
       ) : null}
 
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      <section className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {metricCards.map((stat) => (
           <MetricCard
             key={stat.label}
@@ -105,69 +144,34 @@ export default function SuperAdminDashboard() {
         ))}
       </section>
 
-      <Card className="overflow-hidden p-0">
+      <Card padding="none" className="overflow-hidden">
         <CardHeader
-          title={t("superAdmin_audits_title") || "Recent System Audits"}
-          description={t("superAdmin_audits_subtitle") || "System events captured during recent operations."}
-          action={<Button variant="secondary" className="text-sm">View All Logs</Button>}
+          title="Recent audits"
+          description="Review recent system events captured during platform operations."
+          action={
+            <ButtonLink variant="secondary" size="sm" href="/super-admin/audits">
+              View audit logs
+            </ButtonLink>
+          }
         />
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-[var(--adlts-surface-soft)] text-[var(--adlts-ink-500)] border-b border-[var(--adlts-divider)]">
-              <tr>
-                <th className="px-6 py-4 font-medium">Action</th>
-                <th className="px-6 py-4 font-medium">User</th>
-                <th className="px-6 py-4 font-medium">Timestamp</th>
-                <th className="px-6 py-4 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--adlts-divider)]">
-              {loading ? (
-                Array.from({ length: 4 }).map((_, i) => (
-                  <tr key={i}>
-                    <td className="px-6 py-4"><div className="h-5 w-48 animate-pulse rounded bg-[var(--adlts-surface-soft)]" /></td>
-                    <td className="px-6 py-4"><div className="h-5 w-24 animate-pulse rounded bg-[var(--adlts-surface-soft)]" /></td>
-                    <td className="px-6 py-4"><div className="h-5 w-32 animate-pulse rounded bg-[var(--adlts-surface-soft)]" /></td>
-                    <td className="px-6 py-4"><div className="h-5 w-16 animate-pulse rounded bg-[var(--adlts-surface-soft)]" /></td>
-                  </tr>
-                ))
-              ) : audits.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-6 py-12 text-center text-[var(--adlts-ink-400)]">No recent audits found.</td>
-                </tr>
-              ) : (
-                audits.map((audit) => (
-                  <tr key={audit.id} className="transition-colors hover:bg-[var(--adlts-surface-soft)]">
-                    <td className="px-6 py-4 font-medium text-[var(--adlts-ink-900)]">{audit.action}</td>
-                    <td className="px-6 py-4">{audit.user}</td>
-                    <td className="px-6 py-4">{new Intl.DateTimeFormat("en-US", {
-                      dateStyle: "medium",
-                      timeStyle: "short",
-                    }).format(new Date(audit.timestamp))}</td>
-                    <td className="px-6 py-4">
-                      <StatusBadge status={audit.status} tone={formatAuditStatus(audit.status)} />
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          columns={columns}
+          data={audits}
+          getRowKey={(audit) => audit.id}
+          loading={loading}
+          emptyTitle="No audit events found"
+          emptyDescription="No audit events found."
+          className="rounded-none border-x-0 border-b-0"
+        />
       </Card>
     </PageContainer>
   );
 }
 
-function MetricCard({ label, value, loading, delta }: { label: string; value?: number | string; loading: boolean; delta?: string }) {
+function MetricCard({ label, value, loading }: { label: string; value?: number | string; loading: boolean }) {
   return (
-    <Card padding="md" className="space-y-2">
-      <p className={ui.statLabel}>{label}</p>
-      {loading ? (
-        <div className="h-9 w-24 rounded bg-[var(--adlts-surface-soft)] animate-pulse" />
-      ) : (
-        <p className="text-3xl font-semibold text-[var(--adlts-ink-900)]">{value?.toLocaleString?.() ?? "—"}</p>
-      )}
-      {delta ? <p className="text-sm text-[var(--adlts-ink-500)]">{delta}</p> : null}
+    <Card padding="md">
+      <StatBlock label={label} value={loading ? "-" : value ?? "-"} />
     </Card>
   );
 }

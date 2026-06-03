@@ -1,10 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Bell, CheckCheck, CheckCircle2, Clock3, RefreshCw } from "lucide-react";
+import { Bell, CheckCheck, CheckCircle2, RefreshCw } from "lucide-react";
 
-import { Card } from "@/app/components/ui/Card";
-import { useI18n } from "@/i18n/useI18n";
+import {
+  Alert,
+  Button,
+  Card,
+  CardHeader,
+  EmptyState,
+  PageContainer,
+  PageHeader,
+  StatBlock,
+  StatusBadge,
+} from "@/app/components/ui";
 import { useAuthSession } from "@/hooks/useAuthSession";
 import {
   getNotificationsPage,
@@ -18,11 +27,10 @@ function formatTimestamp(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
 
-  return new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
 export default function NotificationsPage() {
-  const { t } = useI18n();
   const { user } = useAuthSession();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +48,7 @@ export default function NotificationsPage() {
       setNotifications(result.items);
       setUnreadCount(result.unreadCount);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load notifications.');
+      setError(err instanceof Error ? err.message : "Unable to load this data right now. Refresh the page or contact support if the issue continues.");
     } finally {
       setLoading(false);
     }
@@ -65,7 +73,7 @@ export default function NotificationsPage() {
         setUnreadCount((current) => Math.max(0, current - 1));
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update notification.');
+      setError(err instanceof Error ? err.message : "Failed to update notification.");
     } finally {
       setMarkingId(null);
     }
@@ -80,117 +88,111 @@ export default function NotificationsPage() {
         setUnreadCount(0);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update notifications.');
+      setError(err instanceof Error ? err.message : "Failed to update notifications.");
     } finally {
       setMarkingAll(false);
     }
   };
 
   return (
-    <main className="mx-auto max-w-5xl space-y-6 md:space-y-8">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="mb-2 text-xs font-bold uppercase tracking-[0.2em] text-blue-600">{t('notifications')}</p>
-          <h1 className="text-3xl font-bold text-slate-900">{t('notifications')}</h1>
-          <p className="mt-1 text-sm text-slate-500">Read and manage your latest account alerts.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => void handleMarkAllRead()}
-            disabled={loading || markingAll || unreadCount === 0}
-            className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
-          >
-            <CheckCheck className="mr-2 h-4 w-4" />
-            {markingAll ? 'Marking...' : t('markAllAsRead')}
-          </button>
-          <button
-            onClick={() => void loadNotifications()}
-            disabled={loading}
-            className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50 disabled:opacity-50"
-          >
-            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
-        </div>
-      </div>
+    <PageContainer width="wide" className="space-y-6">
+      <PageHeader
+        title="Notifications"
+        description="Important account, booking, payment, exam, and review updates will appear here."
+        action={
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => void handleMarkAllRead()}
+              disabled={loading || markingAll || unreadCount === 0}
+              state={markingAll ? { loading: true } : undefined}
+            >
+              <CheckCheck className="mr-2 h-4 w-4" />
+              Mark all as read
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => void loadNotifications()}
+              disabled={loading}
+            >
+              <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
+          </div>
+        }
+      />
+
+      {error ? <Alert variant="error">{error}</Alert> : null}
 
       <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="p-5">
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Unread</p>
-          <p className="mt-2 text-3xl font-bold text-blue-900">{loading ? '—' : unreadCount}</p>
+        <Card padding="sm">
+          <StatBlock label="Unread count" value={loading ? "-" : unreadCount} />
         </Card>
-        <Card className="p-5 sm:col-span-2">
-          <p className="text-xs font-bold uppercase tracking-widest text-slate-400">Latest Message</p>
-          <p className="mt-2 text-sm text-slate-600">
-            {loading ? 'Loading notifications...' : notifications[0]?.message || t('notificationsEmpty')}
+        <Card padding="sm" className="sm:col-span-2">
+          <p className="text-[12px] font-medium text-[var(--text-secondary)]">Latest message</p>
+          <p className="mt-2 text-[14px] text-[var(--text-primary)]">
+            {loading ? "Loading notifications..." : notifications[0]?.message || "No notifications yet. Important account, booking, payment, exam, and review updates will appear here."}
           </p>
         </Card>
       </div>
 
-      {error && (
-        <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-          {error}
-        </div>
-      )}
-
       <Card className="overflow-hidden">
-        <div className="flex items-center justify-between border-b border-slate-100 bg-white px-6 py-4">
+        <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface)] px-6 py-4">
           <div className="flex items-center gap-2">
-            <Bell className="h-4 w-4 text-blue-700" />
-            <h2 className="text-lg font-semibold text-slate-900">{t('notifications')}</h2>
+            <Bell className="h-4 w-4 text-[var(--accent)]" />
+            <h2 className="text-[18px] font-semibold text-[var(--text-primary)]">Notification list</h2>
           </div>
-          <div className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
-            {notifications.length} total
-          </div>
+          <StatusBadge status={`${notifications.length} total`} tone="neutral" />
         </div>
 
-        <div className="divide-y divide-slate-100 bg-white">
+        <div className="divide-y divide-[var(--border)] bg-[var(--surface)]">
           {loading ? (
             Array.from({ length: 3 }).map((_, index) => (
-              <div key={index} className="space-y-3 p-6 animate-pulse">
-                <div className="h-4 w-40 rounded bg-slate-100" />
-                <div className="h-3 w-full rounded bg-slate-100" />
-                <div className="h-3 w-5/6 rounded bg-slate-100" />
+              <div key={index} className="animate-pulse space-y-3 p-6">
+                <div className="h-4 w-40 rounded-[6px] bg-[var(--surface-2)]" />
+                <div className="h-3 w-full rounded-[6px] bg-[var(--surface-2)]" />
+                <div className="h-3 w-5/6 rounded-[6px] bg-[var(--surface-2)]" />
               </div>
             ))
           ) : notifications.length === 0 ? (
-            <div className="p-10 text-center text-slate-500">
-              <Clock3 className="mx-auto mb-3 h-8 w-8 text-slate-300" />
-              {t('notificationsEmpty')}
-            </div>
+            <EmptyState
+              title="No notifications yet"
+              description="Important account, booking, payment, exam, and review updates will appear here."
+              className="border-0 bg-transparent"
+            />
           ) : (
             notifications.map((notification) => (
-              <div key={notification.id} className={`p-6 ${notification.read ? 'bg-white' : 'bg-blue-50/40'}`}>
+              <div key={notification.id} className={`p-6 ${notification.read ? "bg-[var(--surface)]" : "bg-[var(--accent-subtle)]"}`}>
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <h3 className="text-base font-bold text-slate-900">{notification.title}</h3>
-                      {!notification.read && (
-                        <span className="rounded-full bg-blue-600 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white">
-                          {t('unread')}
-                        </span>
-                      )}
+                      <h3 className="text-[16px] font-semibold text-[var(--text-primary)]">{notification.title}</h3>
+                      {!notification.read ? <StatusBadge status="Unread" tone="warning" /> : null}
                     </div>
-                    <p className="text-sm leading-6 text-slate-600">{notification.message}</p>
-                    <p className="text-xs font-medium text-slate-400">{formatTimestamp(notification.createdAt)}</p>
+                    <p className="text-[14px] leading-6 text-[var(--text-secondary)]">{notification.message}</p>
+                    <p className="text-[12px] font-medium text-[var(--text-tertiary)]">{formatTimestamp(notification.createdAt)}</p>
                   </div>
 
-                  {!notification.read && (
-                    <button
+                  {!notification.read ? (
+                    <Button
+                      type="button"
+                      variant="secondary"
                       onClick={() => void handleMarkRead(notification.id)}
                       disabled={markingId === notification.id}
-                      className="inline-flex items-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:opacity-50"
+                      state={markingId === notification.id ? { loading: true } : undefined}
                     >
-                      <CheckCircle2 className="mr-1.5 h-4 w-4" />
-                      {markingId === notification.id ? 'Marking...' : t('markAsRead')}
-                    </button>
-                  )}
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Mark as read
+                    </Button>
+                  ) : null}
                 </div>
               </div>
             ))
           )}
         </div>
       </Card>
-    </main>
+    </PageContainer>
   );
 }

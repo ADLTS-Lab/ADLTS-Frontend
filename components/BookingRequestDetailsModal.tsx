@@ -3,8 +3,9 @@
 import React, { useMemo, useState } from "react";
 import { CheckCircle, ChevronDown, X, XCircle } from "lucide-react";
 
-import { BookingRequest, BookingStatus } from "@/services/booking.service";
+import { BookingRequest } from "@/services/booking.service";
 import { useI18n } from "@/i18n/useI18n";
+import { StatusBadge } from "@/app/components/ui";
 
 type BookingRequestDetailsModalProps = {
   request: BookingRequest;
@@ -35,17 +36,6 @@ function formatDateTime(value?: string) {
     : new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
 }
 
-function statusTone(status: BookingStatus) {
-  if (status === 'Approved') return 'bg-emerald-100 text-emerald-800';
-  if (status === 'Payment Pending') return 'bg-sky-100 text-sky-800';
-  if (status === 'Scheduled') return 'bg-indigo-100 text-indigo-800';
-  if (status === 'Completed') return 'bg-emerald-100 text-emerald-800';
-  if (status === 'Expired') return 'bg-slate-100 text-slate-800';
-  if (status === 'Cancelled') return 'bg-slate-100 text-slate-800';
-  if (status === 'Rejected') return 'bg-rose-100 text-rose-800';
-  return 'bg-amber-100 text-amber-800';
-}
-
 export default function BookingRequestDetailsModal({ request, onClose, onApprove, onReject, title }: BookingRequestDetailsModalProps) {
   const { t } = useI18n();
   const [selectedAction, setSelectedAction] = useState<'approve' | 'reject'>('approve');
@@ -66,16 +56,16 @@ export default function BookingRequestDetailsModal({ request, onClose, onApprove
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-      <div className="w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-        <div className="flex items-center justify-between border-b border-slate-100 bg-slate-50 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[var(--overlay)] p-4">
+      <div className="w-full max-w-2xl overflow-hidden rounded-[8px] bg-[var(--surface)] shadow-[var(--shadow-modal)]">
+        <div className="flex items-center justify-between border-b border-[var(--border)] bg-[var(--surface-2)] p-4">
           <div>
-            <h2 className="text-lg font-bold text-slate-800">{title || t('viewDetails') || 'Candidate Details'}</h2>
-            <p className="text-xs text-slate-500">Booking information and moderation actions.</p>
+            <h2 className="text-[16px] font-semibold text-[var(--text-primary)]">{title || t('viewDetails') || 'Candidate Details'}</h2>
+            <p className="text-[12px] text-[var(--text-secondary)]">Booking information and moderation actions.</p>
           </div>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-slate-200 hover:text-slate-600"
+            className="rounded-[6px] p-1.5 text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface)] hover:text-[var(--text-primary)]"
             aria-label="Close candidate details"
           >
             <X className="h-5 w-5" />
@@ -91,24 +81,24 @@ export default function BookingRequestDetailsModal({ request, onClose, onApprove
             <DetailItem label="Booking Date" value={formatDateTime(request.createdAt)} />
             <DetailItem label="Preferred Exam Date" value={formatDate(request.preferredDate)} />
             <DetailItem label="Session" value={request.preferredSession || 'N/A'} />
-            <DetailItem label="Booking Status" value={request.status} badge tone={statusTone(request.status)} />
+            <DetailItem label="Booking Status" value={request.status} badge />
           </div>
 
           <div>
-            <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-slate-500">Notes</p>
-            <div className="min-h-16 rounded-lg border border-slate-100 bg-slate-50 p-3 text-sm text-slate-700">
+            <p className="mb-2 text-[12px] font-medium text-[var(--text-secondary)]">Notes</p>
+            <div className="min-h-16 rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)] p-3 text-sm text-[var(--text-primary)]">
               {request.additionalNotes || 'No additional notes provided.'}
             </div>
           </div>
 
           {request.status === 'Pending' && (
-            <div className="flex flex-col gap-3 border-t border-slate-100 pt-4 sm:flex-row sm:items-center sm:justify-end">
-              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2">
-                <ChevronDown className="h-4 w-4 text-slate-400" />
+            <div className="flex flex-col gap-3 border-t border-[var(--border)] pt-4 sm:flex-row sm:items-center sm:justify-end">
+              <div className="flex items-center gap-2 rounded-[8px] border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+                <ChevronDown className="h-4 w-4 text-[var(--text-secondary)]" />
                 <select
                   value={selectedAction}
                   onChange={(event) => setSelectedAction(event.target.value as 'approve' | 'reject')}
-                  className="bg-transparent text-sm font-semibold text-slate-700 outline-none"
+                  className="bg-transparent text-sm font-semibold text-[var(--text-primary)] outline-none"
                   aria-label="Request action"
                 >
                   {ACTION_OPTIONS.map((option) => (
@@ -121,7 +111,7 @@ export default function BookingRequestDetailsModal({ request, onClose, onApprove
 
               <button
                 onClick={handleApplyAction}
-                className="inline-flex items-center justify-center rounded-xl bg-blue-900 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-blue-800"
+                className="inline-flex items-center justify-center rounded-[6px] bg-[var(--accent)] px-4 py-2.5 text-sm font-medium text-[var(--surface)] transition-colors hover:bg-[var(--accent-hover)]"
               >
                 {selectedAction === 'approve' ? (
                   <>
@@ -143,16 +133,14 @@ export default function BookingRequestDetailsModal({ request, onClose, onApprove
   );
 }
 
-function DetailItem({ label, value, badge = false, tone }: { label: string; value: string; badge?: boolean; tone?: string }) {
+function DetailItem({ label, value, badge = false }: { label: string; value: string; badge?: boolean }) {
   return (
-    <div className="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
-      <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-slate-400">{label}</p>
+    <div className="rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)] p-4">
+      <p className="mb-1 text-[12px] font-medium text-[var(--text-secondary)]">{label}</p>
       {badge ? (
-        <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${tone || 'bg-slate-100 text-slate-800'}`}>
-          {value}
-        </span>
+        <StatusBadge status={value} />
       ) : (
-        <p className="text-sm font-bold text-slate-800">{value}</p>
+        <p className="text-sm font-semibold text-[var(--text-primary)]">{value}</p>
       )}
     </div>
   );
