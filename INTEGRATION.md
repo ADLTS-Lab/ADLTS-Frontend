@@ -59,8 +59,8 @@ These mirror the Postman contract for local/Vercel deployment. Shared state live
 **Demo credentials (Next.js mock):**
 
 - Candidate: `candidate@adlts.et` / `password123`
-- Admin: `admin@adlts.et` / `password123`
-- Super admin: `superadmin@adlts.et` / `password123`
+- Admin: `admin@adlts.et` / `AdminSecure123!`
+- Super admin: `root@adlts.et` / `SuperSecure123!`
 
 ## 5. Auth flows to verify locally
 
