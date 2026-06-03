@@ -1,7 +1,7 @@
 "use client";
 
 import { type FormEvent, useEffect, useState } from "react";
-import { Bell, CheckCircle, Globe } from "lucide-react";
+import { CheckCircle, Globe } from "lucide-react";
 import { getAppSettings, updateAppSettings, type CandidateSettings } from "@/services/settings.service";
 import {
   Alert,
@@ -12,17 +12,7 @@ import {
   PageContainer,
   PageHeader,
   Select,
-  ui,
 } from "@/app/components/ui";
-
-type NotificationKey = keyof CandidateSettings["notifications"];
-
-const notificationOptions: Array<{ key: NotificationKey; label: string }> = [
-  { key: "bookingUpdates", label: "Booking updates" },
-  { key: "examUpdates", label: "Exam updates" },
-  { key: "resultNotifications", label: "Result notifications" },
-  { key: "licensePickupNotifications", label: "License pickup notifications" },
-];
 
 export function SettingsBoard() {
   const [settings, setSettings] = useState<CandidateSettings | null>(null);
@@ -71,19 +61,6 @@ export function SettingsBoard() {
     }
   };
 
-  const updateNotification = (key: NotificationKey, value: boolean) => {
-    setSettings((current) => {
-      if (!current) return current;
-      return {
-        ...current,
-        notifications: {
-          ...current.notifications,
-          [key]: value,
-        },
-      };
-    });
-  };
-
   if (isLoading || !settings) {
     return (
       <PageContainer width="wide">
@@ -101,7 +78,7 @@ export function SettingsBoard() {
     <PageContainer width="wide" className="space-y-6">
       <PageHeader
         title="Settings"
-        description="Manage language and notification preferences for ADLTS operations."
+        description="Manage language preferences for ADLTS operations."
       />
 
       {successMessage ? (
@@ -138,34 +115,6 @@ export function SettingsBoard() {
             </CardContent>
           </Card>
         </div>
-
-        <Card>
-          <CardHeader
-            title="Notification preferences"
-            description="Important account, booking, payment, exam, and review updates will appear in notifications."
-            action={<Bell className="h-5 w-5 text-[var(--accent)]" />}
-          />
-
-          <CardContent>
-            <fieldset className="grid gap-3 md:grid-cols-2">
-              <legend className="sr-only">Notification preferences</legend>
-              {notificationOptions.map((option) => (
-                <label
-                  key={option.key}
-                  className="flex items-center justify-between gap-3 rounded-[8px] border border-[var(--border)] bg-[var(--surface)] p-3 transition-colors hover:bg-[var(--surface-2)]"
-                >
-                  <span className={ui.statLabel}>{option.label}</span>
-                  <input
-                    type="checkbox"
-                    checked={settings.notifications[option.key]}
-                    onChange={(event) => updateNotification(option.key, event.target.checked)}
-                    className="h-4 w-4 rounded-[4px] border border-[var(--border)] text-[var(--accent)] focus:ring-2 focus:ring-[var(--focus-ring)]"
-                  />
-                </label>
-              ))}
-            </fieldset>
-          </CardContent>
-        </Card>
 
         <div className="flex justify-end">
           <Button type="submit" disabled={isSaving} state={isSaving ? { loading: true } : undefined}>

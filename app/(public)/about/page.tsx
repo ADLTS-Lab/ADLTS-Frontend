@@ -14,7 +14,7 @@ const missionBullets = [
   "Help institutes review booking requests with the right context.",
   "Support administrators with monitoring and reporting tools.",
   "Keep expert review and appeal resolution organized.",
-  "Improve visibility for transport authorities and super admins.",
+  "Keep platform ownership and supported authority access clearly separated.",
 ];
 
 const coordinationCards = [
@@ -46,17 +46,17 @@ const coordinationCards = [
   {
     icon: Scale,
     title: "Governance",
-    body: "Institution invitations, audit logs, review queues, compliance alerts, notifications, and settings.",
+    body: "Institution invitations, review queues, compliance planning, reports, and settings.",
   },
 ];
 
 const stakeholders = [
   ["Candidate", "Registers, requests booking, pays after approval, tracks exam and results."],
   ["Institute", "Reviews candidate requests, approves or rejects pending bookings, manages institution profile."],
-  ["Admin", "Monitors devices, active exams, candidates, invitations, reports, and notifications."],
+  ["Admin", "Monitors devices, active exams, candidates, invitations, and reports."],
   ["Expert", "Reviews flagged exam concerns and resolves pending cases."],
-  ["Super admin", "Manages institutions, invitations, system metrics, audit logs, and governance."],
-  ["Transport authority", "Monitors regional analytics, compliance alerts, and operational indicators."],
+  ["Super admin", "Manages institutions, candidates, experts, invitations, reports, and platform ownership workflows."],
+  ["Transport authority", "Uses lightweight profile and settings access until authority workflows are added to the backend."],
 ];
 
 const principles = [
@@ -83,7 +83,7 @@ const outcomes = [
   "Better visibility for institution request queues.",
   "Faster recognition of device and exam issues.",
   "More consistent handling of appeals and flagged cases.",
-  "Clearer system audit trail for governance.",
+  "Clearer operational ownership across supported portal workflows.",
   "Stronger public confidence in the testing process.",
 ];
 
@@ -97,10 +97,10 @@ export default function AboutPage() {
             Digital infrastructure for a clearer driving license testing process.
           </h1>
           <p className="mt-5 text-[18px] leading-8 text-[var(--text-secondary)]">
-            ADLTS is a role-based platform for managing the driving license testing lifecycle. It connects candidates, institutes, administrators, experts, super admins, and transport authorities through one accountable workflow.
+            ADLTS is a role-based platform for managing the driving license testing lifecycle. It connects candidates, institutes, administrators, experts, super admins, and lightweight transport authority access through one accountable workflow.
           </p>
           <p className="mt-5 text-[15px] leading-7 text-[var(--text-secondary)]">
-            The system is designed to reduce uncertainty in the testing process. Candidates can see where they are in the journey. Institutes can review requests assigned to them. Administrators can monitor operational readiness. Experts can resolve flagged concerns. Authorities and super admins can review system-level activity.
+            The system is designed to reduce uncertainty in the testing process. Candidates can see where they are in the journey. Institutes can review requests assigned to them. Administrators can monitor operational readiness. Experts can resolve flagged concerns. Super admins can review platform-level activity, while transport authority access remains limited to supported profile workflows.
           </p>
         </div>
       </PublicSection>

@@ -1,5 +1,9 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   BarChart3,
   Bot,
@@ -14,6 +18,8 @@ import {
 } from "lucide-react";
 
 import { ButtonLink, Card, PageContainer, PageHeader } from "@/app/components/ui";
+import { getHomeRouteForRole } from "@/config/routes";
+import { useAuthSession } from "@/hooks/useAuthSession";
 
 import manualEvaluationImage from "./images/manual eval image.jpg";
 import paperScoreSheetImage from "./images/paper eval.jpg";
@@ -111,8 +117,8 @@ const impactStats = [
   },
   {
     value: "24/7",
-    label: "Transparent Audit Trail",
-    detail: "Demonstration metric for continuous system traceability.",
+    label: "Result Access",
+    detail: "Demonstration metric for candidate access to digital status and result information.",
   },
 ];
 
@@ -155,6 +161,17 @@ function FeatureCard({
 }
 
 export default function LandingPage() {
+  const router = useRouter();
+  const { user, isAuthenticated, hasHydrated } = useAuthSession();
+
+  useEffect(() => {
+    if (!hasHydrated || !isAuthenticated || !user) return;
+    const nextRoute = getHomeRouteForRole(user.role);
+    if (nextRoute !== "/login") {
+      router.replace(nextRoute);
+    }
+  }, [hasHydrated, isAuthenticated, router, user]);
+
   return (
     <main className="bg-[var(--bg)]">
       <Section className="bg-[var(--surface)]">
@@ -167,17 +184,20 @@ export default function LandingPage() {
               From paper-based assessments and manual scoring to transparent, technology-assisted driver evaluation.
             </p>
             <p className="mt-4 max-w-2xl text-[15px] leading-7 text-[var(--text-secondary)]">
-              ADLTS streamlines the driving test process through digital assessments, AI-assisted scoring, expert review, and real-time result management.
+              ADLTS helps candidates register, request a driving test, complete payment after approval, and follow exam results through a clearer digital process.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <ButtonLink href="/login" size="lg">
-                Get Started
+              <ButtonLink href="/candidate/register" size="lg">
+                Candidate Register
               </ButtonLink>
-              <ButtonLink href="#problem" variant="outline" size="lg">
-                Learn More
+              <ButtonLink href="/login" variant="outline" size="lg">
+                Login
               </ButtonLink>
             </div>
+            <p className="mt-3 text-[13px] leading-5 text-[var(--text-secondary)]">
+              Staff and authorized institutional users should sign in through Login.
+            </p>
           </div>
 
           <Card padding="sm" className="shadow-[var(--shadow-resting)]">
@@ -288,18 +308,18 @@ export default function LandingPage() {
         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="max-w-2xl">
             <h2 className="text-[32px] font-bold leading-tight" style={{ color: "var(--surface)" }}>
-              Ready for the Future of Driver Assessment?
+              Ready to Start Your Driving Test Journey?
             </h2>
             <p className="mt-4 text-[16px] leading-7 text-[var(--accent-subtle)]">
-              Join the transition from manual processes to transparent, technology-assisted evaluation.
+              Create a candidate account, request a test, and follow each step through ADLTS.
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
+            <ButtonLink href="/candidate/register" size="lg" className="!border-blue-600 !bg-blue-600 !text-white hover:!border-blue-700 hover:!bg-blue-700">
+              Candidate Register
+            </ButtonLink>
             <ButtonLink href="/login" variant="secondary" size="lg">
               Login
-            </ButtonLink>
-            <ButtonLink href="/candidate/register" size="lg" className="!border-blue-600 !bg-blue-600 !text-white hover:!border-blue-700 hover:!bg-blue-700">
-              Register
             </ButtonLink>
           </div>
         </div>

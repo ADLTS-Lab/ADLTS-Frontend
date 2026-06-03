@@ -1,40 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { getRecentAudits, getSystemMetrics, type AuditLog, type SystemMetrics } from "@/services/super-admin.service";
+import { getSystemMetrics, type SystemMetrics } from "@/services/super-admin.service";
 import { extractApiError } from "@/services/api-utils";
 import {
   Alert,
   Button,
   ButtonLink,
   Card,
-  CardHeader,
-  DataTable,
   PageContainer,
   PageHeader,
   StatBlock,
-  StatusBadge,
-  type DataTableColumn,
 } from "@/app/components/ui";
-
-function formatAuditStatus(status: string) {
-  if (status === "success") return "success";
-  if (status === "error") return "error";
-  return "warning";
-}
-
-function formatTimestamp(timestamp: string) {
-  const date = new Date(timestamp);
-  if (Number.isNaN(date.getTime())) return "-";
-  return new Intl.DateTimeFormat("en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
 
 export default function SuperAdminDashboard() {
   const [metrics, setMetrics] = useState<SystemMetrics | null>(null);
-  const [audits, setAudits] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -64,20 +44,14 @@ export default function SuperAdminDashboard() {
     setLoading(true);
     setError("");
     try {
-      const [metricsRes, auditsRes] = await Promise.all([getSystemMetrics(), getRecentAudits()]);
+      const metricsRes = await getSystemMetrics();
       if (metricsRes.success) {
         setMetrics(metricsRes.data ?? null);
       } else {
         setMetrics(null);
       }
-      if (auditsRes.success) {
-        setAudits(auditsRes.data ?? []);
-      } else {
-        setAudits([]);
-      }
     } catch (err) {
       setMetrics(null);
-      setAudits([]);
       setError(extractApiError(err, "Unable to load dashboard data."));
     } finally {
       setLoading(false);
@@ -88,41 +62,18 @@ export default function SuperAdminDashboard() {
     void loadData();
   }, []);
 
-  const columns: Array<DataTableColumn<AuditLog>> = [
-    {
-      key: "action",
-      header: "Action",
-      cell: (audit) => audit.action,
-    },
-    {
-      key: "user",
-      header: "User",
-      cell: (audit) => audit.user,
-    },
-    {
-      key: "timestamp",
-      header: "Timestamp",
-      cell: (audit) => formatTimestamp(audit.timestamp),
-    },
-    {
-      key: "status",
-      header: "Status",
-      cell: (audit) => <StatusBadge status={audit.status} tone={formatAuditStatus(audit.status)} />,
-    },
-  ];
-
   return (
     <PageContainer width="wide" className="space-y-6">
       <PageHeader
         title="Super admin portal"
-        description="Monitor system-level activity, institution onboarding, audit events, and operational health."
+        description="Monitor platform ownership workflows, institution onboarding, people management, invitations, and reports."
         action={
           <div className="flex flex-wrap gap-2">
             <Button variant="secondary" onClick={() => void loadData()} disabled={loading} state={loading ? { loading: true } : undefined}>
               Refresh
             </Button>
-            <ButtonLink href="/super-admin/audits" variant="outline">
-              Audit logs
+            <ButtonLink href="/super-admin/invitations" variant="outline">
+              Invitations
             </ButtonLink>
           </div>
         }
@@ -144,26 +95,12 @@ export default function SuperAdminDashboard() {
         ))}
       </section>
 
-      <Card padding="none" className="overflow-hidden">
-        <CardHeader
-          title="Recent audits"
-          description="Review recent system events, actors, timestamps, and outcomes."
-          action={
-            <ButtonLink variant="secondary" size="sm" href="/super-admin/audits">
-              View audit logs
-            </ButtonLink>
-          }
-        />
-        <DataTable
-          columns={columns}
-          data={audits}
-          getRowKey={(audit) => audit.id}
-          loading={loading}
-          emptyTitle="No audit events found"
-          emptyDescription="No audit events found."
-          className="rounded-none border-x-0 border-b-0"
-        />
-      </Card>
+      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <ActionCard href="/super-admin/candidates" title="Candidates" description="Review candidate accounts and platform access." />
+        <ActionCard href="/super-admin/experts" title="Experts" description="Manage expert reviewer accounts." />
+        <ActionCard href="/super-admin/institutions" title="Institutions" description="Manage institution onboarding and status." />
+        <ActionCard href="/super-admin/reports" title="Reports" description="Generate and download test reports." />
+      </section>
     </PageContainer>
   );
 }
@@ -172,6 +109,20 @@ function MetricCard({ label, value, loading }: { label: string; value?: number |
   return (
     <Card padding="md" variant="metric">
       <StatBlock label={label} value={loading ? "-" : value ?? "-"} />
+    </Card>
+  );
+}
+
+function ActionCard({ href, title, description }: { href: string; title: string; description: string }) {
+  return (
+    <Card padding="md" className="space-y-3">
+      <div>
+        <h2 className="text-[15px] font-semibold text-[var(--text-primary)]">{title}</h2>
+        <p className="mt-1 text-[13px] leading-5 text-[var(--text-secondary)]">{description}</p>
+      </div>
+      <ButtonLink href={href} variant="secondary" size="sm">
+        Open
+      </ButtonLink>
     </Card>
   );
 }

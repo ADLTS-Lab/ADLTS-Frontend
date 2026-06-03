@@ -80,7 +80,7 @@ export default function SuperAdminInstitutionsPage() {
       const result = await inviteInstitution(form);
       setInstitutions((current) => [result.institution, ...current.filter((item) => item.id !== result.institution.id)]);
       setSuccess(result.message);
-      setLatestInviteLink(result.invitationLink);
+      setLatestInviteLink(result.invitationLink ?? "");
       setForm({ institutionName: "", email: "" });
     } catch (err) {
       setError(extractApiError(err, "Unable to invite institution."));
@@ -96,7 +96,7 @@ export default function SuperAdminInstitutionsPage() {
       const result = await resendInstitutionInvitation(institution.id);
       setInstitutions((current) => current.map((item) => (item.id === institution.id ? result.institution : item)));
       setSuccess(result.message);
-      setLatestInviteLink(result.invitationLink);
+      setLatestInviteLink(result.invitationLink ?? "");
     } catch (err) {
       setError(extractApiError(err, "Unable to resend invitation."));
     }
