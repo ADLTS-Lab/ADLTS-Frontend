@@ -1,4 +1,3 @@
-import { Circle, CircleCheck, MapPinned, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 type BrandMarkProps = {
@@ -6,29 +5,87 @@ type BrandMarkProps = {
   size?: "sm" | "md" | "lg";
   className?: string;
   label?: string;
+  variant?: "mark" | "wordmark";
+  showSubtitle?: boolean;
+  inverse?: boolean;
 };
 
-export function BrandMark({ href, size = "md", className = "", label }: BrandMarkProps) {
-  const sizeClasses = {
-    sm: "h-8 w-8",
-    md: "h-9 w-9",
-    lg: "h-10 w-10",
-  };
+const sizeClasses = {
+  sm: "h-8 w-8",
+  md: "h-9 w-9",
+  lg: "h-10 w-10",
+};
+
+const wordmarkSizeClasses = {
+  sm: "text-[13px]",
+  md: "text-[15px]",
+  lg: "text-[17px]",
+};
+
+function AdltsEmblem({ size }: { size: BrandMarkProps["size"] }) {
+  return (
+    <span
+      className={`inline-grid shrink-0 place-items-center rounded-[8px] border border-[#E2E8F0] bg-white shadow-[0_1px_2px_rgba(15,23,42,0.06)] ${sizeClasses[size ?? "md"]}`}
+      aria-hidden="true"
+    >
+      <svg
+        viewBox="0 0 40 40"
+        role="img"
+        className="h-[82%] w-[82%]"
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <rect x="5" y="7" width="30" height="24" rx="4" stroke="#1E3A8A" strokeWidth="2.2" />
+        <path
+          d="M20 11.5L28 14.4V20.1C28 25.1 24.6 28.4 20 30.2C15.4 28.4 12 25.1 12 20.1V14.4L20 11.5Z"
+          stroke="#1E3A8A"
+          strokeWidth="2.2"
+          strokeLinejoin="round"
+        />
+        <path d="M20 14.8V26.4" stroke="#3B82F6" strokeWidth="1.7" strokeLinecap="round" />
+        <path d="M16.4 23.8L18.9 20.2" stroke="#3B82F6" strokeWidth="1.7" strokeLinecap="round" />
+        <path d="M23.6 23.8L21.1 20.2" stroke="#3B82F6" strokeWidth="1.7" strokeLinecap="round" />
+        <path
+          d="M16.4 18.8L19.1 21.4L24.1 16.5"
+          stroke="#1E3A8A"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        <path d="M9.8 12.5H14.5" stroke="#3B82F6" strokeWidth="1.6" strokeLinecap="round" />
+        <path d="M25.5 27.5H30.2" stroke="#3B82F6" strokeWidth="1.6" strokeLinecap="round" />
+      </svg>
+    </span>
+  );
+}
+
+export function BrandMark({
+  href,
+  size = "md",
+  className = "",
+  label = "ADLTS",
+  variant = "mark",
+  showSubtitle = false,
+  inverse = false,
+}: BrandMarkProps) {
+  const textColor = inverse ? "text-white" : "text-[#0F172A]";
+  const subtitleColor = inverse ? "text-slate-300" : "text-[#475569]";
 
   const content = (
-    <span className={`inline-grid place-items-center ${sizeClasses[size]} rounded-lg bg-[var(--adlts-surface)] border border-[var(--adlts-border)] ${className}`.trim()}>
-      <span className="relative block h-4/5 w-4/5">
-        <span className="absolute left-1/2 top-[18%] h-[0.5rem] w-7 -translate-x-1/2 rounded-full bg-[var(--adlts-blue-700)]/16" />
-        <ShieldCheck className="absolute left-1/2 top-0 h-4 w-4 -translate-x-1/2 text-[var(--adlts-blue-700)]" strokeWidth={2.3} />
-        <span className="absolute left-1/2 top-3 h-4 w-6 -translate-x-1/2 rounded-full border border-dashed border-[var(--adlts-ink-300)]" />
-        <MapPinned className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 text-[var(--adlts-civic-green)]" strokeWidth={2} />
-        <Circle
-          className="absolute left-[4%] top-[58%] h-1.5 w-1.5 text-[var(--adlts-civic-red)]"
-          strokeWidth={2}
-          fill="currentColor"
-        />
-        <CircleCheck className="absolute right-[0] top-[58%] h-2 w-2 text-[var(--adlts-civic-green)]" strokeWidth={2.8} />
-      </span>
+    <span className={`inline-flex items-center gap-2.5 ${className}`.trim()}>
+      <AdltsEmblem size={size} />
+      {variant === "wordmark" ? (
+        <span className="min-w-0 leading-none">
+          <span className={`block font-semibold tracking-normal ${textColor} ${wordmarkSizeClasses[size]}`}>
+            ADLTS
+          </span>
+          {showSubtitle ? (
+            <span className={`mt-1 hidden max-w-[15rem] truncate text-[11px] font-medium leading-4 sm:block ${subtitleColor}`}>
+              Automated Driving License Testing System
+            </span>
+          ) : null}
+        </span>
+      ) : null}
       {label ? <span className="sr-only">{label}</span> : null}
     </span>
   );

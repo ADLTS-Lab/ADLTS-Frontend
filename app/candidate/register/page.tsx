@@ -12,8 +12,7 @@ import { getHomeRouteForRole } from "@/config/routes";
 export default function CandidateRegisterPage() {
   const router = useRouter();
   const [formData, setFormData] = useState({
-    first_name: "",
-    last_name: "",
+    fullName: "",
     email: "",
     phone: "",
     password: "",
@@ -30,9 +29,23 @@ export default function CandidateRegisterPage() {
   const [otpCode, setOtpCode] = useState("");
   const setUser = useAuthStore((s) => s.setUser);
 
+  const splitFullName = () => {
+    const nameParts = formData.fullName.trim().split(/\s+/).filter(Boolean);
+    return {
+      nameParts,
+      firstName: nameParts[0] ?? "",
+      lastName: nameParts.slice(1).join(" "),
+    };
+  };
+
   const validateForm = () => {
-    if (!formData.first_name.trim() || !formData.last_name.trim() || !formData.email.trim() || !formData.phone.trim() || !formData.password.trim()) {
+    if (!formData.fullName.trim() || !formData.email.trim() || !formData.phone.trim() || !formData.password.trim()) {
       return "Please fill in all required fields before continuing.";
+    }
+
+    const { nameParts } = splitFullName();
+    if (nameParts.length < 2) {
+      return "Enter your full name with at least first and last name.";
     }
 
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -79,9 +92,10 @@ export default function CandidateRegisterPage() {
     setIsLoading(true);
 
     try {
+      const { firstName, lastName } = splitFullName();
       const res = await registerCandidate({
-        first_name: formData.first_name,
-        last_name: formData.last_name,
+        first_name: firstName,
+        last_name: lastName,
         email: formData.email,
         password: formData.password,
         phone: formData.phone,
@@ -201,24 +215,16 @@ export default function CandidateRegisterPage() {
       >
           <form onSubmit={handleRegister}>
             <AuthForm>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <Input
-                  label="First name"
-                  type="text"
-                  name="first_name"
-                  value={formData.first_name}
-                  onChange={handleChange}
-                  required
-                />
-                <Input
-                  label="Last name"
-                  type="text"
-                  name="last_name"
-                  value={formData.last_name}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
+              <Input
+                label="Full name"
+                type="text"
+                name="fullName"
+                value={formData.fullName}
+                onChange={handleChange}
+                placeholder="Example: Abebe Kebede"
+                autoComplete="name"
+                required
+              />
 
               <Input
                 label="Email address"

@@ -20,6 +20,8 @@ import {
 import { ButtonLink, Card, PageContainer, PageHeader } from "@/app/components/ui";
 import { getHomeRouteForRole } from "@/config/routes";
 import { useAuthSession } from "@/hooks/useAuthSession";
+import { useI18n } from "@/i18n/useI18n";
+import { BrandMark } from "@/components/BrandMark";
 
 import manualEvaluationImage from "./images/manual eval image.jpg";
 import paperScoreSheetImage from "./images/paper eval.jpg";
@@ -27,74 +29,74 @@ import drivingVehicleImage from "./images/solo driving image.jpg";
 
 const problemCards = [
   {
-    title: "Manual Paper Records",
-    body: "Results may be delayed due to administrative processing.",
+    titleKey: "landing_problem_manual_title",
+    bodyKey: "landing_problem_manual_body",
     icon: FileText,
   },
   {
-    title: "Subjective Evaluation",
-    body: "Assessment consistency can vary between evaluators.",
+    titleKey: "landing_problem_subjective_title",
+    bodyKey: "landing_problem_subjective_body",
     icon: ClipboardCheck,
   },
   {
-    title: "Limited Transparency",
-    body: "Candidates may not easily understand how scores were determined.",
+    titleKey: "landing_problem_transparency_title",
+    bodyKey: "landing_problem_transparency_body",
     icon: SearchCheck,
   },
   {
-    title: "Administrative Overhead",
-    body: "Managing records and reporting requires significant effort.",
+    titleKey: "landing_problem_overhead_title",
+    bodyKey: "landing_problem_overhead_body",
     icon: Database,
   },
 ];
 
 const solutionCards = [
   {
-    title: "AI-Assisted Evaluation",
-    body: "Computer vision and telemetry assist with objective scoring.",
+    titleKey: "landing_solution_ai_title",
+    bodyKey: "landing_solution_ai_body",
     icon: Bot,
   },
   {
-    title: "Expert Validation",
-    body: "Qualified experts review and validate assessments.",
+    titleKey: "landing_solution_expert_title",
+    bodyKey: "landing_solution_expert_body",
     icon: ShieldCheck,
   },
   {
-    title: "Instant Digital Records",
-    body: "All results and reports are stored digitally.",
+    titleKey: "landing_solution_records_title",
+    bodyKey: "landing_solution_records_body",
     icon: Database,
   },
   {
-    title: "Transparent Reporting",
-    body: "Candidates receive detailed breakdowns of their performance.",
+    titleKey: "landing_solution_reporting_title",
+    bodyKey: "landing_solution_reporting_body",
     icon: BarChart3,
   },
 ];
 
 const processSteps = [
   {
-    title: "Book Driving Test",
-    body: "Schedule and manage test appointments.",
+    titleKey: "landing_process_book_title",
+    bodyKey: "landing_process_book_body",
     icon: CalendarCheck,
   },
   {
-    title: "Take Examination",
-    body: "Complete practical driving assessment.",
+    titleKey: "landing_process_exam_title",
+    bodyKey: "landing_process_exam_body",
     icon: CarFront,
   },
   {
-    title: "AI Analysis",
-    body: "Driving performance is analyzed automatically.",
+    titleKey: "landing_process_ai_title",
+    bodyKey: "landing_process_ai_body",
     icon: Bot,
   },
   {
-    title: "Expert Review",
-    body: "Human experts validate and confirm results.",
+    titleKey: "landing_process_review_title",
+    bodyKey: "landing_process_review_body",
     icon: ShieldCheck,
   },
   {
-    title: "Receive Results",
-    body: "Access reports, appeals, and licensing information.",
+    titleKey: "landing_process_results_title",
+    bodyKey: "landing_process_results_body",
     icon: FileCheck2,
   },
 ];
@@ -102,23 +104,23 @@ const processSteps = [
 const impactStats = [
   {
     value: "70%",
-    label: "Faster Processing",
-    detail: "Demonstration metric for reduced administrative turnaround.",
+    labelKey: "landing_impact_faster_label",
+    detailKey: "landing_impact_faster_detail",
   },
   {
     value: "90%",
-    label: "Reduced Paperwork",
-    detail: "Demonstration metric for digitized assessment records.",
+    labelKey: "landing_impact_paperwork_label",
+    detailKey: "landing_impact_paperwork_detail",
   },
   {
     value: "100%",
-    label: "Digital Record Coverage",
-    detail: "Demonstration metric for structured result storage.",
+    labelKey: "landing_impact_records_label",
+    detailKey: "landing_impact_records_detail",
   },
   {
     value: "24/7",
-    label: "Result Access",
-    detail: "Demonstration metric for candidate access to digital status and result information.",
+    labelKey: "landing_impact_access_label",
+    detailKey: "landing_impact_access_detail",
   },
 ];
 
@@ -163,6 +165,7 @@ function FeatureCard({
 export default function LandingPage() {
   const router = useRouter();
   const { user, isAuthenticated, hasHydrated } = useAuthSession();
+  const { t } = useI18n();
 
   useEffect(() => {
     if (!hasHydrated || !isAuthenticated || !user) return;
@@ -178,25 +181,25 @@ export default function LandingPage() {
         <div className="grid gap-12 lg:grid-cols-[1fr_0.92fr] lg:items-center">
           <div className="max-w-3xl">
             <h1 className="text-[48px] font-bold leading-[1.08] tracking-normal text-[var(--text-primary)] max-md:text-[36px]">
-              Modernizing Driving License Testing in Ethiopia
+              {t("landing_hero_title")}
             </h1>
             <p className="mt-5 max-w-2xl text-[19px] leading-8 text-[var(--text-primary)]">
-              From paper-based assessments and manual scoring to transparent, technology-assisted driver evaluation.
+              {t("landing_hero_lead")}
             </p>
             <p className="mt-4 max-w-2xl text-[15px] leading-7 text-[var(--text-secondary)]">
-              ADLTS helps candidates register, request a driving test, complete payment after approval, and follow exam results through a clearer digital process.
+              {t("landing_hero_body")}
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <ButtonLink href="/candidate/register" size="lg">
-                Candidate Register
+                {t("landing_cta_candidateRegister")}
               </ButtonLink>
               <ButtonLink href="/login" variant="outline" size="lg">
-                Login
+                {t("landing_cta_login")}
               </ButtonLink>
             </div>
             <p className="mt-3 text-[13px] leading-5 text-[var(--text-secondary)]">
-              Staff and authorized institutional users should sign in through Login.
+              {t("landing_staff_note")}
             </p>
           </div>
 
@@ -204,7 +207,7 @@ export default function LandingPage() {
             <div className="overflow-hidden rounded-[6px] border border-[var(--border)] bg-[var(--surface-2)]">
               <Image
                 src={paperScoreSheetImage}
-                alt="Paper driving test score sheet"
+                alt={t("landing_image_paper_alt")}
                 priority
                 unoptimized
                 className="aspect-[4/3] w-full object-cover"
@@ -212,8 +215,8 @@ export default function LandingPage() {
             </div>
             <div className="flex items-center justify-between gap-4 px-2 py-3">
               <div>
-                <p className="text-[13px] font-semibold text-[var(--text-primary)]">Manual score sheet baseline</p>
-                <p className="mt-1 text-[12px] leading-5 text-[var(--text-secondary)]">Digitized for traceable scoring and reporting.</p>
+                <p className="text-[13px] font-semibold text-[var(--text-primary)]">{t("landing_score_title")}</p>
+                <p className="mt-1 text-[12px] leading-5 text-[var(--text-secondary)]">{t("landing_score_body")}</p>
               </div>
             </div>
           </Card>
@@ -225,7 +228,7 @@ export default function LandingPage() {
           <Card padding="sm" className="overflow-hidden">
             <Image
               src={manualEvaluationImage}
-              alt="Person manually evaluating a driver"
+              alt={t("landing_image_manual_alt")}
               unoptimized
               className="aspect-[4/3] w-full rounded-[6px] object-cover"
             />
@@ -233,12 +236,12 @@ export default function LandingPage() {
 
           <div>
             <PageHeader
-              title="The Traditional Process Has Challenges"
-              description="Manual evaluation methods can introduce delays, paperwork, and limited transparency."
+              title={t("landing_problem_title")}
+              description={t("landing_problem_body")}
             />
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               {problemCards.map((card) => (
-                <FeatureCard key={card.title} {...card} />
+                <FeatureCard key={card.titleKey} title={t(card.titleKey)} body={t(card.bodyKey)} icon={card.icon} />
               ))}
             </div>
           </div>
@@ -249,12 +252,12 @@ export default function LandingPage() {
         <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
           <div>
             <PageHeader
-              title="A Better Way to Assess Drivers"
-              description="Technology supports a faster, more transparent, and more consistent evaluation process."
+              title={t("landing_solution_title")}
+              description={t("landing_solution_body")}
             />
             <div className="mt-8 grid gap-4 sm:grid-cols-2">
               {solutionCards.map((card) => (
-                <FeatureCard key={card.title} {...card} />
+                <FeatureCard key={card.titleKey} title={t(card.titleKey)} body={t(card.bodyKey)} icon={card.icon} />
               ))}
             </div>
           </div>
@@ -262,7 +265,7 @@ export default function LandingPage() {
           <Card padding="sm" className="overflow-hidden">
             <Image
               src={drivingVehicleImage}
-              alt="Driving vehicle used for assessment"
+              alt={t("landing_image_vehicle_alt")}
               unoptimized
               className="aspect-[16/10] w-full rounded-[6px] object-cover"
             />
@@ -271,15 +274,15 @@ export default function LandingPage() {
       </Section>
 
       <Section className="bg-[var(--bg)]">
-        <PageHeader title="How ADLTS Works" />
+        <PageHeader title={t("landing_process_title")} />
         <div className="mt-8 grid gap-4 md:grid-cols-5">
           {processSteps.map((step, index) => (
-            <Card key={step.title} padding="md" className="relative text-center">
+            <Card key={step.titleKey} padding="md" className="relative text-center">
               <div className="mx-auto flex h-11 w-11 items-center justify-center rounded-[6px] border border-[var(--border)] bg-[var(--accent-subtle)] text-[var(--accent)]">
                 <step.icon size={20} aria-hidden="true" />
               </div>
-              <h3 className="mt-4 text-[14px] font-semibold text-[var(--text-primary)]">{step.title}</h3>
-              <p className="mt-2 text-[12px] leading-5 text-[var(--text-secondary)]">{step.body}</p>
+              <h3 className="mt-4 text-[14px] font-semibold text-[var(--text-primary)]">{t(step.titleKey)}</h3>
+              <p className="mt-2 text-[12px] leading-5 text-[var(--text-secondary)]">{t(step.bodyKey)}</p>
               {index < processSteps.length - 1 ? (
                 <span className="pointer-events-none absolute right-[-14px] top-10 hidden h-px w-7 bg-[var(--border-strong)] md:block" />
               ) : null}
@@ -290,15 +293,15 @@ export default function LandingPage() {
 
       <Section className="bg-[var(--surface-2)]">
         <PageHeader
-          title="Benefits of ADLTS"
-          description="The figures below are demonstration metrics used to communicate the target impact of a fully digital assessment workflow."
+          title={t("landing_impact_title")}
+          description={t("landing_impact_body")}
         />
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {impactStats.map((stat) => (
-            <Card key={stat.label} padding="md" variant="metric">
-              <p className="text-[13px] font-medium text-[var(--text-secondary)]">{stat.label}</p>
+            <Card key={stat.labelKey} padding="md" variant="metric">
+              <p className="text-[13px] font-medium text-[var(--text-secondary)]">{t(stat.labelKey)}</p>
               <p className="mt-3 text-[36px] font-bold leading-none text-[var(--accent)]">{stat.value}</p>
-              <p className="mt-4 text-[12px] leading-5 text-[var(--text-secondary)]">{stat.detail}</p>
+              <p className="mt-4 text-[12px] leading-5 text-[var(--text-secondary)]">{t(stat.detailKey)}</p>
             </Card>
           ))}
         </div>
@@ -308,18 +311,18 @@ export default function LandingPage() {
         <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
           <div className="max-w-2xl">
             <h2 className="text-[32px] font-bold leading-tight" style={{ color: "var(--surface)" }}>
-              Ready to Start Your Driving Test Journey?
+              {t("landing_final_title")}
             </h2>
             <p className="mt-4 text-[16px] leading-7 text-[var(--accent-subtle)]">
-              Create a candidate account, request a test, and follow each step through ADLTS.
+              {t("landing_final_body")}
             </p>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <ButtonLink href="/candidate/register" size="lg" className="!border-blue-600 !bg-blue-600 !text-white hover:!border-blue-700 hover:!bg-blue-700">
-              Candidate Register
+              {t("landing_cta_candidateRegister")}
             </ButtonLink>
             <ButtonLink href="/login" variant="secondary" size="lg">
-              Login
+              {t("landing_cta_login")}
             </ButtonLink>
           </div>
         </div>
@@ -329,14 +332,14 @@ export default function LandingPage() {
         <PageContainer width="wide" className="mx-auto">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div>
-              <p className="text-[15px] font-bold text-[var(--text-primary)]">ADLTS</p>
-              <p className="mt-1 text-[13px] text-[var(--text-secondary)]">Automated Driving License Testing System</p>
+              <BrandMark variant="wordmark" showSubtitle />
+              <p className="sr-only">{t("landing_footer_system")}</p>
             </div>
             <nav className="flex flex-wrap gap-4 text-[13px] font-medium text-[var(--text-secondary)]" aria-label="Landing footer">
-              <Link href="/about" className="hover:text-[var(--accent)]">About</Link>
-              <Link href="/guidelines" className="hover:text-[var(--accent)]">Documentation</Link>
-              <Link href="/contact" className="hover:text-[var(--accent)]">Support</Link>
-              <Link href="/contact" className="hover:text-[var(--accent)]">Contact</Link>
+              <Link href="/about" className="hover:text-[var(--accent)]">{t("landing_footer_about")}</Link>
+              <Link href="/guidelines" className="hover:text-[var(--accent)]">{t("landing_footer_documentation")}</Link>
+              <Link href="/contact" className="hover:text-[var(--accent)]">{t("landing_footer_support")}</Link>
+              <Link href="/contact" className="hover:text-[var(--accent)]">{t("landing_footer_contact")}</Link>
             </nav>
           </div>
         </PageContainer>

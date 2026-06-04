@@ -25,6 +25,18 @@ export function PublicSection({
   );
 }
 
+export function PublicWideSection({
+  children,
+  tone = "bg",
+  className = "",
+}: PublicSectionProps) {
+  return (
+    <section className={`${toneClass[tone]} px-4 py-20 sm:px-6 lg:px-8 ${className}`}>
+      <div className="mx-auto w-full max-w-[88rem]">{children}</div>
+    </section>
+  );
+}
+
 export function PublicHeader({
   title,
   lead,

@@ -10,8 +10,6 @@ import {
   hasAuthToken,
 } from '@/lib/auth-session';
 
-const ENABLE_LOCAL_DEBUG = process.env.NEXT_PUBLIC_ALLOW_LOCAL_FALLBACK === 'true';
-
 interface AuthState {
   user: User | null;
   token: string | null;
@@ -54,11 +52,6 @@ export const useAuthStore = create<AuthState>()(
         set({ user: null, token: null, role: null, isAuthenticated: false });
         clearAuthStorage();
         useAuthStore.persist?.clearStorage?.();
-        // #region agent log
-        if (ENABLE_LOCAL_DEBUG && typeof window !== 'undefined') {
-          fetch('http://127.0.0.1:7485/ingest/750002e8-fc34-4f4c-aec9-03b23cf457b3',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'30f368'},body:JSON.stringify({sessionId:'30f368',location:'store/authStore.ts:logout',message:'logout completed',data:{hasToken:!!localStorage.getItem('auth-token'),hasPersist:!!localStorage.getItem('auth-storage')},timestamp:Date.now(),hypothesisId:'A',runId:'post-fix'})}).catch(()=>{});
-        }
-        // #endregion
       },
     }),
     {
@@ -67,11 +60,6 @@ export const useAuthStore = create<AuthState>()(
         if (typeof window === 'undefined') return;
 
         const tokenPresent = hasAuthToken();
-        // #region agent log
-        if (ENABLE_LOCAL_DEBUG) {
-          fetch('http://127.0.0.1:7485/ingest/750002e8-fc34-4f4c-aec9-03b23cf457b3',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'30f368'},body:JSON.stringify({sessionId:'30f368',location:'store/authStore.ts:onRehydrate',message:'rehydrate',data:{tokenPresent,hasPersistUser:!!state?.user,isAuthenticated:!!state?.isAuthenticated},timestamp:Date.now(),hypothesisId:'C',runId:'post-fix'})}).catch(()=>{});
-        }
-        // #endregion
 
         if (!tokenPresent) {
           clearAuthStorage();

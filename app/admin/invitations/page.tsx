@@ -4,7 +4,7 @@ export default function AdminInvitationsPage() {
   return (
     <InvitationManagementPage
       title="Invitation management"
-      description="Invite experts and institutions using the backend-supported admin invitation workflow."
+      description="Invite experts and institutions for test-center operations."
       createDescription="Admin invitations are limited by the backend to expert and institution accounts."
       entityOptions={["expert", "institute"]}
     />

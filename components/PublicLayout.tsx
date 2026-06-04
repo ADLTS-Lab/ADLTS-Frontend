@@ -45,10 +45,55 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
   const displayName =
     user?.name || `${user?.first_name || ""} ${user?.last_name || ""}`.trim() || user?.email;
 
+  const footerSections = [
+    {
+      heading: t("public_footer_candidates"),
+      links: [
+        { label: t("public_footer_register"), href: "/candidate/register" },
+        { label: t("public_footer_book_test"), href: "/candidate/booking" },
+        { label: t("public_footer_view_results"), href: "/candidate/exams" },
+        { label: t("public_footer_candidate_guidelines"), href: "/guidelines" },
+      ],
+    },
+    {
+      heading: t("public_footer_staff_access"),
+      links: [
+        { label: t("public_footer_staff_login"), href: "/login" },
+        { label: t("public_footer_institution_support"), href: "/contact" },
+        { label: t("public_footer_access_help"), href: "/contact" },
+        { label: t("public_footer_candidate_guidelines"), href: "/guidelines" },
+      ],
+    },
+    {
+      heading: t("public_footer_support"),
+      links: [
+        { label: t("public_footer_booking_help"), href: "/contact" },
+        { label: t("public_footer_payment_help"), href: "/contact" },
+        { label: t("public_footer_result_help"), href: "/contact" },
+        { label: t("public_footer_contact_support"), href: "/contact" },
+      ],
+    },
+    {
+      heading: t("public_footer_resources"),
+      links: [
+        { label: t("public_footer_about_adlts"), href: "/about" },
+        { label: t("guidelines"), href: "/guidelines" },
+        { label: t("public_footer_privacy_security"), href: "/privacy-policy" },
+        { label: t("public_footer_contact_support"), href: "/contact" },
+      ],
+    },
+  ];
+
+  const legalLinks = [
+    { label: t("privacy"), href: "/privacy-policy" },
+    { label: t("public_footer_terms"), href: "/terms" },
+    { label: t("public_footer_api_docs"), href: "/docs" },
+  ];
+
   return (
     <div className="min-h-screen flex flex-col bg-[var(--bg)]">
       <a href="#main-content" className="skip-link text-sm font-medium text-[var(--text-primary)]">
-        Skip to content
+        {t("public_skip")}
       </a>
 
       <header className="sticky top-0 z-40 border-b border-[var(--border)] bg-[var(--surface)]">
@@ -58,13 +103,12 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
               type="button"
               onClick={() => setIsMobileMenuOpen(true)}
               className="lg:hidden inline-flex h-9 w-9 items-center justify-center rounded-md border border-[var(--border)] text-[var(--text-secondary)]"
-              aria-label="Open menu"
+              aria-label={t("public_open_menu")}
             >
               <Menu size={20} />
             </button>
             <Link href="/" className="inline-flex items-center gap-2 text-[var(--text-primary)]">
-              <BrandMark label="ADLTS" />
-              <span className="hidden sm:inline text-base font-semibold">ADLTS</span>
+              <BrandMark label="ADLTS" variant="wordmark" />
             </Link>
           </div>
 
@@ -97,7 +141,7 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
             <button
               onClick={() => setLang(lang === "en" ? "am" : "en")}
               className="inline-flex h-9 items-center rounded-md border border-[var(--border)] px-2.5 text-xs font-semibold text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
-              aria-label="Toggle language"
+              aria-label={t("selectLanguage")}
             >
               {lang === "en" ? "አማ" : "EN"}
             </button>
@@ -129,12 +173,12 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
           <div className="fixed left-0 right-0 top-16 z-50 border-t border-[var(--border)] bg-[var(--surface)]">
             <div className="mx-auto flex w-full max-w-[75rem] flex-col p-4">
               <div className="flex items-center justify-between pb-3">
-                <span className="text-sm font-semibold text-[var(--text-primary)]">{t("menu") || "Menu"}</span>
+                <span className="text-sm font-semibold text-[var(--text-primary)]">{t("public_menu")}</span>
                 <button
                   type="button"
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="rounded-md p-2 text-[var(--text-secondary)]"
-                  aria-label="Close menu"
+                  aria-label={t("public_close_menu")}
                 >
                   <X size={18} />
                 </button>
@@ -178,50 +222,13 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
         <div className="mx-auto w-full max-w-container-public px-4 py-10 sm:px-6 lg:px-8">
           <div className="grid gap-10 md:grid-cols-[1.1fr_1fr_1fr_1fr_1fr]">
             <div>
-              <div className="font-mono text-sm font-bold text-[var(--surface)]">ADLTS</div>
-              <p className="mt-3 max-w-[15rem] text-sm leading-6 text-[var(--text-tertiary)]">
-                Automated Driving License Testing System. Candidate registration, booking, payment, examination, and result access in one digital workflow.
+              <BrandMark variant="wordmark" showSubtitle inverse />
+              <p className="mt-4 max-w-[15rem] text-sm leading-6 text-[var(--text-tertiary)]">
+                {t("public_footer_description")}
               </p>
             </div>
 
-            {[
-              {
-                heading: "Candidates",
-                links: [
-                  { label: "Register", href: "/candidate/register" },
-                  { label: "Book a test", href: "/candidate/booking" },
-                  { label: "View results", href: "/candidate/exams" },
-                  { label: "Candidate guidelines", href: "/guidelines" },
-                ],
-              },
-              {
-                heading: "Staff Access",
-                links: [
-                  { label: "Staff login", href: "/login" },
-                  { label: "Institution support", href: "/contact" },
-                  { label: "Access help", href: "/contact" },
-                  { label: "Candidate guidelines", href: "/guidelines" },
-                ],
-              },
-              {
-                heading: "Support",
-                links: [
-                  { label: "Booking help", href: "/contact" },
-                  { label: "Payment help", href: "/contact" },
-                  { label: "Result help", href: "/contact" },
-                  { label: "Contact support", href: "/contact" },
-                ],
-              },
-              {
-                heading: "Resources",
-                links: [
-                  { label: "About ADLTS", href: "/about" },
-                  { label: "Guidelines", href: "/guidelines" },
-                  { label: "Privacy and security", href: "/privacy-policy" },
-                  { label: "Contact support", href: "/contact" },
-                ],
-              },
-            ].map((section) => (
+            {footerSections.map((section) => (
               <div key={section.heading}>
                 <div className="text-[12px] font-semibold text-[var(--surface)]">
                   {section.heading}
@@ -241,14 +248,10 @@ export default function PublicLayout({ children }: PublicLayoutProps) {
 
           <div className="mt-8 flex flex-col gap-4 border-t border-[var(--neutral)] pt-6 md:flex-row md:items-center md:justify-between">
             <span className="font-mono text-[11px] text-[var(--text-tertiary)]">
-              © {new Date().getFullYear()} ADLTS Core Engine - Automated Driving License Testing System
+              © {new Date().getFullYear()} {t("public_footer_copyright")}
             </span>
             <div className="flex flex-wrap gap-5 text-xs text-[var(--text-tertiary)]">
-              {[
-                { label: "Privacy", href: "/privacy-policy" },
-                { label: "Terms", href: "/terms" },
-                { label: "API Docs", href: "/docs" },
-              ].map((link) => (
+              {legalLinks.map((link) => (
                 <Link key={link.label} href={link.href} className="transition-colors hover:text-[var(--surface)]">
                   {link.label}
                 </Link>

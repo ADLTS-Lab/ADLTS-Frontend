@@ -16,8 +16,8 @@ export interface InvitationRecord {
   id: string;
   email: string;
   entity_type: InvitationEntityType;
-  first_name: string;
-  last_name: string;
+  first_name?: string;
+  last_name?: string;
   status?: InvitationStatus;
   token?: string;
   invited_at?: string;
@@ -30,8 +30,7 @@ export interface InvitationRecord {
 export interface CreateInvitationRequest {
   email: string;
   entity_type: InvitationEntityType;
-  first_name: string;
-  last_name: string;
+  test_center_id?: string;
 }
 
 export interface CreateInvitationResponse extends ApiSuccess<InvitationRecord> {}

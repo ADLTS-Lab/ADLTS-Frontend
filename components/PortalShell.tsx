@@ -111,8 +111,7 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
           <div className="fixed inset-y-0 left-0 z-50 w-80 border-r border-[var(--border)] bg-[var(--surface)] lg:hidden">
             <div className="flex h-16 items-center justify-between border-b border-[var(--border)] px-4">
               <div className="flex items-center gap-2 text-[var(--text-primary)]">
-                <BrandMark />
-                <span className="font-semibold">ADLTS</span>
+                <BrandMark variant="wordmark" />
               </div>
               <button
                 type="button"
@@ -152,8 +151,7 @@ export default function PortalShell({ children, navItems, dashboardHref }: Porta
               <Menu size={20} />
             </button>
             <Link href="/" className="inline-flex items-center gap-2">
-              <BrandMark />
-              <span className="hidden md:inline text-sm font-semibold">ADLTS</span>
+              <BrandMark variant="wordmark" />
             </Link>
             {!hideTopDashboardLink ? (
               <Link

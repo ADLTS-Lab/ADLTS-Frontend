@@ -1,9 +1,14 @@
 import api from '@/lib/api';
+import { AUTH_TOKEN_KEY } from '@/lib/auth-session';
 import { useAuthStore } from '@/store/authStore';
 import { extractApiError, shouldUseLocalFallback } from './api-utils';
 
 const LOCAL_REGISTERED_USERS_KEY = 'adlts-registered-users';
 const ALLOW_LOCAL_FALLBACK = process.env.NEXT_PUBLIC_ALLOW_LOCAL_FALLBACK === 'true';
+
+function isClientOnlyToken(token: string | null): boolean {
+  return !!token && (token.startsWith('dev-token-') || token.startsWith('local-token-'));
+}
 
 // ---------- Types ----------
 export interface LoginCredentials {
@@ -356,6 +361,13 @@ export async function refreshAuthToken(refreshToken?: string): Promise<LoginResp
 
 // ---------- Logout ----------
 export async function logout(): Promise<void> {
+  const token = typeof window !== 'undefined' ? localStorage.getItem(AUTH_TOKEN_KEY) : null;
+
+  if (isClientOnlyToken(token)) {
+    useAuthStore.getState().logout();
+    return;
+  }
+
   try {
     await api.post('/auth/logout');
   } catch (error) {

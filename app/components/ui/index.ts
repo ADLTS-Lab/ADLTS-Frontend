@@ -18,6 +18,7 @@ export {
   PublicHeader,
   PublicList,
   PublicSection,
+  PublicWideSection,
   PublicTimeline,
 } from "./PublicPage";
 export { SectionCard } from "./SectionCard";

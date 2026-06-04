@@ -36,7 +36,7 @@ export const CANDIDATE_NAV: NavItem[] = [
 
 /** Admin portal sidebar — single source of truth */
 export const ADMIN_NAV: NavItem[] = [
-  { href: '/admin/devices', labelKey: 'dashboard', icon: Laptop },
+  { href: '/admin/devices', labelKey: 'devices', icon: Laptop },
   { href: '/admin/active-exams', labelKey: 'activeExams', icon: Activity },
   { href: '/admin/test-plans', labelKey: 'testPlans', icon: ClipboardList },
   { href: '/admin/slots', labelKey: 'slots', icon: Calendar },

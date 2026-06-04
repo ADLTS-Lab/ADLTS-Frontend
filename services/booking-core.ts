@@ -453,6 +453,10 @@ function recordBookings(items: BookingRequest[]) {
   emitBookingStoreChange();
 }
 
+function cacheBookings(items: BookingRequest[]) {
+  upsertCache(items);
+}
+
 export function notifyBookingChanges() {
   emitBookingStoreChange();
 }
@@ -554,7 +558,7 @@ export async function getBookingById(id: string): Promise<BookingRequest | null>
     const response = await api.get(`/bookings/${id}`);
     const booking = parseSingleBooking(response.data?.data ?? response.data);
     if (booking) {
-      recordBookings([booking]);
+      cacheBookings([booking]);
       return booking;
     }
 
@@ -582,7 +586,7 @@ export async function getBookingPage(query: BookingQueryParams = {}): Promise<Bo
     const normalized = sortBookings(bookings).filter((booking) => bookingMatchesFilters(booking, query));
     const responseMeta = extractMeta(response.data?.meta ?? response.data);
     const result = paginateBookings(normalized, responseMeta.page || page, responseMeta.pageSize || pageSize);
-    recordBookings(normalized);
+    cacheBookings(normalized);
 
     const total = responseMeta.total > 0 ? responseMeta.total : result.total;
     const totalPages = Math.max(responseMeta.totalPages, result.totalPages);

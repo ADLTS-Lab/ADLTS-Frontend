@@ -69,8 +69,6 @@ export function InvitationManagementPage({
   const [devInviteLink, setDevInviteLink] = useState("");
   const [formData, setFormData] = useState({
     email: "",
-    first_name: "",
-    last_name: "",
     entity_type: entityOptions[0] ?? "expert",
   });
 
@@ -126,7 +124,7 @@ export function InvitationManagementPage({
       const createdInvitation = response.data;
       if (response.success && createdInvitation) {
         setInvitations((current) => [createdInvitation, ...current]);
-        setFormData({ email: "", first_name: "", last_name: "", entity_type: entityOptions[0] ?? "expert" });
+        setFormData({ email: "", entity_type: entityOptions[0] ?? "expert" });
         setSuccess(response.message ?? "Invitation created.");
         if (isDevelopment && createdInvitation.token) {
           setDevInviteLink(buildAcceptLink(createdInvitation.token));
@@ -277,16 +275,6 @@ export function InvitationManagementPage({
               onChange={(event) => setFormData((current) => ({ ...current, email: event.target.value }))}
               type="email"
               required
-            />
-            <Input
-              label="First name"
-              value={formData.first_name}
-              onChange={(event) => setFormData((current) => ({ ...current, first_name: event.target.value }))}
-            />
-            <Input
-              label="Last name"
-              value={formData.last_name}
-              onChange={(event) => setFormData((current) => ({ ...current, last_name: event.target.value }))}
             />
             <Select
               label="Invitation type"
