@@ -17,7 +17,16 @@ export function Select({ label, error, hint, className = "", id, children, ...pr
 
   return (
     <div className="space-y-1.5">
-      {label ? <label htmlFor={selectId} className={ui.label}>{label}</label> : null}
+      {label ? (
+        <label htmlFor={selectId} className={ui.label}>
+          {label}
+          {props.required ? (
+            <span className="ml-1 text-[var(--danger)]" aria-hidden="true">
+              *
+            </span>
+          ) : null}
+        </label>
+      ) : null}
       <select
         id={selectId}
         aria-invalid={Boolean(error)}

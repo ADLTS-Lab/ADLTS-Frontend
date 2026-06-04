@@ -175,8 +175,8 @@ export default function CandidateExamCheckInPage() {
               title="Device credentials"
               description="Use the code/password from the assigned ADLTS test vehicle. The backend validates the device and test level."
             />
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <FormField label="Device code" hint="Example: vehicle or device code shown at the test center.">
+            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+              <FormField label="Device code" hint="Example: vehicle or device code shown at the test center." required>
                 {(fieldProps) => (
                   <input
                     {...fieldProps}
@@ -185,10 +185,11 @@ export default function CandidateExamCheckInPage() {
                     onChange={(event) => setDeviceCode(event.target.value)}
                     autoComplete="off"
                     placeholder="Enter device code"
+                    required
                   />
                 )}
               </FormField>
-              <FormField label="Device password" hint="Provided by the authorized device/test-center workflow.">
+              <FormField label="Device password" hint="Provided by the authorized device/test-center workflow." required>
                 {(fieldProps) => (
                   <input
                     {...fieldProps}
@@ -198,6 +199,7 @@ export default function CandidateExamCheckInPage() {
                     autoComplete="off"
                     placeholder="Enter device password"
                     type="password"
+                    required
                   />
                 )}
               </FormField>

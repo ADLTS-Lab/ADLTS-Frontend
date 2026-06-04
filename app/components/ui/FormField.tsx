@@ -15,6 +15,7 @@ type FormFieldProps = {
   error?: string;
   hint?: string;
   className?: string;
+  required?: boolean;
 };
 
 export const formControlClassName = ui.input;
@@ -28,6 +29,7 @@ export function FormField({
   error,
   hint,
   className = "",
+  required = false,
 }: FormFieldProps) {
   const generatedId = useId();
   const fieldId = id ?? generatedId;
@@ -47,6 +49,11 @@ export function FormField({
     <div className={`space-y-1 ${className}`}>
       <label htmlFor={fieldId} className={ui.label}>
         {label}
+        {required ? (
+          <span className="ml-1 text-[var(--danger)]" aria-hidden="true">
+            *
+          </span>
+        ) : null}
       </label>
       {control}
       {error ? (

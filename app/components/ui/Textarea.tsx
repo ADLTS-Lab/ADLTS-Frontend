@@ -19,6 +19,11 @@ export function Textarea({ label, error, hint, className = "", id, ...props }: T
       {label ? (
         <label htmlFor={textareaId} className={ui.label}>
           {label}
+          {props.required ? (
+            <span className="ml-1 text-[var(--danger)]" aria-hidden="true">
+              *
+            </span>
+          ) : null}
         </label>
       ) : null}
       <textarea

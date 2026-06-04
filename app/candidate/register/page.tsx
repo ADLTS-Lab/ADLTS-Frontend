@@ -9,18 +9,24 @@ import { extractApiError } from "@/services/api-utils";
 import { Alert, AuthCard, AuthForm, AuthLink, Button, Input, Select } from "@/app/components/ui";
 import { getHomeRouteForRole } from "@/config/routes";
 
+const initialRegistrationForm = {
+  fullName: "",
+  email: "",
+  phone: "",
+  password: "",
+  confirmPassword: "",
+  fayida_id: "",
+  birth_date: "",
+  gender: "",
+};
+
+type RegistrationFormData = typeof initialRegistrationForm;
+type RegistrationFieldErrors = Partial<Record<keyof RegistrationFormData, string>>;
+
 export default function CandidateRegisterPage() {
   const router = useRouter();
-  const [formData, setFormData] = useState({
-    fullName: "",
-    email: "",
-    phone: "",
-    password: "",
-    confirmPassword: "",
-    fayida_id: "",
-    birth_date: "",
-    gender: "",
-  });
+  const [formData, setFormData] = useState<RegistrationFormData>(initialRegistrationForm);
+  const [fieldErrors, setFieldErrors] = useState<RegistrationFieldErrors>({});
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -39,41 +45,60 @@ export default function CandidateRegisterPage() {
   };
 
   const validateForm = () => {
-    if (!formData.fullName.trim() || !formData.email.trim() || !formData.phone.trim() || !formData.password.trim()) {
-      return "Please fill in all required fields before continuing.";
-    }
+    const nextErrors: RegistrationFieldErrors = {};
 
     const { nameParts } = splitFullName();
-    if (nameParts.length < 2) {
-      return "Enter your full name with at least first and last name.";
+    if (!formData.fullName.trim()) {
+      nextErrors.fullName = "Enter your full legal name.";
+    } else if (nameParts.length < 2) {
+      nextErrors.fullName = "Enter at least first and last name.";
     }
 
     const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailPattern.test(formData.email.trim())) {
-      return "Please enter a valid email address.";
+    if (!formData.email.trim()) {
+      nextErrors.email = "Enter the email address you will use for ADLTS.";
+    } else if (!emailPattern.test(formData.email.trim())) {
+      nextErrors.email = "Enter a valid email address, for example name@example.com.";
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      return "Passwords do not match.";
+    if (!formData.phone.trim()) {
+      nextErrors.phone = "Enter your phone number.";
     }
 
-    if (formData.password.length < 8) {
-      return "Password must be at least 8 characters long.";
+    if (!formData.password) {
+      nextErrors.password = "Create a password.";
+    } else if (formData.password.length < 8) {
+      nextErrors.password = "Password must be at least 8 characters long.";
     }
 
-    if (!formData.fayida_id.trim() || !formData.birth_date || !formData.gender) {
-      return "Please complete the required identity details before continuing.";
+    if (!formData.confirmPassword) {
+      nextErrors.confirmPassword = "Confirm your password.";
+    } else if (formData.password !== formData.confirmPassword) {
+      nextErrors.confirmPassword = "Passwords must match.";
     }
 
-    if (formData.gender === "other") {
-      return "Please select male or female. The backend currently accepts only those values.";
+    if (!formData.fayida_id.trim()) {
+      nextErrors.fayida_id = "Enter your Fayida ID.";
     }
 
-    return "";
+    if (!formData.birth_date) {
+      nextErrors.birth_date = "Select your birth date.";
+    } else if (new Date(formData.birth_date).getTime() > Date.now()) {
+      nextErrors.birth_date = "Birth date cannot be in the future.";
+    }
+
+    if (!formData.gender) {
+      nextErrors.gender = "Select male or female.";
+    } else if (formData.gender === "other") {
+      nextErrors.gender = "The backend currently accepts only male or female.";
+    }
+
+    return nextErrors;
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFieldErrors((current) => ({ ...current, [e.target.name]: undefined }));
     setError("");
     setSuccess("");
   };
@@ -83,9 +108,10 @@ export default function CandidateRegisterPage() {
     setError("");
     setSuccess("");
 
-    const validationError = validateForm();
-    if (validationError) {
-      setError(validationError);
+    const validationErrors = validateForm();
+    setFieldErrors(validationErrors);
+    if (Object.keys(validationErrors).length > 0) {
+      setError("Please fix the highlighted fields and try again.");
       return;
     }
 
@@ -172,7 +198,7 @@ export default function CandidateRegisterPage() {
             </>
           }
         >
-            <form onSubmit={handleVerifyOtp}>
+            <form onSubmit={handleVerifyOtp} noValidate>
               <AuthForm>
                 <Input label="Email" type="email" value={pendingEmail} readOnly className="bg-[var(--surface-2)]" />
                 <Input
@@ -186,6 +212,7 @@ export default function CandidateRegisterPage() {
                   inputMode="numeric"
                   autoComplete="one-time-code"
                   required
+                  error={error && !otpCode.trim() ? "Enter the OTP sent to your email." : undefined}
                 />
 
                 {success ? <Alert variant="success">{success}</Alert> : null}
@@ -213,7 +240,7 @@ export default function CandidateRegisterPage() {
           </>
         }
       >
-          <form onSubmit={handleRegister}>
+          <form onSubmit={handleRegister} noValidate>
             <AuthForm>
               <Input
                 label="Full name"
@@ -224,6 +251,7 @@ export default function CandidateRegisterPage() {
                 placeholder="Example: Abebe Kebede"
                 autoComplete="name"
                 required
+                error={fieldErrors.fullName}
               />
 
               <Input
@@ -233,6 +261,7 @@ export default function CandidateRegisterPage() {
                 value={formData.email}
                 onChange={handleChange}
                 required
+                error={fieldErrors.email}
               />
 
               <Input
@@ -242,6 +271,7 @@ export default function CandidateRegisterPage() {
                 value={formData.phone}
                 onChange={handleChange}
                 required
+                error={fieldErrors.phone}
               />
 
               <Input
@@ -251,6 +281,9 @@ export default function CandidateRegisterPage() {
                 value={formData.password}
                 onChange={handleChange}
                 required
+                minLength={8}
+                hint="Use at least 8 characters."
+                error={fieldErrors.password}
                 suffix={
                   <button
                     type="button"
@@ -270,6 +303,8 @@ export default function CandidateRegisterPage() {
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
+                minLength={8}
+                error={fieldErrors.confirmPassword}
               />
 
               <details open className="rounded-[8px] border border-[var(--border)] bg-[var(--surface-2)] px-4 py-3 text-sm text-[var(--text-secondary)]">
@@ -284,6 +319,7 @@ export default function CandidateRegisterPage() {
                     value={formData.fayida_id}
                     onChange={handleChange}
                     required
+                    error={fieldErrors.fayida_id}
                   />
                   <Input
                     label="Birth date"
@@ -292,8 +328,9 @@ export default function CandidateRegisterPage() {
                     value={formData.birth_date}
                     onChange={handleChange}
                     required
+                    error={fieldErrors.birth_date}
                   />
-                  <Select label="Gender" name="gender" value={formData.gender} onChange={handleChange} required>
+                  <Select label="Gender" name="gender" value={formData.gender} onChange={handleChange} required error={fieldErrors.gender}>
                     <option value="">Select</option>
                     <option value="male">Male</option>
                     <option value="female">Female</option>

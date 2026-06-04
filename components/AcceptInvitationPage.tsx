@@ -9,6 +9,32 @@ import { extractApiError } from "@/services/api-utils";
 import { acceptInvitation } from "@/services/invitations.service";
 
 type InvitationKind = "expert" | "institute";
+type InvitationForm = {
+  invitationKind: InvitationKind;
+  firstName: string;
+  middleName: string;
+  lastName: string;
+  institutionName: string;
+  phone: string;
+  employeeId: string;
+  fayidaId: string;
+  password: string;
+  confirmPassword: string;
+};
+type InvitationFieldErrors = Partial<Record<keyof InvitationForm, string>>;
+
+const emptyInvitationForm: InvitationForm = {
+  invitationKind: "expert",
+  firstName: "",
+  middleName: "",
+  lastName: "",
+  institutionName: "",
+  phone: "",
+  employeeId: "",
+  fayidaId: "",
+  password: "",
+  confirmPassword: "",
+};
 
 export function AcceptInvitationPage() {
   return (
@@ -25,18 +51,45 @@ function AcceptInvitationContent() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState(token ? "" : "Invitation token is missing. Ask the sender to resend the invitation.");
   const [success, setSuccess] = useState("");
-  const [form, setForm] = useState({
-    invitationKind: "expert" as InvitationKind,
-    firstName: "",
-    middleName: "",
-    lastName: "",
-    institutionName: "",
-    phone: "",
-    employeeId: "",
-    fayidaId: "",
-    password: "",
-    confirmPassword: "",
-  });
+  const [fieldErrors, setFieldErrors] = useState<InvitationFieldErrors>({});
+  const [form, setForm] = useState<InvitationForm>(emptyInvitationForm);
+
+  const validateForm = () => {
+    const nextErrors: InvitationFieldErrors = {};
+
+    if (!token) {
+      nextErrors.password = "Use a valid invitation link before setting a password.";
+    }
+
+    if (form.invitationKind === "expert") {
+      if (!form.firstName.trim()) nextErrors.firstName = "Enter your first name.";
+      if (!form.lastName.trim()) nextErrors.lastName = "Enter your last name.";
+      if (!form.fayidaId.trim()) nextErrors.fayidaId = "Enter your Fayida ID.";
+      if (!form.employeeId.trim()) nextErrors.employeeId = "Enter your employee ID.";
+    } else if (!form.institutionName.trim()) {
+      nextErrors.institutionName = "Enter the institution name.";
+    }
+
+    if (!form.password) {
+      nextErrors.password = "Create a password.";
+    } else if (form.password.length < 8) {
+      nextErrors.password = "Password must be at least 8 characters long.";
+    }
+
+    if (!form.confirmPassword) {
+      nextErrors.confirmPassword = "Confirm your password.";
+    } else if (form.password !== form.confirmPassword) {
+      nextErrors.confirmPassword = "Passwords must match.";
+    }
+
+    return nextErrors;
+  };
+
+  const updateForm = (nextForm: InvitationForm) => {
+    setForm(nextForm);
+    setFieldErrors({});
+    setError(token ? "" : "Invitation token is missing. Ask the sender to resend the invitation.");
+  };
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -44,8 +97,10 @@ function AcceptInvitationContent() {
     setError("");
     setSuccess("");
 
-    if (form.password !== form.confirmPassword) {
-      setError("Password and confirm password must match.");
+    const validationErrors = validateForm();
+    setFieldErrors(validationErrors);
+    if (Object.keys(validationErrors).length > 0) {
+      setError("Please fix the highlighted fields and try again.");
       setIsSubmitting(false);
       return;
     }
@@ -80,8 +135,9 @@ function AcceptInvitationContent() {
       isLoading={false}
       isSubmitting={isSubmitting}
       success={success}
+      fieldErrors={fieldErrors}
       token={token}
-      onFormChange={setForm}
+      onFormChange={updateForm}
       onSubmit={handleSubmit}
     />
   );
@@ -94,43 +150,23 @@ function AcceptInvitationShell({
   isLoading = false,
   isSubmitting = false,
   success = "",
+  fieldErrors = {},
   token = "",
   onFormChange,
   onSubmit,
 }: {
   error?: string;
-  form?: {
-    invitationKind: InvitationKind;
-    firstName: string;
-    middleName: string;
-    lastName: string;
-    institutionName: string;
-    phone: string;
-    employeeId: string;
-    fayidaId: string;
-    password: string;
-    confirmPassword: string;
-  };
+  form?: InvitationForm;
   isActivated?: boolean;
   isLoading?: boolean;
   isSubmitting?: boolean;
   success?: string;
+  fieldErrors?: InvitationFieldErrors;
   token?: string;
   onFormChange?: (value: NonNullable<typeof form>) => void;
   onSubmit?: (event: React.FormEvent) => void;
 }) {
-  const currentForm = form ?? {
-    invitationKind: "expert" as InvitationKind,
-    firstName: "",
-    middleName: "",
-    lastName: "",
-    institutionName: "",
-    phone: "",
-    employeeId: "",
-    fayidaId: "",
-    password: "",
-    confirmPassword: "",
-  };
+  const currentForm = form ?? emptyInvitationForm;
   const isExpert = currentForm.invitationKind === "expert";
 
   return (
@@ -155,7 +191,7 @@ function AcceptInvitationShell({
             <div className="h-12 animate-pulse rounded-[8px] bg-[var(--surface-2)]" />
           </div>
         ) : (
-          <form onSubmit={onSubmit} className="space-y-4">
+          <form onSubmit={onSubmit} className="space-y-4" noValidate>
             <Alert variant="info">
               The backend validates the token and determines the actual account type. Choose the type shown in your invitation email so the correct profile fields are submitted.
             </Alert>
@@ -177,6 +213,7 @@ function AcceptInvitationShell({
                   value={currentForm.firstName}
                   onChange={(event) => onFormChange?.({ ...currentForm, firstName: event.target.value })}
                   required
+                  error={fieldErrors.firstName}
                   disabled={!token || isActivated}
                 />
                 <Input
@@ -184,6 +221,7 @@ function AcceptInvitationShell({
                   value={currentForm.lastName}
                   onChange={(event) => onFormChange?.({ ...currentForm, lastName: event.target.value })}
                   required
+                  error={fieldErrors.lastName}
                   disabled={!token || isActivated}
                 />
                 <Input
@@ -196,6 +234,8 @@ function AcceptInvitationShell({
                   label="Employee ID"
                   value={currentForm.employeeId}
                   onChange={(event) => onFormChange?.({ ...currentForm, employeeId: event.target.value })}
+                  required
+                  error={fieldErrors.employeeId}
                   disabled={!token || isActivated}
                 />
               </div>
@@ -205,6 +245,7 @@ function AcceptInvitationShell({
                 value={currentForm.institutionName}
                 onChange={(event) => onFormChange?.({ ...currentForm, institutionName: event.target.value })}
                 required
+                error={fieldErrors.institutionName}
                 disabled={!token || isActivated}
               />
             )}
@@ -220,6 +261,8 @@ function AcceptInvitationShell({
                 label="Fayida ID"
                 value={currentForm.fayidaId}
                 onChange={(event) => onFormChange?.({ ...currentForm, fayidaId: event.target.value })}
+                required={isExpert}
+                error={fieldErrors.fayidaId}
                 disabled={!token || isActivated || !isExpert}
               />
             </div>
@@ -232,6 +275,8 @@ function AcceptInvitationShell({
                 onChange={(event) => onFormChange?.({ ...currentForm, password: event.target.value })}
                 minLength={8}
                 required
+                hint="Use at least 8 characters."
+                error={fieldErrors.password}
                 disabled={!token || isActivated}
               />
               <Input
@@ -241,6 +286,7 @@ function AcceptInvitationShell({
                 onChange={(event) => onFormChange?.({ ...currentForm, confirmPassword: event.target.value })}
                 minLength={8}
                 required
+                error={fieldErrors.confirmPassword}
                 disabled={!token || isActivated}
               />
             </div>

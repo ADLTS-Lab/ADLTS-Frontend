@@ -49,10 +49,17 @@ export function AuthLink({ href, children }: { href: string; children: ReactNode
   );
 }
 
-export function LabelRow({ label, action }: { label: string; action?: ReactNode }) {
+export function LabelRow({ label, action, required = false }: { label: string; action?: ReactNode; required?: boolean }) {
   return (
     <div className="mb-1.5 flex items-center justify-between gap-2">
-      <span className={ui.label}>{label}</span>
+      <span className={ui.label}>
+        {label}
+        {required ? (
+          <span className="ml-1 text-[var(--danger)]" aria-hidden="true">
+            *
+          </span>
+        ) : null}
+      </span>
       {action}
     </div>
   );

@@ -17,7 +17,16 @@ export function Input({ label, error, hint, suffix, className = "", id, ...props
 
   return (
     <div className="space-y-1.5">
-      {label ? <label htmlFor={inputId} className={ui.label}>{label}</label> : null}
+      {label ? (
+        <label htmlFor={inputId} className={ui.label}>
+          {label}
+          {props.required ? (
+            <span className="ml-1 text-[var(--danger)]" aria-hidden="true">
+              *
+            </span>
+          ) : null}
+        </label>
+      ) : null}
       <div className="relative">
         <input
           id={inputId}

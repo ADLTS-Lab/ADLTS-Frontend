@@ -11,7 +11,9 @@ import { getHomeRouteForRole, type AppRole } from "@/config/routes";
 import { extractApiError } from "@/services/api-utils";
 import { Alert, AuthCard, AuthForm, AuthLink, Button, Input, LabelRow } from "@/app/components/ui";
 
-const isDevelopment = process.env.NODE_ENV === "development";
+const showDevLoginShortcuts =
+  process.env.NODE_ENV === "development" &&
+  process.env.NEXT_PUBLIC_ENABLE_DEV_LOGIN === "true";
 
 const devUsers: Array<{
   label: string;
@@ -162,7 +164,7 @@ export default function UnifiedLoginPage() {
           </>
         }
       >
-          <form onSubmit={handleLogin}>
+          <form onSubmit={handleLogin} noValidate>
             <AuthForm>
               <Input
                 label={t("emailLabel")}
@@ -177,6 +179,7 @@ export default function UnifiedLoginPage() {
               <div>
                 <LabelRow
                   label={t("passwordLabel")}
+                  required
                   action={
                     <Link href="/forgot-password" className="text-xs font-medium text-[var(--accent)] hover:text-[var(--accent-hover)]">
                       {t("forgotPassword")}
@@ -209,7 +212,7 @@ export default function UnifiedLoginPage() {
                 {isLoading ? t("loginLoading") : t("loginButton")}
               </Button>
 
-              {isDevelopment ? (
+              {showDevLoginShortcuts ? (
                 <div className="border-t border-[var(--border)] pt-4">
                   <p className="mb-3 text-center text-[12px] font-semibold uppercase tracking-normal text-[var(--text-secondary)]">
                     DEV ONLY AUTH BYPASS - REMOVE BEFORE PRODUCTION
